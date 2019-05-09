@@ -21,8 +21,13 @@ RUN apk add --no-cache \
         py3-dateutil \
         py3-markupsafe \
         py3-six \
-      #hangups TODO
-
+      #hangups
+        py3-async-timeout \
+        py3-requests \
+        #py3-protobuf \
+        py3-urwid \
+        #mechanicalsoup
+          py3-beautifulsoup4 \
       py3-idna \
       # Other dependencies
       ca-certificates \
