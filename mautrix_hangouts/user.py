@@ -275,7 +275,7 @@ class User:
             timestamp = int(time.time() * 1_000_000)
         await self.client.update_watermark(hangouts.UpdateWatermarkRequest(
             request_header=self.client.get_request_header(),
-            conversation_id=conversation_id,
+            conversation_id=hangouts.ConversationId(id=conversation_id),
             last_read_timestamp=timestamp,
         ))
 
