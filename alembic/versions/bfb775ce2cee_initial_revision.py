@@ -51,7 +51,7 @@ def upgrade():
     sa.Column('gid', sa.String(length=255), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=True),
     sa.Column('photo_url', sa.String(length=255), nullable=True),
-    sa.Column('matrix_registered', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('matrix_registered', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('custom_mxid', sa.String(length=255), nullable=True),
     sa.Column('access_token', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('gid')
