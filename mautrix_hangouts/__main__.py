@@ -34,6 +34,7 @@ class MessengerBridge(Bridge):
     name = "mautrix-hangouts"
     command = "python -m mautrix-hangouts"
     description = "A Matrix-Hangouts puppeting bridge."
+    real_user_content_key = "net.maunium.hangouts.puppet"
     version = __version__
     config_class = Config
     matrix_class = MatrixHandler
