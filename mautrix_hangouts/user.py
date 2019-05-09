@@ -234,7 +234,7 @@ class User:
     async def set_typing(self, conversation_id: str, typing: bool) -> None:
         await self.client.set_typing(hangouts.SetTypingRequest(
             request_header=self.client.get_request_header(),
-            conversation_id=conversation_id,
+            conversation_id=hangouts.ConversationId(id=conversation_id),
             type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
         ))
 
