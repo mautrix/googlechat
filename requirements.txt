@@ -1,0 +1,8 @@
+aiohttp
+SQLAlchemy
+alembic
+ruamel.yaml
+commonmark
+python-magic
+hangups
+git+https://github.com/tulir/mautrix-python@matrix-restructure#egg=mautrix
