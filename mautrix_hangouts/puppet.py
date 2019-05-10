@@ -112,7 +112,7 @@ class Puppet(CustomPuppetMixin):
 
     def default_puppet_should_leave_room(self, room_id: RoomID) -> bool:
         portal = p.Portal.get_by_mxid(room_id)
-        return portal and portal.gid != self.gid
+        return portal and portal.other_user_id != self.gid
 
     def intent_for(self, portal: 'p.Portal') -> IntentAPI:
         if portal.gid == self.gid:
