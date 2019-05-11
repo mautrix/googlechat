@@ -17,6 +17,7 @@ from typing import Dict, Deque, Optional, Tuple, Union, Set, TYPE_CHECKING
 from collections import deque
 import asyncio
 import logging
+import io
 
 from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
 from hangups.user import User as HangoutsUser
@@ -285,8 +286,8 @@ class Portal:
                 gid = await self._handle_matrix_text(sender, message)
             elif message.msgtype == MessageType.EMOTE:
                 gid = await self._handle_matrix_emote(sender, message)
-            # elif message.msgtype == MessageType.IMAGE:
-            #     gid = await self._handle_matrix_image(sender, message)
+            elif message.msgtype == MessageType.IMAGE:
+                gid = await self._handle_matrix_image(sender, message)
             # elif message.msgtype == MessageType.LOCATION:
             #     gid = await self._handle_matrix_location(sender, message)
             else:
@@ -304,11 +305,12 @@ class Portal:
     async def _handle_matrix_emote(self, sender: 'u.User', message: TextMessageEventContent) -> str:
         return await sender.send_emote(self.gid, message.body)
 
-    # async def _handle_matrix_image(self, sender: 'u.User',
-    #                                message: MediaMessageEventContent) -> str:
-    #     pass
-    #     data = await self.main_intent.download_media(message.url)
-    #     mime = message.info.mimetype or magic.from_buffer(data, mime=True)
+    async def _handle_matrix_image(self, sender: 'u.User',
+                                   message: MediaMessageEventContent) -> str:
+        data = await self.main_intent.download_media(message.url)
+        image = await sender.client.upload_image(io.BytesIO(data), filename=message.body)
+        return await sender.send_image(self.gid, image)
+
     #
     # async def _handle_matrix_location(self, sender: 'u.User',
     #                                   message: LocationMessageEventContent) -> str:
@@ -339,8 +341,8 @@ class Portal:
             if self.invite_own_puppet_to_pm:
                 await self.main_intent.invite_user(self.mxid, sender.mxid)
             elif self.az.state_store.get_membership(self.mxid, sender.mxid) != Membership.JOIN:
-                self.log.warn(f"Ignoring own message {event.id_} in private chat because own"
-                              " puppet is not in room.")
+                self.log.debug(f"Ignoring own message {event.id_} in private chat because own"
+                               " puppet is not in room.")
                 return
         async with self.optional_send_lock(sender.gid):
             if event.id_ in self._dedup:
@@ -349,8 +351,14 @@ class Portal:
         if not self.mxid:
             await self.create_matrix_room(source)
         intent = sender.intent_for(self)
+        self.log.debug(f"Attachments: {event.attachments}")
         event_id = await intent.send_text(self.mxid, event.text)
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_).insert()
+
+    async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
+                                     ) -> None:
+        await sender.intent_for(self).set_typing(self.mxid, status == hangouts.TYPING_TYPE_STARTED,
+                                                 timeout=6000)
 
     # endregion
     # region Getters

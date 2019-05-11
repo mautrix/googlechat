@@ -21,11 +21,12 @@ import logging
 import time
 
 import hangups
-from hangups import Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent, \
-    MembershipChangeEvent
+from hangups import (hangouts_pb2 as hangouts,
+                     Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
+                     MembershipChangeEvent)
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage
-from hangups import hangouts_pb2 as hangouts
+from hangups.client import UploadedImage
 
 from mautrix.types import UserID
 from mautrix.appservice import AppService
@@ -224,46 +225,59 @@ class User:
     async def on_typing(self, event: TypingStatusMessage):
         portal = po.Portal.get_by_gid(event.conv_id)
         if not portal:
-            return False
-        self.log.info(
-            f"{event.user_id} is typing({event.status}) in {event.conv_id} at {event.timestamp}")
+            return
+        sender = pu.Puppet.get_by_gid(event.user_id.gaia_id, create=False)
+        if not sender:
+            return
+        await portal.handle_hangouts_typing(self, sender, event.status)
 
     # endregion
     # region Hangouts API calls
 
     async def set_typing(self, conversation_id: str, typing: bool) -> None:
+        self.log.debug(f"set_typing({conversation_id}, {typing})")
         await self.client.set_typing(hangouts.SetTypingRequest(
             request_header=self.client.get_request_header(),
             conversation_id=hangouts.ConversationId(id=conversation_id),
             type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
         ))
 
+    def _get_event_request_header(self, conversation_id: str) -> hangouts.EventRequestHeader:
+        return hangouts.EventRequestHeader(
+            conversation_id=hangouts.ConversationId(
+                id=conversation_id,
+            ),
+            client_generated_id=self.client.get_client_generated_id(),
+        )
+
     async def send_emote(self, conversation_id: str, text: str) -> str:
         resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
+            request_header=self.client.get_request_header(),
             annotation=[hangouts.EventAnnotation(type=4)],
-            event_request_header=hangouts.EventRequestHeader(
-                conversation_id=hangouts.ConversationId(
-                    id=conversation_id,
-                ),
-                client_generated_id=self.client.get_client_generated_id(),
-            ),
+            event_request_header=self._get_event_request_header(conversation_id),
             message_content=hangouts.MessageContent(
-                segment=[hangups.ChatMessageSegment(text).serialize()]
-            )
+                segment=[hangups.ChatMessageSegment(text).serialize()],
+            ),
         ))
         return resp.created_event.event_id
 
     async def send_text(self, conversation_id: str, text: str) -> str:
         resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
-            event_request_header=hangouts.EventRequestHeader(
-                conversation_id=hangouts.ConversationId(
-                    id=conversation_id,
-                ),
-                client_generated_id=self.client.get_client_generated_id(),
-            ),
+            request_header=self.client.get_request_header(),
+            event_request_header=self._get_event_request_header(conversation_id),
             message_content=hangouts.MessageContent(
-                segment=[hangups.ChatMessageSegment(text).serialize()]
-            )
+                segment=[hangups.ChatMessageSegment(text).serialize()],
+            ),
+        ))
+        return resp.created_event.event_id
+
+    async def send_image(self, conversation_id: str, id: str) -> str:
+        resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
+            request_header=self.client.get_request_header(),
+            event_request_header=self._get_event_request_header(conversation_id),
+            existing_media=hangouts.ExistingMedia(
+                photo=hangouts.Photo(photo_id=id),
+            ),
         ))
         return resp.created_event.event_id
 
