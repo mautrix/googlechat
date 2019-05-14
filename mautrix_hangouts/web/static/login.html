@@ -49,6 +49,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		<h1>Log in to Hangouts</h1>
 
 		<form>
+			<p>
+				There are two login modes:
+			</p>
+			<ul>
+				<li>
+					Automatic (the default) will ask for your email, password and optionally a
+					2-factor verification code, and handle the login process internally.
+					Your password will not be stored anywhere. Automatic login may not always work.
+				</li>
+				<li>
+					Manual mode will tell you how to log in and extract the OAuth token from browser
+					cookies manually. If you do not feel comfortable entering your Google password
+					here, use the manual login.
+				</li>
+			</ul>
+
 			<div>
 				<label for="start-mxid">Matrix User ID</label>
 				<input type="text" id="start-mxid" disabled/>
@@ -72,8 +88,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<h4>Instructions to get authorization cookie value</h4>
 				<ol>
 					<li>
-						Open <a id="manual-login-link" href="javascript:alert('Link not set')">
-						this link</a> in your browser.
+						Open
+						<a id="manual-login-link" target="_blank"
+						   href="javascript:alert('Fatal error: Login link not set')">
+							this link
+						</a>
+						in your browser.
 					</li>
 					<li>
 						Log into your Google account normally.
@@ -103,10 +123,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<input type="text" id="email"/>
 			</div>
 			<div class="password container hidden">
+				<p>
+					Your password will only be used to log in once, it will not be stored on the
+					server.
+				</p>
 				<label for="password">Password</label>
 				<input type="password" id="password"/>
 			</div>
 			<div class="verification container hidden">
+				<p>
+					You have two-factor authentication enabled. Please enter your verification code.
+				</p>
 				<label for="verification">Verification code</label>
 				<input type="text" id="verification"/>
 			</div>
