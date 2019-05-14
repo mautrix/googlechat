@@ -88,7 +88,7 @@ class Puppet(CustomPuppetMixin):
 
     @property
     def is_registered(self) -> bool:
-        return self.is_registered or self.is_real_user
+        return self._is_registered or self.is_real_user
 
     # region DB conversion
 
