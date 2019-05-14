@@ -13,7 +13,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Any, Dict, Iterator, Optional, Iterable, List, Awaitable, Union, TYPE_CHECKING
+from typing import (Any, Dict, Iterator, Optional, Iterable, List, Awaitable, Union, Callable,
+                    TYPE_CHECKING)
 from concurrent import futures
 import datetime
 import asyncio
@@ -196,10 +197,23 @@ class User:
         return (pu.Puppet.get_by_gid(info.id_.gaia_id, create=True).update_info(self, info)
                 for info in users.get_all())
 
+    def _ensure_future_proxy(self, method: Callable[[Any], Awaitable[None]]
+                             ) -> Callable[[Any], Awaitable[None]]:
+        async def try_proxy(*args, **kwargs) -> None:
+            try:
+                await method(*args, **kwargs)
+            except Exception:
+                self.log.exception("Exception in event handler")
+
+        async def proxy(*args, **kwargs) -> None:
+            asyncio.ensure_future(try_proxy(*args, **kwargs))
+
+        return proxy
+
     def sync_chats(self, chats: ConversationList) -> Iterable[Awaitable[None]]:
         self.chats = chats
-        self.chats.on_event.add_observer(self.on_event)
-        self.chats.on_typing.add_observer(self.on_typing)
+        self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
+        self.chats.on_typing.add_observer(self._ensure_future_proxy(self.on_typing))
         quota = config["bridge.initial_chat_sync"]
         return (po.Portal.get_by_conversation(info).create_matrix_room(self, info)
                 for info in self.chats.get_all(include_archived=False)[:quota])

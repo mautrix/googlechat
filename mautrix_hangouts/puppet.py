@@ -53,7 +53,7 @@ class Puppet(CustomPuppetMixin):
     name: str
     photo_url: str
 
-    is_registered: bool
+    _is_registered: bool
 
     custom_mxid: UserID
     access_token: str
@@ -69,7 +69,7 @@ class Puppet(CustomPuppetMixin):
         self.name = name
         self.photo_url = photo_url
 
-        self.is_registered = is_registered
+        self._is_registered = is_registered
 
         self.custom_mxid = custom_mxid
         self.access_token = access_token
@@ -86,13 +86,17 @@ class Puppet(CustomPuppetMixin):
         if self.custom_mxid:
             self.by_custom_mxid[self.custom_mxid] = self
 
+    @property
+    def is_registered(self) -> bool:
+        return self.is_registered or self.is_real_user
+
     # region DB conversion
 
     @property
     def db_instance(self) -> DBPuppet:
         if not self._db_instance:
             self._db_instance = DBPuppet(gid=self.gid, name=self.name, photo_url=self.photo_url,
-                                         matrix_registered=self.is_registered,
+                                         matrix_registered=self._is_registered,
                                          custom_mxid=self.custom_mxid,
                                          access_token=self.access_token)
         return self._db_instance
@@ -105,7 +109,7 @@ class Puppet(CustomPuppetMixin):
 
     def save(self) -> None:
         self.db_instance.edit(name=self.name, photo_url=self.photo_url,
-                              matrix_registered=self.is_registered, custom_mxid=self.custom_mxid,
+                              matrix_registered=self._is_registered, custom_mxid=self.custom_mxid,
                               access_token=self.access_token)
 
     # endregion
