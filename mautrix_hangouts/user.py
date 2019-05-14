@@ -190,7 +190,7 @@ class User:
 
     async def sync(self) -> None:
         users, chats = await hangups.build_user_conversation_list(self.client)
-        await asyncio.gather(*self.sync_users(users), *self.sync_chats(chats), loop=self.loop)
+        await asyncio.gather(*self.sync_users(users), self.sync_chats(chats), loop=self.loop)
 
     def sync_users(self, users: UserList) -> Iterable[Awaitable[None]]:
         self.users = users
@@ -210,13 +210,22 @@ class User:
 
         return proxy
 
-    def sync_chats(self, chats: ConversationList) -> Iterable[Awaitable[None]]:
+    async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
         self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
         self.chats.on_typing.add_observer(self._ensure_future_proxy(self.on_typing))
-        quota = config["bridge.initial_chat_sync"]
-        return (po.Portal.get_by_conversation(info).create_matrix_room(self, info)
-                for info in self.chats.get_all(include_archived=False)[:quota])
+        self.log.debug("Fetching recent conversations to create portals for")
+        res = await self.client.sync_recent_conversations(hangouts.SyncRecentConversationsRequest(
+            request_header=self.client.get_request_header(),
+            max_conversations=config["bridge.initial_chat_sync"],
+            max_events_per_conversation=1,
+            sync_filter=[hangouts.SYNC_FILTER_INBOX],
+        ))
+        res = sorted((conv_state.conversation for conv_state in res.conversation_state),
+                     reverse=True, key=lambda conv: conv.self_conversation_state.sort_timestamp)
+        res = (chats.get(conv.conversation_id.id) for conv in res)
+        await asyncio.gather(*[po.Portal.get_by_conversation(info).create_matrix_room(self, info)
+                               for info in res], loop=self.loop)
 
     # region Hangouts event handling
 
