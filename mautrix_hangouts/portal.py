@@ -193,10 +193,16 @@ class Portal:
     async def create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
                                  ) -> RoomID:
         if self.mxid:
-            await self._update_matrix_room(source, info)
+            try:
+                await self._update_matrix_room(source, info)
+            except Exception:
+                self.log.exception("Failed to update portal")
             return self.mxid
         async with self._create_room_lock:
-            await self._create_matrix_room(source, info)
+            try:
+                await self._create_matrix_room(source, info)
+            except Exception:
+                self.log.exception("Failed to create portal")
 
     async def _create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
                                   ) -> RoomID:
@@ -210,6 +216,8 @@ class Portal:
         if self.is_direct:
             users = [user for user in info.users if user.id_.gaia_id != source.gid]
             self.other_user_id = users[0].id_.gaia_id
+            puppet = p.Puppet.get_by_gid(self.other_user_id)
+            await puppet.update_info(source=source, info=info.get_user(self.other_user_id))
         else:
             name = self.name
         self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
@@ -357,6 +365,11 @@ class Portal:
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
                                      ) -> None:
+        if not self.mxid:
+            return
+        if ((self.is_direct and sender.gid == source.gid
+             and self.az.state_store.get_membership(self.mxid, sender.mxid) != Membership.JOIN)):
+            return
         await sender.intent_for(self).set_typing(self.mxid, status == hangouts.TYPING_TYPE_STARTED,
                                                  timeout=6000)
 

@@ -90,6 +90,10 @@ class Puppet(CustomPuppetMixin):
     def is_registered(self) -> bool:
         return self._is_registered or self.is_real_user
 
+    @is_registered.setter
+    def is_registered(self, value: bool) -> None:
+        self._is_registered = value
+
     # region DB conversion
 
     @property
@@ -173,6 +177,8 @@ class Puppet(CustomPuppetMixin):
 
     @classmethod
     def get_by_gid(cls, gid: str, create: bool = True) -> Optional['Puppet']:
+        if not gid:
+            return None
         try:
             return cls.by_gid[gid]
         except KeyError:

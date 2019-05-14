@@ -190,12 +190,14 @@ class User:
 
     async def sync(self) -> None:
         users, chats = await hangups.build_user_conversation_list(self.client)
-        await asyncio.gather(*self.sync_users(users), self.sync_chats(chats), loop=self.loop)
+        await asyncio.gather(self.sync_users(users), self.sync_chats(chats), loop=self.loop)
 
-    def sync_users(self, users: UserList) -> Iterable[Awaitable[None]]:
+    async def sync_users(self, users: UserList) -> None:
         self.users = users
-        return (pu.Puppet.get_by_gid(info.id_.gaia_id, create=True).update_info(self, info)
-                for info in users.get_all())
+        #puppets = ((pu.Puppet.get_by_gid(info.id_.gaia_id, create=True), info)
+        #           for info in users.get_all())
+        #await asyncio.gather(*[puppet.update_info(self, info)
+        #                       for puppet, info in puppets if puppet], loop=self.loop)
 
     def _ensure_future_proxy(self, method: Callable[[Any], Awaitable[None]]
                              ) -> Callable[[Any], Awaitable[None]]:
