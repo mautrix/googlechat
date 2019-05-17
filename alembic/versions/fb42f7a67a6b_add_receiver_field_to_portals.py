@@ -27,7 +27,7 @@ def upgrade():
                     sa.UniqueConstraint("mxid"))
     c = op.get_bind()
     c.execute("INSERT INTO _portal_temp (gid, receiver, conv_type, other_user_id, mxid, name) "
-              "SELECT portal.gid, (CASE WHEN portal.conv_type == 2 THEN portal.gid ELSE '' END), "
+              "SELECT portal.gid, (CASE WHEN portal.conv_type = 2 THEN portal.gid ELSE '' END), "
               "       portal.conv_type, portal.other_user_id, portal.mxid, portal.name "
               "FROM portal")
     c.execute("DROP TABLE portal")
