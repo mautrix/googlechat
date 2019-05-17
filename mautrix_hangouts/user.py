@@ -194,8 +194,6 @@ class User:
 
     async def sync_users(self, users: UserList) -> None:
         self.users = users
-        for info in users.get_all():
-            self.log.info(f"User: {info.id_.gaia_id}, {info.full_name}, {info.is_self}")
         #puppets = ((pu.Puppet.get_by_gid(info.id_.gaia_id, create=True), info)
         #           for info in users.get_all())
         #await asyncio.gather(*[puppet.update_info(self, info)
