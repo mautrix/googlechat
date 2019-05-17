@@ -194,6 +194,8 @@ class User:
 
     async def sync_users(self, users: UserList) -> None:
         self.users = users
+        for info in users.get_all():
+            self.log.info(f"User: {info.id_.gaia_id}, {info.full_name}, {info.is_self}")
         #puppets = ((pu.Puppet.get_by_gid(info.id_.gaia_id, create=True), info)
         #           for info in users.get_all())
         #await asyncio.gather(*[puppet.update_info(self, info)
@@ -226,14 +228,14 @@ class User:
         res = sorted((conv_state.conversation for conv_state in res.conversation_state),
                      reverse=True, key=lambda conv: conv.self_conversation_state.sort_timestamp)
         res = (chats.get(conv.conversation_id.id) for conv in res)
-        await asyncio.gather(*[po.Portal.get_by_conversation(info).create_matrix_room(self, info)
+        await asyncio.gather(*[po.Portal.get_by_conversation(info, self.gid).create_matrix_room(self, info)
                                for info in res], loop=self.loop)
 
     # region Hangouts event handling
 
     async def on_event(self, event: ConversationEvent) -> None:
         conv: Conversation = self.chats.get(event.conversation_id)
-        portal = po.Portal.get_by_conversation(conv)
+        portal = po.Portal.get_by_conversation(conv, self.gid)
         if not portal:
             return
 
@@ -248,7 +250,7 @@ class User:
             self.log.info(f"Unrecognized event {event}")
 
     async def on_typing(self, event: TypingStatusMessage):
-        portal = po.Portal.get_by_gid(event.conv_id)
+        portal = po.Portal.get_by_gid(event.conv_id, self.gid)
         if not portal:
             return
         sender = pu.Puppet.get_by_gid(event.user_id.gaia_id, create=False)

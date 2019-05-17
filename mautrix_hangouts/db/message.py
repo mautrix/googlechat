@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Optional, Iterable, List
+from typing import Optional
 
 from sqlalchemy import Column, String, SmallInteger, UniqueConstraint, and_
 from sqlalchemy.engine.result import RowProxy
@@ -30,13 +30,15 @@ class Message(Base):
     mxid: EventID = Column(String(255))
     mx_room: RoomID = Column(String(255))
     gid: str = Column(String(255), primary_key=True)
+    receiver: str = Column(String(255), primary_key=True)
+    index: int = Column(SmallInteger, primary_key=True)
 
     __table_args__ = (UniqueConstraint("mxid", "mx_room", name="_mx_id_room"),)
 
     @classmethod
     def scan(cls, row: RowProxy) -> 'Message':
-        mxid, mx_room, gid, receiver = row
-        return cls(mxid=mxid, mx_room=mx_room, gid=gid)
+        mxid, mx_room, gid, receiver, index = row
+        return cls(mxid=mxid, mx_room=mx_room, gid=gid, receiver=receiver, index=index)
 
     @classmethod
     def get_by_gid(cls, gid: str) -> Optional['Message']:
@@ -52,4 +54,6 @@ class Message(Base):
 
     def insert(self) -> None:
         with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(mxid=self.mxid, mx_room=self.mx_room, gid=self.gid))
+            conn.execute(self.t.insert().values(mxid=self.mxid, mx_room=self.mx_room,
+                                                gid=self.gid, receiver=self.receiver,
+                                                index=self.index,))

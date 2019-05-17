@@ -13,10 +13,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Optional
+from typing import Optional, Iterator
 
-from sqlalchemy import Column, String, SmallInteger, and_
+from sqlalchemy import Column, String, SmallInteger, and_, or_
 from sqlalchemy.engine.result import RowProxy
+
+from hangups import hangouts_pb2 as hangouts
 
 from mautrix.types import RoomID
 from mautrix.bridge.db.base import Base
@@ -27,6 +29,7 @@ class Portal(Base):
 
     # Hangouts chat information
     gid: str = Column(String(255), primary_key=True)
+    receiver: str = Column(String(255), primary_key=True)
     conv_type: int = Column(SmallInteger, nullable=False)
     other_user_id: str = Column(String(255), nullable=True)
 
@@ -38,23 +41,31 @@ class Portal(Base):
 
     @classmethod
     def scan(cls, row: RowProxy) -> Optional['Portal']:
-        gid, conv_type, other_user_id, mxid, name = row
-        return cls(gid=gid, conv_type=conv_type, other_user_id=other_user_id, mxid=mxid, name=name)
+        gid, receiver, conv_type, other_user_id, mxid, name = row
+        return cls(gid=gid, receiver=receiver, conv_type=conv_type, other_user_id=other_user_id,
+                   mxid=mxid, name=name)
 
     @classmethod
-    def get_by_gid(cls, gid: str) -> Optional['Portal']:
-        return cls._select_one_or_none(cls.c.gid == gid)
+    def get_by_gid(cls, gid: str, receiver: str) -> Optional['Portal']:
+        return cls._select_one_or_none(cls.c.gid == gid, or_(cls.c.receiver == receiver,
+                                                             cls.c.receiver == ""))
 
     @classmethod
     def get_by_mxid(cls, mxid: RoomID) -> Optional['Portal']:
         return cls._select_one_or_none(cls.c.mxid == mxid)
 
+    @classmethod
+    def get_all_by_receiver(cls, receiver: str) -> Iterator['Portal']:
+        return cls._select_all(and_(cls.c.receiver == receiver,
+                                    cls.c.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE))
+
     @property
     def _edit_identity(self):
-        return self.c.gid == self.gid
+        return and_(self.c.gid == self.gid, self.c.receiver == self.receiver)
 
     def insert(self) -> None:
         with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(gid=self.gid, conv_type=self.conv_type,
-                                                other_user_id=self.other_user_id, mxid=self.mxid,
-                                                name=self.name))
+            conn.execute(self.t.insert().values(gid=self.gid, receiver=self.receiver,
+                                                conv_type=self.conv_type,
+                                                other_user_id=self.other_user_id,
+                                                mxid=self.mxid, name=self.name))

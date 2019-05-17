@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Deque, Optional, Tuple, Union, Set, TYPE_CHECKING
+from typing import Dict, Deque, Optional, Tuple, Union, Set, Iterator, TYPE_CHECKING
 from collections import deque
 import asyncio
 import logging
@@ -22,12 +22,10 @@ import io
 from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
 from hangups.user import User as HangoutsUser
 from hangups.conversation import Conversation as HangoutsChat
-from mautrix.types import (RoomID, EventType, ContentURI, MessageEventContent, EventID,
-                           ImageInfo, MessageType, LocationMessageEventContent, LocationInfo,
-                           ThumbnailInfo, FileInfo, AudioInfo, VideoInfo, Format,
+from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType,
                            TextMessageEventContent, MediaMessageEventContent, Membership)
 from mautrix.appservice import AppService, IntentAPI
-from mautrix.errors import MForbidden, IntentError, MatrixError
+from mautrix.errors import MatrixError
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage
@@ -53,9 +51,10 @@ class Portal:
     log: logging.Logger = logging.getLogger("mau.portal")
     invite_own_puppet_to_pm: bool = False
     by_mxid: Dict[RoomID, 'Portal'] = {}
-    by_gid: Dict[str, 'Portal'] = {}
+    by_gid: Dict[Tuple[str, str], 'Portal'] = {}
 
     gid: str
+    receiver: Optional[str]
     conv_type: int
     other_user_id: Optional[str]
     mxid: Optional[RoomID]
@@ -72,10 +71,13 @@ class Portal:
     _noop_lock: FakeLock = FakeLock()
     _typing: Set['u.User']
 
-    def __init__(self, gid: str, conv_type: int, other_user_id: Optional[str] = None,
+    def __init__(self, gid: str, receiver: str, conv_type: int, other_user_id: Optional[str] = None,
                  mxid: Optional[RoomID] = None, name: str = "",
                  db_instance: Optional[DBPortal] = None) -> None:
         self.gid = gid
+        self.receiver = receiver
+        if not receiver:
+            raise ValueError("Receiver not given")
         self.conv_type = conv_type
         self.other_user_id = other_user_id
         self.mxid = mxid
@@ -91,25 +93,35 @@ class Portal:
         self._send_locks = {}
         self._typing = set()
 
-        self.log = self.log.getChild(self.gid)
+        self.log = self.log.getChild(self.gid_log)
 
-        self.by_gid[self.gid] = self
+        self.by_gid[self.full_gid] = self
         if self.mxid:
             self.by_mxid[self.mxid] = self
+
+    @property
+    def full_gid(self) -> Tuple[str, str]:
+        return self.gid, self.receiver
+
+    @property
+    def gid_log(self) -> str:
+        if self.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE:
+            return f"{self.gid}-{self.receiver}"
+        return self.gid
 
     # region DB conversion
 
     @property
     def db_instance(self) -> DBPortal:
         if not self._db_instance:
-            self._db_instance = DBPortal(gid=self.gid, conv_type=self.conv_type,
-                                         other_user_id=self.other_user_id, mxid=self.mxid,
-                                         name=self.name)
+            self._db_instance = DBPortal(gid=self.gid, receiver=self.receiver,
+                                         conv_type=self.conv_type, other_user_id=self.other_user_id,
+                                         mxid=self.mxid, name=self.name)
         return self._db_instance
 
     @classmethod
     def from_db(cls, db_portal: DBPortal) -> 'Portal':
-        return Portal(gid=db_portal.gid, conv_type=db_portal.conv_type,
+        return Portal(gid=db_portal.gid, receiver=db_portal.receiver, conv_type=db_portal.conv_type,
                       other_user_id=db_portal.other_user_id, mxid=db_portal.mxid,
                       name=db_portal.name, db_instance=db_portal)
 
@@ -117,7 +129,7 @@ class Portal:
         self.db_instance.edit(other_user_id=self.other_user_id, mxid=self.mxid, name=self.name)
 
     def delete(self) -> None:
-        self.by_gid.pop(self.gid, None)
+        self.by_gid.pop(self.full_gid, None)
         self.by_mxid.pop(self.mxid, None)
         if self._db_instance:
             self._db_instance.delete()
@@ -189,6 +201,10 @@ class Portal:
     async def _update_matrix_room(self, source: 'u.User',
                                   info: Optional[HangoutsChat] = None) -> None:
         await self.main_intent.invite_user(self.mxid, source.mxid)
+        puppet = p.Puppet.get_by_custom_mxid(source.mxid)
+        if puppet:
+            await puppet.intent.ensure_joined(self.mxid)
+        await self.update_info(source, info)
 
     async def create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
                                  ) -> RoomID:
@@ -200,7 +216,7 @@ class Portal:
             return self.mxid
         async with self._create_room_lock:
             try:
-                await self._create_matrix_room(source, info)
+                return await self._create_matrix_room(source, info)
             except Exception:
                 self.log.exception("Failed to create portal")
 
@@ -227,8 +243,11 @@ class Portal:
         if not self.mxid:
             raise Exception("Failed to create room: no mxid required")
         self.by_mxid[self.mxid] = self
-        if not self.is_direct:
-            await self._update_participants(source, info)
+        await self._update_participants(source, info)
+        puppet = p.Puppet.get_by_custom_mxid(source.mxid)
+        if puppet:
+            await puppet.intent.ensure_joined(self.mxid)
+        return self.mxid
 
     # endregion
     # region Matrix room cleanup
@@ -304,7 +323,8 @@ class Portal:
             if not gid:
                 return
             self._dedup.appendleft(gid)
-            DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid).insert()
+            DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
+                      index=0).insert()
             self._last_bridged_mxid = event_id
 
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent) -> str:
@@ -361,7 +381,8 @@ class Portal:
         intent = sender.intent_for(self)
         self.log.debug(f"Attachments: {event.attachments}")
         event_id = await intent.send_text(self.mxid, event.text)
-        DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_).insert()
+        DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
+                  index=0).insert()
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
                                      ) -> None:
@@ -390,27 +411,40 @@ class Portal:
         return None
 
     @classmethod
-    def get_by_gid(cls, gid: str, conv_type: Optional[int] = None,
+    def get_by_gid(cls, gid: str, receiver: Optional[str] = None, conv_type: Optional[int] = None,
                    ) -> Optional['Portal']:
+        if not receiver or (conv_type and conv_type != hangouts.CONVERSATION_TYPE_ONE_TO_ONE):
+            receiver = gid
         try:
-            return cls.by_gid[gid]
+            return cls.by_gid[(gid, receiver)]
         except KeyError:
             pass
 
-        db_portal = DBPortal.get_by_gid(gid)
+        db_portal = DBPortal.get_by_gid(gid, receiver)
         if db_portal:
+            if not db_portal.receiver:
+                cls.log.warn(f"Found DBPortal {gid} without receiver, setting to {receiver}")
+                db_portal.edit(receiver=receiver)
             return cls.from_db(db_portal)
 
         if conv_type is not None:
-            portal = cls(gid=gid, conv_type=conv_type)
+            portal = cls(gid=gid, receiver=receiver, conv_type=conv_type)
             portal.db_instance.insert()
             return portal
 
         return None
 
     @classmethod
-    def get_by_conversation(cls, conversation: HangoutsChat) -> Optional['Portal']:
-        return cls.get_by_gid(conversation.id_, conversation._conversation.type)
+    def get_all_by_receiver(cls, receiver: str) -> Iterator['Portal']:
+        for db_portal in DBPortal.get_all_by_receiver(receiver):
+            try:
+                yield cls.by_gid[(db_portal.gid, db_portal.receiver)]
+            except KeyError:
+                yield cls.from_db(db_portal)
+
+    @classmethod
+    def get_by_conversation(cls, conversation: HangoutsChat, receiver: str) -> Optional['Portal']:
+        return cls.get_by_gid(conversation.id_, receiver, conversation._conversation.type)
 
     # endregion
 
