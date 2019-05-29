@@ -268,10 +268,12 @@ class User:
         ))
 
     def _get_event_request_header(self, conversation_id: str) -> hangouts.EventRequestHeader:
+        delivery_medium = self.chats.get(conversation_id)._get_default_delivery_medium()
         return hangouts.EventRequestHeader(
             conversation_id=hangouts.ConversationId(
                 id=conversation_id,
             ),
+            delivery_medium=delivery_medium,
             client_generated_id=self.client.get_client_generated_id(),
         )
 
