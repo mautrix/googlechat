@@ -46,6 +46,9 @@ bridge:
     # Localpart template of MXIDs for Hangouts users.
     # {userid} is replaced with the user ID of the Hangouts user.
     username_template: "hangouts_{userid}"
+    # Displayname template for Hangouts users.
+    # {full_name} and {first_name} are replaced with names.
+    displayname_template: "{full_name} (Hangouts)"
 
     # The prefix for commands. Only required in non-management rooms.
     command_prefix: "!hg"

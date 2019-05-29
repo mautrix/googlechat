@@ -145,13 +145,19 @@ class Puppet(CustomPuppetMixin):
             #         gaia_id=self.gid,
             #     ),
             # ))
-        changed = any(await asyncio.gather(self._update_name(info.full_name),
+        changed = any(await asyncio.gather(self._update_name(info),
                                            self._update_photo(info.photo_url),
                                            loop=self.loop))
         if changed:
             self.save()
 
-    async def _update_name(self, name: str) -> bool:
+    @staticmethod
+    def _get_name_from_info(info: HangoutsUser) -> str:
+        return config["bridge.displayname_template"].format(first_name=info.first_name,
+                                                            full_name=info.full_name)
+
+    async def _update_name(self, info: HangoutsUser) -> bool:
+        name = self._get_name_from_info(info)
         if name != self.name:
             self.name = name
             await self.default_mxid_intent.set_displayname(self.name)
