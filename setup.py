@@ -1,4 +1,5 @@
 import setuptools
+import glob
 import mautrix_hangouts
 
 try:
@@ -49,6 +50,8 @@ setuptools.setup(
         "web/static/*.png", "web/static/*.css", "web/static/*.html", "web/static/*.js",
     ]},
     data_files=[
-        (".", ["example-config.yaml"]),
+        (".", ["example-config.yaml", "alembic.ini"]),
+        ("alembic", ["alembic/env.py"]),
+        ("alembic/versions", glob.glob("alembic/versions/*.py"))
     ],
 )
