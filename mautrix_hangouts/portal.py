@@ -318,7 +318,7 @@ class Portal:
             # elif message.msgtype == MessageType.LOCATION:
             #     gid = await self._handle_matrix_location(sender, message)
             else:
-                self.log.warn(f"Unsupported msgtype in {message}")
+                self.log.warning(f"Unsupported msgtype in {message}")
                 return
             if not gid:
                 return
@@ -423,7 +423,7 @@ class Portal:
         db_portal = DBPortal.get_by_gid(gid, receiver)
         if db_portal:
             if not db_portal.receiver:
-                cls.log.warn(f"Found DBPortal {gid} without receiver, setting to {receiver}")
+                cls.log.warning(f"Found DBPortal {gid} without receiver, setting to {receiver}")
                 db_portal.edit(receiver=receiver)
             return cls.from_db(db_portal)
 

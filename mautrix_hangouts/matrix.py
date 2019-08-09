@@ -95,7 +95,7 @@ class MatrixHandler(BaseMatrixHandler):
     #     # The rest can probably be ignored
     #     pass
 
-    async def handle_join(self, room_id: RoomID, user_id: UserID) -> None:
+    async def handle_join(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
         user = u.User.get_by_mxid(user_id)
 
         portal = po.Portal.get_by_mxid(room_id)
@@ -114,7 +114,7 @@ class MatrixHandler(BaseMatrixHandler):
         self.log.debug(f"{user} joined {room_id}")
         # await portal.join_matrix(user, event_id)
 
-    async def handle_leave(self, room_id: RoomID, user_id: UserID) -> None:
+    async def handle_leave(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
         portal = po.Portal.get_by_mxid(room_id)
         if not portal:
             return
@@ -163,11 +163,11 @@ class MatrixHandler(BaseMatrixHandler):
 
     def filter_matrix_event(self, evt: Event) -> bool:
         if not isinstance(evt, (MessageEvent, StateEvent)):
-            return False
+            return True
         return (evt.sender == self.az.bot_mxid
                 or pu.Puppet.get_id_from_mxid(evt.sender) is not None)
 
-    async def handle_event(self, evt: Event) -> None:
+    async def handle_ephemeral_event(self, evt: Event) -> None:
         if evt.type == EventType.PRESENCE:
             await self.handle_presence(evt.sender, evt.content)
         elif evt.type == EventType.TYPING:
