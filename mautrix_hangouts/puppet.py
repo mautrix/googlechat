@@ -21,9 +21,8 @@ from yarl import URL
 import aiohttp
 import magic
 
-from hangups import hangouts_pb2 as hangouts
 from hangups.user import User as HangoutsUser
-from mautrix.types import RoomID, UserID, ContentURI
+from mautrix.types import RoomID, UserID, ContentURI, SyncToken
 from mautrix.appservice import AppService, IntentAPI
 
 from .config import Config
@@ -57,13 +56,14 @@ class Puppet(CustomPuppetMixin):
 
     custom_mxid: UserID
     access_token: str
+    _next_batch: SyncToken
 
     _db_instance: Optional[DBPuppet]
 
     intent: IntentAPI
 
     def __init__(self, gid: str, name: str = "", photo_url: str = "", is_registered: bool = False,
-                 custom_mxid: UserID = "", access_token: str = "",
+                 custom_mxid: UserID = "", access_token: str = "", next_batch: SyncToken = "",
                  db_instance: Optional[DBPuppet] = None) -> None:
         self.gid = gid
         self.name = name
@@ -73,6 +73,7 @@ class Puppet(CustomPuppetMixin):
 
         self.custom_mxid = custom_mxid
         self.access_token = access_token
+        self._next_batch = next_batch
 
         self._db_instance = db_instance
 
@@ -94,6 +95,15 @@ class Puppet(CustomPuppetMixin):
     def is_registered(self, value: bool) -> None:
         self._is_registered = value
 
+    @property
+    def next_batch(self) -> SyncToken:
+        return self._next_batch
+
+    @next_batch.setter
+    def next_batch(self, value: SyncToken) -> None:
+        self._next_batch = value
+        self.db_instance.edit(next_batch=self._next_batch)
+
     # region DB conversion
 
     @property
@@ -101,7 +111,7 @@ class Puppet(CustomPuppetMixin):
         if not self._db_instance:
             self._db_instance = DBPuppet(gid=self.gid, name=self.name, photo_url=self.photo_url,
                                          matrix_registered=self._is_registered,
-                                         custom_mxid=self.custom_mxid,
+                                         custom_mxid=self.custom_mxid, next_batch=self.next_batch,
                                          access_token=self.access_token)
         return self._db_instance
 
@@ -109,7 +119,8 @@ class Puppet(CustomPuppetMixin):
     def from_db(cls, db_puppet: DBPuppet) -> 'Puppet':
         return Puppet(gid=db_puppet.gid, name=db_puppet.name, photo_url=db_puppet.photo_url,
                       is_registered=db_puppet.matrix_registered, custom_mxid=db_puppet.custom_mxid,
-                      access_token=db_puppet.access_token, db_instance=db_puppet)
+                      access_token=db_puppet.access_token, next_batch=db_puppet.next_batch,
+                      db_instance=db_puppet)
 
     def save(self) -> None:
         self.db_instance.edit(name=self.name, photo_url=self.photo_url,

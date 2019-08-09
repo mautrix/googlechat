@@ -19,7 +19,7 @@ from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.sql import expression
 from sqlalchemy.engine.result import RowProxy
 
-from mautrix.types import UserID
+from mautrix.types import UserID, SyncToken
 from mautrix.bridge.db.base import Base
 
 
@@ -33,12 +33,13 @@ class Puppet(Base):
 
     custom_mxid: UserID = Column(String(255), nullable=True)
     access_token: str = Column(Text, nullable=True)
+    next_batch: SyncToken = Column(String(255), nullable=True)
 
     @classmethod
     def scan(cls, row: RowProxy) -> Optional['Puppet']:
-        gid, name, photo_url, matrix_registered, custom_mxid, access_token = row
+        gid, name, photo_url, matrix_registered, custom_mxid, access_token, next_batch = row
         return cls(gid=gid, name=name, photo_url=photo_url, matrix_registered=matrix_registered,
-                   custom_mxid=custom_mxid, access_token=access_token)
+                   custom_mxid=custom_mxid, access_token=access_token, next_batch=next_batch)
 
     @classmethod
     def get_by_gid(cls, gid: str) -> Optional['Puppet']:
@@ -65,4 +66,4 @@ class Puppet(Base):
             conn.execute(self.t.insert().values(
                 gid=self.gid, name=self.name, photo_url=self.photo_url,
                 matrix_registered=self.matrix_registered, custom_mxid=self.custom_mxid,
-                access_token=self.access_token))
+                access_token=self.access_token, next_batch=self.next_batch))
