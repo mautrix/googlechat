@@ -164,8 +164,9 @@ class Puppet(CustomPuppetMixin):
 
     @staticmethod
     def _get_name_from_info(info: HangoutsUser) -> str:
-        return config["bridge.displayname_template"].format(first_name=info.first_name,
-                                                            full_name=info.full_name)
+        first = info.first_name or info.full_name
+        full = info.full_name or info.first_name
+        return config["bridge.displayname_template"].format(first_name=first, full_name=full)
 
     async def _update_name(self, info: HangoutsUser) -> bool:
         name = self._get_name_from_info(info)
