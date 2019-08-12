@@ -362,7 +362,7 @@ class User:
         for puppet in puppets.values():
             in_community = old_db_contacts.get(puppet.gid, None) or False
             if not in_community:
-                await self._community_helper.join(self._community_id, puppet.intent)
+                await self._community_helper.join(self._community_id, puppet.default_mxid_intent)
                 in_community = True
             db_contacts.append(Contact(contact=puppet.gid, in_community=in_community))
         self.db_instance.contacts = db_contacts
