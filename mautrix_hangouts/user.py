@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import (Any, Dict, Iterator, Optional, Iterable, List, Awaitable, Union, Callable,
+from typing import (Any, Dict, Iterator, Optional, List, Awaitable, Union, Callable,
                     TYPE_CHECKING)
 from concurrent import futures
 import datetime
@@ -27,13 +27,14 @@ from hangups import (hangouts_pb2 as hangouts,
                      MembershipChangeEvent)
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage
-from hangups.client import UploadedImage
 
 from mautrix.types import UserID
 from mautrix.appservice import AppService
+from mautrix.client import Client as MxClient
+from mautrix.bridge._community import CommunityHelper, CommunityID
 
 from .config import Config
-from .db import User as DBUser
+from .db import User as DBUser, UserPortal, Contact
 from .util.hangups_try_auth import try_auth, TryAuthResp
 from . import puppet as pu, portal as po
 
@@ -65,6 +66,9 @@ class User:
     chats: ConversationList
     users: UserList
 
+    _community_helper: CommunityHelper
+    _community_id: Optional[CommunityID]
+
     def __init__(self, mxid: UserID, gid: str = None, refresh_token: str = None,
                  db_instance: Optional[DBUser] = None) -> None:
         self.mxid = mxid
@@ -74,6 +78,7 @@ class User:
         self.command_status = None
         self.is_whitelisted, self.is_admin = config.get_permissions(mxid)
         self._db_instance = db_instance
+        self._community_id = None
         self.client = None
         self.name = None
         self.name_future = asyncio.Future()
@@ -146,6 +151,7 @@ class User:
 
     async def login_complete(self, cookies: dict) -> None:
         self.client = Client(cookies)
+        await self._create_community()
         asyncio.ensure_future(self.start(), loop=self.loop)
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
@@ -159,7 +165,8 @@ class User:
             self.log.exception("Exception in connection")
 
     async def stop(self) -> None:
-        await self.client.disconnect()
+        if self.client:
+            await self.client.disconnect()
 
     async def on_connect(self) -> None:
         self.connected = True
@@ -194,10 +201,14 @@ class User:
 
     async def sync_users(self, users: UserList) -> None:
         self.users = users
-        #puppets = ((pu.Puppet.get_by_gid(info.id_.gaia_id, create=True), info)
-        #           for info in users.get_all())
-        #await asyncio.gather(*[puppet.update_info(self, info)
-        #                       for puppet, info in puppets if puppet], loop=self.loop)
+        puppets: Dict[str, pu.Puppet] = {}
+        updates = []
+        for info in users.get_all():
+            puppet = pu.Puppet.get_by_gid(info.id_.gaia_id, create=True)
+            puppets[puppet.gid] = puppet
+            updates.append(puppet.update_info(self, info))
+        await asyncio.gather(*updates, loop=self.loop)
+        await self._sync_community_users(puppets)
 
     def _ensure_future_proxy(self, method: Callable[[Any], Awaitable[None]]
                              ) -> Callable[[Any], Awaitable[None]]:
@@ -214,6 +225,9 @@ class User:
 
     async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
+        portals = {conv.id_: po.Portal.get_by_conversation(conv, self.gid)
+                   for conv in chats.get_all()}
+        await self._sync_community_rooms(portals)
         self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
         self.chats.on_typing.add_observer(self._ensure_future_proxy(self.on_typing))
         self.log.debug("Fetching recent conversations to create portals for")
@@ -226,8 +240,9 @@ class User:
         res = sorted((conv_state.conversation for conv_state in res.conversation_state),
                      reverse=True, key=lambda conv: conv.self_conversation_state.sort_timestamp)
         res = (chats.get(conv.conversation_id.id) for conv in res)
-        await asyncio.gather(*[po.Portal.get_by_conversation(info, self.gid).create_matrix_room(self, info)
-                               for info in res], loop=self.loop)
+        await asyncio.gather(
+            *[po.Portal.get_by_conversation(info, self.gid).create_matrix_room(self, info)
+              for info in res], loop=self.loop)
 
     # region Hangouts event handling
 
@@ -321,6 +336,54 @@ class User:
         ))
 
     # endregion
+    # region Community stuff
+
+    async def _create_community(self) -> None:
+        template = config["bridge.community_template"]
+        if not template:
+            return
+        localpart, server = MxClient.parse_user_id(self.mxid)
+        community_localpart = template.format(localpart=localpart, server=server)
+        self.log.debug(f"Creating personal filtering community {community_localpart}...")
+        self._community_id, created = await self._community_helper.create(community_localpart)
+        if created:
+            await self._community_helper.update(self._community_id, name="Hangouts",
+                                                avatar_url=config["appservice.bot_avatar"],
+                                                short_desc="Your Hangouts bridged chats")
+            await self._community_helper.invite(self._community_id, self.mxid)
+
+    async def _sync_community_users(self, puppets: Dict[str, 'pu.Puppet']) -> None:
+        if not self._community_id:
+            return
+        self.log.debug("Syncing personal filtering community users")
+        old_db_contacts = {contact.contact: contact.in_community
+                           for contact in self.db_instance.contacts}
+        db_contacts = []
+        for puppet in puppets.values():
+            in_community = old_db_contacts.get(puppet.gid, None) or False
+            if not in_community:
+                await self._community_helper.join(self._community_id, puppet.intent)
+                in_community = True
+            db_contacts.append(Contact(contact=puppet.gid, in_community=in_community))
+        self.db_instance.contacts = db_contacts
+
+    async def _sync_community_rooms(self, portals: Dict[str, 'po.Portal']) -> None:
+        if not self._community_id:
+            return
+        self.log.debug("Syncing personal filtering community rooms")
+        old_db_portals = {portal.portal: portal.in_community
+                          for portal in self.db_instance.portals}
+        db_portals = []
+        for portal in portals.values():
+            in_community = old_db_portals.get(portal.gid, None) or False
+            if not in_community:
+                await self._community_helper.add_room(self._community_id, portal.mxid)
+                in_community = True
+            db_portals.append(UserPortal(portal=portal.gid, portal_receiver=portal.receiver,
+                                         in_community=in_community))
+        self.db_instance.portals = db_portals
+
+    # endregion
 
 
 class UserRefreshTokenCache(RefreshTokenCache):
@@ -341,4 +404,5 @@ class UserRefreshTokenCache(RefreshTokenCache):
 def init(context: 'Context') -> Awaitable[None]:
     global config
     User.az, config, User.loop = context.core
+    User._community_helper = CommunityHelper(User.az)
     return User.init_all()

@@ -247,6 +247,7 @@ class Portal:
         puppet = p.Puppet.get_by_custom_mxid(source.mxid)
         if puppet:
             await puppet.intent.ensure_joined(self.mxid)
+        await source._community_helper.add_room(source._community_id, self.mxid)
         return self.mxid
 
     # endregion

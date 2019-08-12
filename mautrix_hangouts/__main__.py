@@ -30,7 +30,7 @@ from .web import HangoutsAuthServer
 from . import __version__
 
 
-class MessengerBridge(Bridge):
+class HangoutsBridge(Bridge):
     name = "mautrix-hangouts"
     command = "python -m mautrix-hangouts"
     description = "A Matrix-Hangouts puppeting bridge."
@@ -72,4 +72,4 @@ class MessengerBridge(Bridge):
             user.save()
 
 
-MessengerBridge().run()
+HangoutsBridge().run()
