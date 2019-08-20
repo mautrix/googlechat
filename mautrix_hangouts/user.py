@@ -364,7 +364,8 @@ class User:
             if not in_community:
                 await self._community_helper.join(self._community_id, puppet.default_mxid_intent)
                 in_community = True
-            db_contacts.append(Contact(contact=puppet.gid, in_community=in_community))
+            db_contacts.append(Contact(user=self.gid, contact=puppet.gid,
+                                       in_community=in_community))
         self.db_instance.contacts = db_contacts
 
     async def _sync_community_rooms(self, portals: Dict[str, 'po.Portal']) -> None:
@@ -379,7 +380,8 @@ class User:
             if not in_community:
                 await self._community_helper.add_room(self._community_id, portal.mxid)
                 in_community = True
-            db_portals.append(UserPortal(portal=portal.gid, portal_receiver=portal.receiver,
+            db_portals.append(UserPortal(user=self.gid, portal=portal.gid,
+                                         portal_receiver=portal.receiver,
                                          in_community=in_community))
         self.db_instance.portals = db_portals
 

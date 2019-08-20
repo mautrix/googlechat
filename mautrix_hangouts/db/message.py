@@ -16,8 +16,6 @@
 from typing import Optional
 
 from sqlalchemy import Column, String, SmallInteger, UniqueConstraint, and_
-from sqlalchemy.engine.result import RowProxy
-from sqlalchemy.sql.expression import ClauseElement
 
 from mautrix.types import RoomID, EventID
 
@@ -36,24 +34,9 @@ class Message(Base):
     __table_args__ = (UniqueConstraint("mxid", "mx_room", name="_mx_id_room"),)
 
     @classmethod
-    def scan(cls, row: RowProxy) -> 'Message':
-        mxid, mx_room, gid, receiver, index = row
-        return cls(mxid=mxid, mx_room=mx_room, gid=gid, receiver=receiver, index=index)
-
-    @classmethod
     def get_by_gid(cls, gid: str) -> Optional['Message']:
         return cls._select_one_or_none(cls.c.gid == gid)
 
     @classmethod
     def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional['Message']:
         return cls._select_one_or_none(and_(cls.c.mxid == mxid, cls.c.mx_room == mx_room))
-
-    @property
-    def _edit_identity(self) -> ClauseElement:
-        return self.c.gid == self.gid
-
-    def insert(self) -> None:
-        with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(mxid=self.mxid, mx_room=self.mx_room,
-                                                gid=self.gid, receiver=self.receiver,
-                                                index=self.index,))

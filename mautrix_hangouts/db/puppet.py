@@ -17,7 +17,6 @@ from typing import Optional, Iterator
 
 from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.sql import expression
-from sqlalchemy.engine.result import RowProxy
 
 from mautrix.types import UserID, SyncToken
 from mautrix.bridge.db.base import Base
@@ -36,12 +35,6 @@ class Puppet(Base):
     next_batch: SyncToken = Column(String(255), nullable=True)
 
     @classmethod
-    def scan(cls, row: RowProxy) -> Optional['Puppet']:
-        gid, name, photo_url, matrix_registered, custom_mxid, access_token, next_batch = row
-        return cls(gid=gid, name=name, photo_url=photo_url, matrix_registered=matrix_registered,
-                   custom_mxid=custom_mxid, access_token=access_token, next_batch=next_batch)
-
-    @classmethod
     def get_by_gid(cls, gid: str) -> Optional['Puppet']:
         return cls._select_one_or_none(cls.c.gid == gid)
 
@@ -56,14 +49,3 @@ class Puppet(Base):
     @classmethod
     def get_all_with_custom_mxid(cls) -> Iterator['Puppet']:
         return cls._select_all(cls.c.custom_mxid != None)
-
-    @property
-    def _edit_identity(self):
-        return self.c.gid == self.gid
-
-    def insert(self) -> None:
-        with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(
-                gid=self.gid, name=self.name, photo_url=self.photo_url,
-                matrix_registered=self.matrix_registered, custom_mxid=self.custom_mxid,
-                access_token=self.access_token, next_batch=self.next_batch))

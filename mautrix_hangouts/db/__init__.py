@@ -11,3 +11,4 @@ def init(db_engine) -> None:
         table.db = db_engine
         table.t = table.__table__
         table.c = table.t.c
+        table.column_names = table.c.keys()

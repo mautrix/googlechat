@@ -17,11 +17,9 @@ from typing import Optional, Iterable
 
 from sqlalchemy import Column, String, ForeignKey, ForeignKeyConstraint, Boolean, and_
 from sqlalchemy.sql import expression
-from sqlalchemy.engine.result import RowProxy
 
 from mautrix.types import UserID
 from mautrix.bridge.db.base import Base
-from sqlalchemy.sql import ClauseElement
 
 
 class User(Base):
@@ -30,11 +28,6 @@ class User(Base):
     mxid: UserID = Column(String(255), primary_key=True)
     gid: str = Column(String(255), nullable=True)
     refresh_token: str = Column(String(255), nullable=True)
-
-    @classmethod
-    def scan(cls, row: RowProxy) -> 'User':
-        mxid, gid, refresh_token = row
-        return cls(mxid=mxid, gid=gid, refresh_token=refresh_token)
 
     @classmethod
     def all(cls) -> Iterable['User']:
@@ -49,15 +42,6 @@ class User(Base):
         return cls._select_one_or_none(cls.c.mxid == mxid)
 
     @property
-    def _edit_identity(self):
-        return self.c.mxid == self.mxid
-
-    def insert(self) -> None:
-        with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(mxid=self.mxid, gid=self.gid,
-                                                refresh_token=self.refresh_token))
-
-    @property
     def contacts(self) -> Iterable['Contact']:
         rows = self.db.execute(Contact.t.select().where(Contact.c.user == self.gid))
         for row in rows:
@@ -68,10 +52,10 @@ class User(Base):
         with self.db.begin() as conn:
             conn.execute(Contact.t.delete().where(Contact.c.user == self.gid))
             insert_puppets = [{
-                "user": self.gid,
-                "contact": gid,
+                "user": user,
+                "contact": contact,
                 "in_community": in_community,
-            } for _, gid, in_community in puppets]
+            } for user, contact, in_community in puppets]
             if insert_puppets:
                 conn.execute(Contact.t.insert(), insert_puppets)
 
@@ -86,12 +70,11 @@ class User(Base):
         with self.db.begin() as conn:
             conn.execute(UserPortal.t.delete().where(UserPortal.c.user == self.gid))
             insert_portals = [{
-                "user": self.gid,
+                "user": user,
                 "portal": portal,
                 "portal_receiver": portal_receiver,
                 "in_community": in_community,
-            } for _, portal, portal_receiver, in_community in portals]
-            print(insert_portals)
+            } for user, portal, portal_receiver, in_community in portals]
             if insert_portals:
                 conn.execute(UserPortal.t.insert(), insert_portals)
 
@@ -113,29 +96,6 @@ class UserPortal(Base):
                                            ("portal.gid", "portal.receiver"),
                                            onupdate="CASCADE", ondelete="CASCADE"),)
 
-    def __iter__(self):
-        yield self.user
-        yield self.portal
-        yield self.portal_receiver
-        yield self.in_community
-
-    @classmethod
-    def scan(cls, row: RowProxy) -> 'UserPortal':
-        user, portal, portal_receiver, in_community = row
-        return cls(user=user, portal=portal, portal_receiver=portal_receiver,
-                   in_community=in_community)
-
-    @property
-    def _edit_identity(self) -> ClauseElement:
-        return and_(self.c.user == self.user, self.c.portal == self.portal,
-                    self.c.portal_receiver == self.c.portal_receiver)
-
-    def insert(self) -> None:
-        with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(user=self.user, portal=self.portal,
-                                                portal_receiver=self.portal_receiver,
-                                                in_community=self.in_community))
-
 
 class Contact(Base):
     __tablename__ = "contact"
@@ -143,22 +103,3 @@ class Contact(Base):
     user: str = Column(String(255), primary_key=True)
     contact: str = Column(String(255), ForeignKey("puppet.gid"), primary_key=True)
     in_community: bool = Column(Boolean, nullable=False, server_default=expression.false())
-
-    def __iter__(self):
-        yield self.user
-        yield self.contact
-        yield self.in_community
-
-    @classmethod
-    def scan(cls, row: RowProxy) -> 'Contact':
-        user, contact, in_community = row
-        return cls(user=user, contact=contact, in_community=in_community)
-
-    @property
-    def _edit_identity(self) -> ClauseElement:
-        return and_(self.c.user == self.user, self.c.contact == self.contact)
-
-    def insert(self) -> None:
-        with self.db.begin() as conn:
-            conn.execute(self.t.insert().values(user=self.user, contact=self.contact,
-                                                in_community=self.in_community))

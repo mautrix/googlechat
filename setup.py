@@ -23,9 +23,9 @@ setuptools.setup(
 
     install_requires=[
         "aiohttp>=3.0.1,<4",
-        "mautrix>=0.4.0.dev53,<0.5.0",
-        "ruamel.yaml>=0.15.94,<0.16",
-        "commonmark>=0.8,<0.9",
+        "mautrix>=0.4.0.dev63,<0.5.0",
+        "ruamel.yaml>=0.15.94,<0.17",
+        "commonmark>=0.8,<0.10",
         "python-magic>=0.4,<0.5",
         "hangups>=0.4.9,<0.5.0",
         "SQLAlchemy>=1.2,<2",
