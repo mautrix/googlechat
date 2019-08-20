@@ -200,7 +200,7 @@ class Portal:
 
     async def _update_matrix_room(self, source: 'u.User',
                                   info: Optional[HangoutsChat] = None) -> None:
-        await self.main_intent.invite_user(self.mxid, source.mxid)
+        await self.main_intent.invite_user(self.mxid, source.mxid, check_cache=True)
         puppet = p.Puppet.get_by_custom_mxid(source.mxid)
         if puppet:
             await puppet.intent.ensure_joined(self.mxid)

@@ -202,11 +202,17 @@ class User:
     async def sync_users(self, users: UserList) -> None:
         self.users = users
         puppets: Dict[str, pu.Puppet] = {}
+        update_avatars = config["bridge.update_avatar_initial_sync"]
         updates = []
         for info in users.get_all():
+            if not info.id_.gaia_id:
+                self.log.debug(f"Found user without gaia_id: {info}")
+                continue
             puppet = pu.Puppet.get_by_gid(info.id_.gaia_id, create=True)
             puppets[puppet.gid] = puppet
-            updates.append(puppet.update_info(self, info))
+            updates.append(puppet.update_info(self, info, update_avatar=update_avatars))
+        self.log.debug(f"Syncing info of {len(updates)} puppets "
+                       f"(avatars included: {update_avatars})...")
         await asyncio.gather(*updates, loop=self.loop)
         await self._sync_community_users(puppets)
 

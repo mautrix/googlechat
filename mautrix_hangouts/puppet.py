@@ -147,7 +147,8 @@ class Puppet(CustomPuppetMixin):
 
     # region User info updating
 
-    async def update_info(self, source: 'u.User', info: HangoutsUser) -> None:
+    async def update_info(self, source: 'u.User', info: HangoutsUser, update_avatar: bool = True
+                          ) -> None:
         if not info:
             info = source.users.get_user(self.gid)
             # info = await source.client.get_entity_by_id(hangouts.GetEntityByIdRequest(
@@ -156,9 +157,9 @@ class Puppet(CustomPuppetMixin):
             #         gaia_id=self.gid,
             #     ),
             # ))
-        changed = any(await asyncio.gather(self._update_name(info),
-                                           self._update_photo(info.photo_url),
-                                           loop=self.loop))
+        changed = await self._update_name(info)
+        if update_avatar:
+            changed = await self._update_photo(info.photo_url) or changed
         if changed:
             self.save()
 

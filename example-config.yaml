@@ -72,6 +72,8 @@ bridge:
     # Whether or not to use /sync to get presence, read receipts and typing notifications when using
     # your own Matrix account as the Matrix puppet for your Hangouts account.
     sync_with_custom_puppets: true
+    # Whether or not to update avatars when syncing all contacts at startup.
+    update_avatar_initial_sync: true
 
     # Public website and API configs
     web:
