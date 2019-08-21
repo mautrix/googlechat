@@ -94,7 +94,7 @@ class User:
     @property
     def db_instance(self) -> DBUser:
         if not self._db_instance:
-            self._db_instance = DBUser(mxid=self.mxid, refresh_token=self.refresh_token)
+            self._db_instance = DBUser(mxid=self.mxid, gid=self.gid, refresh_token=self.refresh_token)
         return self._db_instance
 
     @classmethod
