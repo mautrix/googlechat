@@ -16,7 +16,7 @@
 from itertools import chain
 
 from mautrix.bridge import Bridge
-from mautrix.bridge.db import Base
+from mautrix.util.db import Base
 
 from .config import Config
 from .db import init as init_db

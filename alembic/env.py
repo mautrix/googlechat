@@ -7,7 +7,7 @@ from os.path import abspath, dirname
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from mautrix.bridge.db import Base
+from mautrix.util.db import Base
 from mautrix_hangouts.config import Config
 import mautrix_hangouts.db
 

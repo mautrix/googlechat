@@ -20,7 +20,7 @@ from sqlalchemy import Column, String, SmallInteger, and_, or_
 from hangups import hangouts_pb2 as hangouts
 
 from mautrix.types import RoomID
-from mautrix.bridge.db.base import Base
+from mautrix.util.db import Base
 
 
 class Portal(Base):
