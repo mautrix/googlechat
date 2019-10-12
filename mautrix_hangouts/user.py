@@ -349,7 +349,7 @@ class User:
         if not template:
             return
         localpart, server = MxClient.parse_user_id(self.mxid)
-        community_localpart = template.format(localpart=localpart, server=server)
+        community_localpart = template.format(localpart=localpart.lower(), server=server.lower())
         self.log.debug(f"Creating personal filtering community {community_localpart}...")
         self._community_id, created = await self._community_helper.create(community_localpart)
         if created:
