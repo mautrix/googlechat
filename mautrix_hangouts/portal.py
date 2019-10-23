@@ -18,6 +18,7 @@ from collections import deque
 import asyncio
 import logging
 import io
+import cgi
 
 from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
 from hangups.user import User as HangoutsUser
@@ -380,10 +381,45 @@ class Portal:
         if not self.mxid:
             await self.create_matrix_room(source)
         intent = sender.intent_for(self)
-        self.log.debug(f"Attachments: {event.attachments}")
-        event_id = await intent.send_text(self.mxid, event.text)
+
+        event_id = None
+        if event.attachments:
+            self.log.debug(f"Attachments: {event.attachments}")
+            self.log.debug("Processing attachments.")
+            event_id = await self.process_hangouts_attachments(event, intent)
+        # Just to fallback to text if something else hasn't worked.
+        if not event_id:
+            event_id = await intent.send_text(self.mxid, event.text)
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
                   index=0).insert()
+
+    async def _get_remote_bytes(self, url):
+        async with self.az.http_session.request("GET", url) as resp:
+            return await resp.read()
+
+    async def process_hangouts_attachments(self, event: ChatMessageEvent, intent: IntentAPI)
+        attachments_pb = event._event.chat_message.message_content.attachment
+
+        if len(event.attachments) > 1:
+            self.log.warning("Can't handle more that one attachment")
+            return
+
+        attachment = event.attachments[0]
+        attachment_pb = attachments_pb[0]
+
+        embed_item = attachment_pb.embed_item
+
+        # Get the filename from the headers
+        async with self.az.http_session.request("GET", attachment) as resp:
+            value, params = cgi.parse_header(resp.headers["Content-Disposition"])
+            filename = params.get('filename', attachment.split("/")[-1])
+
+        # TODO: This also catches movies, but I can't work out how they present
+        # differently to images
+        if embed_item.type[0] == hangouts.ITEM_TYPE_PLUS_PHOTO:
+            mxc_url = await intent.upload_media(await self._get_remote_bytes(attachment),
+                                                filename=filename)
+            return await intent.send_image(self.mxid, mxc_url, file_name=filename)
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
                                      ) -> None:
