@@ -397,7 +397,7 @@ class Portal:
         async with self.az.http_session.request("GET", url) as resp:
             return await resp.read()
 
-    async def process_hangouts_attachments(self, event: ChatMessageEvent, intent: IntentAPI)
+    async def process_hangouts_attachments(self, event: ChatMessageEvent, intent: IntentAPI):
         attachments_pb = event._event.chat_message.message_content.attachment
 
         if len(event.attachments) > 1:
