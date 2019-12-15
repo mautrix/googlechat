@@ -94,7 +94,8 @@ class User:
     @property
     def db_instance(self) -> DBUser:
         if not self._db_instance:
-            self._db_instance = DBUser(mxid=self.mxid, gid=self.gid, refresh_token=self.refresh_token)
+            self._db_instance = DBUser(mxid=self.mxid, gid=self.gid,
+                                       refresh_token=self.refresh_token)
         return self._db_instance
 
     @classmethod
@@ -184,6 +185,15 @@ class User:
         self.name = info.self_entity.properties.display_name
         self.name_future.set_result(self.name)
         self.save()
+
+        try:
+            puppet = pu.Puppet.get_by_gid(self.gid)
+            if puppet.custom_mxid != self.mxid and puppet.can_auto_login(self.mxid):
+                self.log.info(f"Automatically enabling custom puppet")
+                await puppet.switch_mxid(access_token="auto", mxid=self.mxid)
+        except Exception:
+            self.log.exception("Failed to automatically enable custom puppet")
+
         try:
             await self.sync()
         except Exception:

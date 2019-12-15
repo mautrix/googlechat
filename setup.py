@@ -23,7 +23,7 @@ setuptools.setup(
 
     install_requires=[
         "aiohttp>=3.0.1,<4",
-        "mautrix>=0.4.0.dev70,<0.5.0",
+        "mautrix>=0.4.0rc4,<0.5.0",
         "ruamel.yaml>=0.15.94,<0.17",
         "commonmark>=0.8,<0.10",
         "python-magic>=0.4,<0.5",
@@ -41,6 +41,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
     entry_points="""
         [console_scripts]

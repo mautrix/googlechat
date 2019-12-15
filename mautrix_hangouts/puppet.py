@@ -279,4 +279,8 @@ def init(context: 'Context') -> Iterable[Awaitable[None]]:
     Puppet._mxid_prefix = f"@{username_template[:index]}"
     Puppet._mxid_suffix = f"{username_template[index + length:]}:{Puppet.hs_domain}"
 
+    secret = config["bridge.login_shared_secret"]
+    Puppet.login_shared_secret = secret.encode("utf-8") if secret else None
+    Puppet.login_device_name = "Hangouts Bridge"
+
     return (puppet.start() for puppet in Puppet.get_all_with_custom_mxid())
