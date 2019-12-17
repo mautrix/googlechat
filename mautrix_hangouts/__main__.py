@@ -52,7 +52,7 @@ class HangoutsBridge(Bridge):
         self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
 
         context = Context(az=self.az, config=self.config, loop=self.loop,
-                          auth_server=self.auth_server)
+                          auth_server=self.auth_server, bridge=self)
         self.matrix = context.mx = MatrixHandler(context)
         user_startup = init_user(context)
         init_portal(context)
