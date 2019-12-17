@@ -27,15 +27,17 @@ from .puppet import Puppet, init as init_puppet
 from .matrix import MatrixHandler
 from .context import Context
 from .web import HangoutsAuthServer
-from . import __version__
+from .version import version, linkified_version
 
 
 class HangoutsBridge(Bridge):
     name = "mautrix-hangouts"
     command = "python -m mautrix-hangouts"
     description = "A Matrix-Hangouts puppeting bridge."
+    repo_url = "https://github.com/tulir/mautrix-hangouts"
     real_user_content_key = "net.maunium.hangouts.puppet"
-    version = __version__
+    version = version
+    markdown_version = linkified_version
     config_class = Config
     matrix_class = MatrixHandler
     state_store_class = SQLStateStore
