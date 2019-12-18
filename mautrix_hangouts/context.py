@@ -29,14 +29,16 @@ class Context:
     az: 'AppService'
     config: 'Config'
     loop: 'asyncio.AbstractEventLoop'
+    bridge: 'HangoutsBridge'
     auth_server: 'HangoutsAuthServer'
     mx: Optional['MatrixHandler']
 
     def __init__(self, az: 'AppService', config: 'Config', loop: 'asyncio.AbstractEventLoop',
-                 auth_server: 'HangoutsAuthServer') -> None:
+                 auth_server: 'HangoutsAuthServer', bridge: 'HangoutsBridge') -> None:
         self.az = az
         self.config = config
         self.loop = loop
+        self.bridge = bridge
         self.mx = None
         self.auth_server = auth_server
 

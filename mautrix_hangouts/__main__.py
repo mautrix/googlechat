@@ -27,15 +27,17 @@ from .puppet import Puppet, init as init_puppet
 from .matrix import MatrixHandler
 from .context import Context
 from .web import HangoutsAuthServer
-from . import __version__
+from .version import version, linkified_version
 
 
 class HangoutsBridge(Bridge):
     name = "mautrix-hangouts"
     command = "python -m mautrix-hangouts"
     description = "A Matrix-Hangouts puppeting bridge."
+    repo_url = "https://github.com/tulir/mautrix-hangouts"
     real_user_content_key = "net.maunium.hangouts.puppet"
-    version = __version__
+    version = version
+    markdown_version = linkified_version
     config_class = Config
     matrix_class = MatrixHandler
     state_store_class = SQLStateStore
@@ -52,7 +54,7 @@ class HangoutsBridge(Bridge):
         self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
 
         context = Context(az=self.az, config=self.config, loop=self.loop,
-                          auth_server=self.auth_server)
+                          auth_server=self.auth_server, bridge=self)
         self.matrix = context.mx = MatrixHandler(context)
         user_startup = init_user(context)
         init_portal(context)
