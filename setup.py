@@ -1,15 +1,25 @@
 import setuptools
 import glob
-import mautrix_hangouts
+
+from mautrix_hangouts.get_version import git_tag, git_revision, version, linkified_version
 
 try:
     long_desc = open("README.md").read()
 except IOError:
     long_desc = "Failed to read README.md"
 
+with open("mautrix_hangouts/version.py", "w") as version_file:
+    version_file.write(f"""# Generated in setup.py
+
+git_tag = {git_tag!r}
+git_revision = {git_revision!r}
+version = {version!r}
+linkified_version = {linkified_version!r}
+""")
+
 setuptools.setup(
     name="mautrix-hangouts",
-    version=mautrix_hangouts.__version__,
+    version=version,
     url="https://github.com/tulir/mautrix-hangouts",
 
     author="Tulir Asokan",
