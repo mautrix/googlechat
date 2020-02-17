@@ -78,6 +78,7 @@ class HangoutsAuthServer:
         self.app.router.add_post("/api/start", self.start_login)
         self.app.router.add_post("/api/{post_type}", self.login_step)
         self.app.router.add_post("/api/cancel", self.cancel_login)
+        self.app.router.add_get("/api/whoami", self.whoami)
         self.app.router.add_get("", self.redirect_index)
         self.app.router.add_get("/", self.get_index)
         self.app.router.add_static("/", pkg_resources.resource_filename("mautrix_hangouts",
@@ -121,6 +122,18 @@ class HangoutsAuthServer:
     async def verify(self, request: web.Request) -> web.Response:
         return web.json_response({
             "user_id": self.verify_token(request),
+        })
+
+    async def whoami(self, request: web.Request) -> web.Response:
+        user_id = self.verify_token(request)
+        user = u.User.get_by_mxid(user_id)
+        return web.json_response({
+            "permissions": user.level,
+            "mxid": user.mxid,
+            "hangouts": {
+                "gid": user.gid,
+                "connected": user.connected,
+            } if user.client else None,
         })
 
     async def start_login(self, request: web.Request) -> web.Response:

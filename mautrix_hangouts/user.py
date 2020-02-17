@@ -76,7 +76,7 @@ class User:
         self.refresh_token = refresh_token
         self.by_mxid[mxid] = self
         self.command_status = None
-        self.is_whitelisted, self.is_admin = config.get_permissions(mxid)
+        self.is_whitelisted, self.is_admin, self.level = config.get_permissions(mxid)
         self._db_instance = db_instance
         self._community_id = None
         self.client = None
