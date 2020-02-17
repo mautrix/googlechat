@@ -40,6 +40,10 @@ class Config(BaseBridgeConfig):
 
         copy("bridge.web.auth.public")
         copy("bridge.web.auth.prefix")
+        if self["bridge.web.auth.shared_secret"] == "generate":
+            base["bridge.web.auth.shared_secret"] = self._new_token()
+        else:
+            copy("bridge.web.auth.shared_secret")
 
         copy_dict("bridge.permissions")
 

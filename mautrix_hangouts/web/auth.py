@@ -65,12 +65,14 @@ class HangoutsAuthServer:
     loop: asyncio.AbstractEventLoop
     app: web.Application
     ongoing: Dict[UserID, 'WebCredentialsPrompt']
+    shared_secret: Optional[str]
     secret_key: str
 
-    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+    def __init__(self, shared_secret: Optional[str], loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         self.loop = loop or asyncio.get_event_loop()
         self.app = web.Application(loop=self.loop, middlewares=[error_middleware])
         self.ongoing = {}
+        self.shared_secret = shared_secret
         self.secret_key = "".join(random.choices(string.ascii_lowercase + string.digits, k=64))
         self.app.router.add_post("/api/verify", self.verify)
         self.app.router.add_post("/api/start", self.start_login)
@@ -104,6 +106,11 @@ class HangoutsAuthServer:
             raise ErrorResponse(401, "Missing access token", "M_MISSING_TOKEN")
         if not token.startswith("Bearer "):
             raise ErrorResponse(401, "Invalid authorization header content", "M_MISSING_TOKEN")
+        if self.shared_secret and token == self.shared_secret:
+            try:
+                return UserID(request.query["user_id"])
+            except KeyError:
+                raise ErrorResponse(400, "Missing user_id query parameter", "M_BAD_REQUEST")
         data = verify_token(self.secret_key, token[len("Bearer "):])
         if not data:
             raise ErrorResponse(401, "Invalid access token", "M_UNKNOWN_TOKEN")
