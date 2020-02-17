@@ -107,12 +107,13 @@ class HangoutsAuthServer:
             raise ErrorResponse(401, "Missing access token", "M_MISSING_TOKEN")
         if not token.startswith("Bearer "):
             raise ErrorResponse(401, "Invalid authorization header content", "M_MISSING_TOKEN")
+        token = token[len("Bearer "):]
         if self.shared_secret and token == self.shared_secret:
             try:
                 return UserID(request.query["user_id"])
             except KeyError:
                 raise ErrorResponse(400, "Missing user_id query parameter", "M_BAD_REQUEST")
-        data = verify_token(self.secret_key, token[len("Bearer "):])
+        data = verify_token(self.secret_key, token)
         if not data:
             raise ErrorResponse(401, "Invalid access token", "M_UNKNOWN_TOKEN")
         elif not allow_expired and data["expiry"] < int(time()):
