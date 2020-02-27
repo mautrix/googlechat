@@ -32,7 +32,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=[
-        "aiohttp>=3.0.1,<4",
+        "aiohttp>=3,<4",
         "mautrix>=0.4.1,<0.5.0",
         "ruamel.yaml>=0.15.94,<0.17",
         "commonmark>=0.8,<0.10",

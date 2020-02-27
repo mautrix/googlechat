@@ -1,10 +1,5 @@
 FROM docker.io/alpine:3.10
 
-ENV UID=1337 \
-    GID=1337
-
-COPY . /opt/mautrix-hangouts
-WORKDIR /opt/mautrix-hangouts
 RUN apk add --no-cache \
       py3-pillow \
       py3-aiohttp \
@@ -30,9 +25,16 @@ RUN apk add --no-cache \
       py3-idna \
       # Other dependencies
       ca-certificates \
-      su-exec \
- && pip3 install .
+      su-exec
 
+COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
+WORKDIR /opt/mautrix-hangouts
+RUN pip install -r requirements.txt
+
+COPY . /opt/mautrix-hangouts
+RUN pip3 install .
+
+ENV UID=1337 GID=1337
 VOLUME /data
 
 CMD ["/opt/mautrix-hangouts/docker-run.sh"]
