@@ -18,8 +18,9 @@ RUN apk add --no-cache \
       #hangups
         py3-async-timeout \
         py3-requests \
+        py3-appdirs \
         #py3-protobuf \
-        py3-urwid \
+        #py3-urwid \ # (too new in repos)
         #mechanicalsoup
           py3-beautifulsoup4 \
       py3-idna \
