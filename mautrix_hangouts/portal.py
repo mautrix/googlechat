@@ -23,8 +23,9 @@ import cgi
 from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
 from hangups.user import User as HangoutsUser
 from hangups.conversation import Conversation as HangoutsChat
-from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType,
-                           TextMessageEventContent, MediaMessageEventContent, Membership)
+from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType,
+                           TextMessageEventContent, MediaMessageEventContent, Membership,
+                           PowerLevelStateEventContent)
 from mautrix.appservice import AppService, IntentAPI
 from mautrix.errors import MatrixError
 
@@ -230,15 +231,24 @@ class Portal:
         info = await self.update_info(source=source, info=info)
         self.log.debug("Creating Matrix room")
         name: Optional[str] = None
+        power_levels = PowerLevelStateEventContent(users={
+            self.main_intent.mxid: 100,
+        })
         if self.is_direct:
             users = [user for user in info.users if user.id_.gaia_id != source.gid]
             self.other_user_id = users[0].id_.gaia_id
             puppet = p.Puppet.get_by_gid(self.other_user_id)
             await puppet.update_info(source=source, info=info.get_user(self.other_user_id))
+            power_levels.users[source.mxid] = 50
         else:
             name = self.name
+        initial_state = [{
+            "type": EventType.ROOM_POWER_LEVELS.serialize(),
+            "content": power_levels.serialize(),
+        }]
         self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
-                                                       invitees=[source.mxid])
+                                                       invitees=[source.mxid],
+                                                       initial_state=initial_state)
         self.save()
         self.log.debug(f"Matrix room created: {self.mxid}")
         if not self.mxid:
