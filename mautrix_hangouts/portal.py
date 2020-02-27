@@ -231,9 +231,7 @@ class Portal:
         info = await self.update_info(source=source, info=info)
         self.log.debug("Creating Matrix room")
         name: Optional[str] = None
-        power_levels = PowerLevelStateEventContent(users={
-            self.main_intent.mxid: 100,
-        })
+        power_levels = PowerLevelStateEventContent()
         if self.is_direct:
             users = [user for user in info.users if user.id_.gaia_id != source.gid]
             self.other_user_id = users[0].id_.gaia_id
@@ -242,6 +240,7 @@ class Portal:
             power_levels.users[source.mxid] = 50
         else:
             name = self.name
+        power_levels.users[self.main_intent.mxid] = 100
         initial_state = [{
             "type": EventType.ROOM_POWER_LEVELS.serialize(),
             "content": power_levels.serialize(),
