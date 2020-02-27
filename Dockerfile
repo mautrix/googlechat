@@ -1,4 +1,4 @@
-FROM docker.io/alpine:3.10
+FROM docker.io/alpine:3.11
 
 RUN apk add --no-cache \
       py3-pillow \
@@ -29,10 +29,10 @@ RUN apk add --no-cache \
 
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 WORKDIR /opt/mautrix-hangouts
-RUN pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 COPY . /opt/mautrix-hangouts
-RUN pip3 install .
+RUN apk add --no-cache git && pip3 install . && apk del git
 
 ENV UID=1337 GID=1337
 VOLUME /data
