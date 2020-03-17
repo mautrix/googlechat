@@ -245,6 +245,11 @@ class Portal:
             "type": EventType.ROOM_POWER_LEVELS.serialize(),
             "content": power_levels.serialize(),
         }]
+        if config["appservice.community_id"]:
+            initial_state.append({
+                "type": "m.room.related_groups",
+                "content": {"groups": [config["appservice.community_id"]]},
+            })
         self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
                                                        invitees=[source.mxid],
                                                        initial_state=initial_state)
