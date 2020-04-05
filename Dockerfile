@@ -24,6 +24,7 @@ RUN apk add --no-cache \
       py3-idna \
       # matrix-nio
       olm-dev@edge_community \
+      py3-cffi \
       py3-future \
       py3-atomicwrites \
       py3-pycryptodome@edge_main \
@@ -42,7 +43,7 @@ RUN apk add --no-cache \
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
 WORKDIR /opt/mautrix-hangouts
-RUN apk add --virtual .build-deps python3-dev build-base \
+RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
  && sed -Ei 's/psycopg2-binary.+//' optional-requirements.txt \
  && pip3 install -r requirements.txt -r optional-requirements.txt \
  && apk del .build-deps
