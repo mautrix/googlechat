@@ -8,7 +8,7 @@ function fixperms {
 cd /opt/mautrix-hangouts
 
 if [ ! -f /data/config.yaml ]; then
-	cp example-config.yaml /data/config.yaml
+	cp mautrix_hangouts/example-config.yaml /data/config.yaml
 	echo "Didn't find a config file."
 	echo "Copied default config file to /data/config.yaml"
 	echo "Modify that config file to your liking."

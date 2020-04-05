@@ -11,6 +11,19 @@ except IOError:
 with open("requirements.txt") as reqs:
     install_requires = reqs.read().splitlines()
 
+with open("optional-requirements.txt") as reqs:
+    extras_require = {}
+    current = []
+    for line in reqs.read().splitlines():
+        if line.startswith("#/"):
+            extras_require[line[2:]] = current = []
+        elif not line or line.startswith("#"):
+            continue
+        else:
+            current.append(line)
+
+extras_require["all"] = list({dep for deps in extras_require.values() for dep in deps})
+
 with open("mautrix_hangouts/version.py", "w") as version_file:
     version_file.write(f"""# Generated in setup.py
 
@@ -35,6 +48,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=install_requires,
+    extras_require=extras_require,
 
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -53,9 +67,10 @@ setuptools.setup(
     """,
     package_data={"mautrix_hangouts": [
         "web/static/*.png", "web/static/*.css", "web/static/*.html", "web/static/*.js",
+        "example-config.yaml"
     ]},
     data_files=[
-        (".", ["example-config.yaml", "alembic.ini"]),
+        (".", ["alembic.ini"]),
         ("alembic", ["alembic/env.py"]),
         ("alembic/versions", glob.glob("alembic/versions/*.py"))
     ],

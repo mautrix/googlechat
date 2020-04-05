@@ -16,8 +16,7 @@
 from typing import List, TYPE_CHECKING
 
 from mautrix.types import (EventID, RoomID, UserID, Event, EventType, MessageEvent, StateEvent,
-                           RedactionEvent, PresenceEventContent, ReceiptEvent, PresenceState)
-from mautrix.errors import MatrixError
+                           EncryptedEvent, PresenceEventContent, ReceiptEvent, PresenceState)
 from mautrix.bridge import BaseMatrixHandler
 
 from . import user as u, puppet as pu, portal as po, commands as c
@@ -28,7 +27,13 @@ if TYPE_CHECKING:
 
 class MatrixHandler(BaseMatrixHandler):
     def __init__(self, context: 'Context') -> None:
-        super().__init__(context.az, context.config, command_processor=c.CommandProcessor(context))
+        prefix, suffix = context.config["bridge.username_template"].format(userid=":").split(":")
+        homeserver = context.config["homeserver.domain"]
+        self.user_id_prefix = f"@{prefix}"
+        self.user_id_suffix = f"{suffix}:{homeserver}"
+
+        super().__init__(context.az, context.config, command_processor=c.CommandProcessor(context),
+                         bridge=context.bridge)
 
     async def get_portal(self, room_id: RoomID) -> 'po.Portal':
         return po.Portal.get_by_mxid(room_id)
@@ -162,7 +167,7 @@ class MatrixHandler(BaseMatrixHandler):
         await user.mark_read(portal.gid)
 
     def filter_matrix_event(self, evt: Event) -> bool:
-        if not isinstance(evt, (MessageEvent, StateEvent)):
+        if not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent)):
             return True
         return (evt.sender == self.az.bot_mxid
                 or pu.Puppet.get_id_from_mxid(evt.sender) is not None)
@@ -174,3 +179,10 @@ class MatrixHandler(BaseMatrixHandler):
             await self.handle_typing(evt.room_id, evt.content.user_ids)
         elif evt.type == EventType.RECEIPT:
             await self.handle_receipt(evt)
+
+    async def handle_state_event(self, evt: StateEvent) -> None:
+        if evt.type == EventType.ROOM_ENCRYPTION:
+            portal = po.Portal.get_by_mxid(evt.room_id)
+            if portal:
+                portal.encrypted = True
+                portal.save()

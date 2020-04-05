@@ -16,7 +16,6 @@
 from itertools import chain
 
 from mautrix.bridge import Bridge
-from mautrix.util.db import Base
 
 from .config import Config
 from .db import init as init_db
@@ -32,6 +31,7 @@ from .version import version, linkified_version
 
 class HangoutsBridge(Bridge):
     name = "mautrix-hangouts"
+    module = "mautrix_hangouts"
     command = "python -m mautrix-hangouts"
     description = "A Matrix-Hangouts puppeting bridge."
     repo_url = "https://github.com/tulir/mautrix-hangouts"
@@ -57,10 +57,9 @@ class HangoutsBridge(Bridge):
         context = Context(az=self.az, config=self.config, loop=self.loop,
                           auth_server=self.auth_server, bridge=self)
         self.matrix = context.mx = MatrixHandler(context)
-        user_startup = init_user(context)
+        self.add_startup_actions(init_user(context))
         init_portal(context)
-        puppet_startup = init_puppet(context)
-        self.startup_actions = chain([user_startup], puppet_startup)
+        self.add_startup_actions(init_puppet(context))
 
     async def stop(self) -> None:
         self.shutdown_actions = (user.stop() for user in User.by_mxid.values())

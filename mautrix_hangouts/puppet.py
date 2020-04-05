@@ -52,7 +52,7 @@ class Puppet(CustomPuppetMixin):
     name: str
     photo_url: str
 
-    _is_registered: bool
+    is_registered: bool
 
     custom_mxid: UserID
     access_token: str
@@ -69,7 +69,7 @@ class Puppet(CustomPuppetMixin):
         self.name = name
         self.photo_url = photo_url
 
-        self._is_registered = is_registered
+        self.is_registered = is_registered
 
         self.custom_mxid = custom_mxid
         self.access_token = access_token
@@ -88,14 +88,6 @@ class Puppet(CustomPuppetMixin):
             self.by_custom_mxid[self.custom_mxid] = self
 
     @property
-    def is_registered(self) -> bool:
-        return self._is_registered or self.is_real_user
-
-    @is_registered.setter
-    def is_registered(self, value: bool) -> None:
-        self._is_registered = value
-
-    @property
     def next_batch(self) -> SyncToken:
         return self._next_batch
 
@@ -110,7 +102,7 @@ class Puppet(CustomPuppetMixin):
     def db_instance(self) -> DBPuppet:
         if not self._db_instance:
             self._db_instance = DBPuppet(gid=self.gid, name=self.name, photo_url=self.photo_url,
-                                         matrix_registered=self._is_registered,
+                                         matrix_registered=self.is_registered,
                                          custom_mxid=self.custom_mxid, next_batch=self.next_batch,
                                          access_token=self.access_token)
         return self._db_instance
@@ -124,7 +116,7 @@ class Puppet(CustomPuppetMixin):
 
     def save(self) -> None:
         self.db_instance.edit(name=self.name, photo_url=self.photo_url,
-                              matrix_registered=self._is_registered, custom_mxid=self.custom_mxid,
+                              matrix_registered=self.is_registered, custom_mxid=self.custom_mxid,
                               access_token=self.access_token)
 
     # endregion

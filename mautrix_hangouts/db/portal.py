@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Optional, Iterator
 
-from sqlalchemy import Column, String, SmallInteger, and_, or_
+from sqlalchemy import Column, String, SmallInteger, Boolean, false, and_, or_
 
 from hangups import hangouts_pb2 as hangouts
 
@@ -34,6 +34,7 @@ class Portal(Base):
 
     # Matrix portal information
     mxid: RoomID = Column(String(255), unique=True, nullable=True)
+    encrypted: bool = Column(Boolean, nullable=False, server_default=false())
 
     # Hangouts chat metadata
     name = Column(String, nullable=True)

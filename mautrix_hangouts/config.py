@@ -37,6 +37,8 @@ class Config(BaseBridgeConfig):
         copy("bridge.sync_with_custom_puppets")
         copy("bridge.login_shared_secret")
         copy("bridge.update_avatar_initial_sync")
+        copy("bridge.encryption.allow")
+        copy("bridge.encryption.default")
 
         copy("bridge.web.auth.public")
         copy("bridge.web.auth.prefix")

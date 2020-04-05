@@ -16,18 +16,18 @@
 from typing import Dict, Deque, Optional, Tuple, Union, Set, Iterator, TYPE_CHECKING
 from collections import deque
 import asyncio
-import logging
 import io
 import cgi
 
 from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
 from hangups.user import User as HangoutsUser
 from hangups.conversation import Conversation as HangoutsChat
-from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType,
+from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
                            TextMessageEventContent, MediaMessageEventContent, Membership,
-                           PowerLevelStateEventContent)
-from mautrix.appservice import AppService, IntentAPI
+                           PowerLevelStateEventContent, EncryptedFile)
+from mautrix.appservice import IntentAPI
 from mautrix.errors import MatrixError
+from mautrix.bridge import BasePortal
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage
@@ -35,6 +35,13 @@ from . import puppet as p, user as u
 
 if TYPE_CHECKING:
     from .context import Context
+    from .matrix import MatrixHandler
+
+try:
+    from nio.crypto import decrypt_attachment, encrypt_attachment
+except ImportError:
+    decrypt_attachment = encrypt_attachment = None
+
 
 config: Config
 
@@ -47,19 +54,18 @@ class FakeLock:
         pass
 
 
-class Portal:
-    az: AppService
-    loop: asyncio.AbstractEventLoop
-    log: logging.Logger = logging.getLogger("mau.portal")
+class Portal(BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: Dict[RoomID, 'Portal'] = {}
     by_gid: Dict[Tuple[str, str], 'Portal'] = {}
+    matrix: 'MatrixHandler'
 
     gid: str
     receiver: Optional[str]
     conv_type: int
     other_user_id: Optional[str]
     mxid: Optional[RoomID]
+    encrypted: bool
 
     name: str
 
@@ -74,7 +80,7 @@ class Portal:
     _typing: Set['u.User']
 
     def __init__(self, gid: str, receiver: str, conv_type: int, other_user_id: Optional[str] = None,
-                 mxid: Optional[RoomID] = None, name: str = "",
+                 mxid: Optional[RoomID] = None, encrypted: bool = False, name: str = "",
                  db_instance: Optional[DBPortal] = None) -> None:
         self.gid = gid
         self.receiver = receiver
@@ -83,6 +89,7 @@ class Portal:
         self.conv_type = conv_type
         self.other_user_id = other_user_id
         self.mxid = mxid
+        self.encrypted = encrypted
 
         self.name = name
 
@@ -118,17 +125,18 @@ class Portal:
         if not self._db_instance:
             self._db_instance = DBPortal(gid=self.gid, receiver=self.receiver,
                                          conv_type=self.conv_type, other_user_id=self.other_user_id,
-                                         mxid=self.mxid, name=self.name)
+                                         mxid=self.mxid, encrypted=self.encrypted, name=self.name)
         return self._db_instance
 
     @classmethod
     def from_db(cls, db_portal: DBPortal) -> 'Portal':
         return Portal(gid=db_portal.gid, receiver=db_portal.receiver, conv_type=db_portal.conv_type,
                       other_user_id=db_portal.other_user_id, mxid=db_portal.mxid,
-                      name=db_portal.name, db_instance=db_portal)
+                      encrypted=db_portal.encrypted, name=db_portal.name, db_instance=db_portal)
 
     def save(self) -> None:
-        self.db_instance.edit(other_user_id=self.other_user_id, mxid=self.mxid, name=self.name)
+        self.db_instance.edit(other_user_id=self.other_user_id, mxid=self.mxid, name=self.name,
+                              encrypted=self.encrypted)
 
     def delete(self) -> None:
         self.by_gid.pop(self.full_gid, None)
@@ -178,7 +186,7 @@ class Portal:
     async def _update_name(self, name: str) -> bool:
         if self.name != name:
             self.name = name
-            if self.mxid and not self.is_direct:
+            if self.mxid and (self.encrypted or not self.is_direct):
                 await self.main_intent.set_room_name(self.mxid, self.name)
             return True
         return False
@@ -232,14 +240,13 @@ class Portal:
         self.log.debug("Creating Matrix room")
         name: Optional[str] = None
         power_levels = PowerLevelStateEventContent()
+        invites = [source.mxid]
         if self.is_direct:
             users = [user for user in info.users if user.id_.gaia_id != source.gid]
             self.other_user_id = users[0].id_.gaia_id
             puppet = p.Puppet.get_by_gid(self.other_user_id)
             await puppet.update_info(source=source, info=info.get_user(self.other_user_id))
             power_levels.users[source.mxid] = 50
-        else:
-            name = self.name
         power_levels.users[self.main_intent.mxid] = 100
         initial_state = [{
             "type": EventType.ROOM_POWER_LEVELS.serialize(),
@@ -250,13 +257,34 @@ class Portal:
                 "type": "m.room.related_groups",
                 "content": {"groups": [config["appservice.community_id"]]},
             })
+        if config["bridge.encryption.default"] and self.matrix.e2ee:
+            self.encrypted = True
+            initial_state.append({
+                "type": "m.room.encryption",
+                "content": {"algorithm": "m.megolm.v1.aes-sha2"},
+            })
+            if self.is_direct:
+                invites.append(self.az.bot_mxid)
+        if self.encrypted or not self.is_direct:
+            name = self.name
         self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
-                                                       invitees=[source.mxid],
+                                                       invitees=invites,
                                                        initial_state=initial_state)
+        if not self.mxid:
+            raise Exception("Failed to create room: no mxid returned")
+        if self.encrypted and self.matrix.e2ee:
+            members = [self.main_intent.mxid]
+            if self.is_direct:
+                # This isn't very accurate, but let's do it anyway
+                members += [source.mxid]
+                try:
+                    await self.az.intent.join_room_by_id(self.mxid)
+                    members += [self.az.intent.mxid]
+                except Exception:
+                    self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
+            await self.matrix.e2ee.add_room(self.mxid, members=members, encrypted=True)
         self.save()
         self.log.debug(f"Matrix room created: {self.mxid}")
-        if not self.mxid:
-            raise Exception("Failed to create room: no mxid required")
         self.by_mxid[self.mxid] = self
         await self._update_participants(source, info)
         puppet = p.Puppet.get_by_custom_mxid(source.mxid)
@@ -346,12 +374,20 @@ class Portal:
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent) -> str:
         return await sender.send_text(self.gid, message.body)
 
-    async def _handle_matrix_emote(self, sender: 'u.User', message: TextMessageEventContent) -> str:
+    async def _handle_matrix_emote(self, sender: 'u.User', message: TextMessageEventContent
+                                   ) -> str:
         return await sender.send_emote(self.gid, message.body)
 
     async def _handle_matrix_image(self, sender: 'u.User',
-                                   message: MediaMessageEventContent) -> str:
-        data = await self.main_intent.download_media(message.url)
+                                   message: MediaMessageEventContent) -> Optional[str]:
+        if message.file and decrypt_attachment:
+            data = await self.main_intent.download_media(message.file.url)
+            data = decrypt_attachment(data, message.file.key.key,
+                                      message.file.hashes.get("sha256"), message.file.iv)
+        elif message.url:
+            data = await self.main_intent.download_media(message.url)
+        else:
+            return None
         image = await sender.client.upload_image(io.BytesIO(data), filename=message.body)
         return await sender.send_image(self.gid, image)
 
@@ -379,6 +415,12 @@ class Portal:
     # endregion
     # region Hangouts event handling
 
+    async def _send_message(self, intent: IntentAPI, content: MessageEventContent,
+                            event_type: EventType = EventType.ROOM_MESSAGE, **kwargs) -> EventID:
+        if self.encrypted and self.matrix.e2ee:
+            event_type, content = await self.matrix.e2ee.encrypt(self.mxid, event_type, content)
+        return await intent.send_message_event(self.mxid, event_type, content, **kwargs)
+
     async def handle_hangouts_message(self, source: 'u.User', sender: 'p.Puppet',
                                       event: ChatMessageEvent) -> None:
         if self.is_direct and sender.gid == source.gid:
@@ -403,7 +445,9 @@ class Portal:
             event_id = await self.process_hangouts_attachments(event, intent)
         # Just to fallback to text if something else hasn't worked.
         if not event_id:
-            event_id = await intent.send_text(self.mxid, event.text)
+            event_id = await self._send_message(intent,
+                                                TextMessageEventContent(msgtype=MessageType.TEXT,
+                                                                        body=event.text))
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
                   index=0).insert()
 
@@ -411,12 +455,13 @@ class Portal:
         async with self.az.http_session.request("GET", url) as resp:
             return await resp.read()
 
-    async def process_hangouts_attachments(self, event: ChatMessageEvent, intent: IntentAPI):
+    async def process_hangouts_attachments(self, event: ChatMessageEvent, intent: IntentAPI
+                                           ) -> Optional[EventID]:
         attachments_pb = event._event.chat_message.message_content.attachment
 
         if len(event.attachments) > 1:
             self.log.warning("Can't handle more that one attachment")
-            return
+            return None
 
         attachment = event.attachments[0]
         attachment_pb = attachments_pb[0]
@@ -426,14 +471,26 @@ class Portal:
         # Get the filename from the headers
         async with self.az.http_session.request("GET", attachment) as resp:
             value, params = cgi.parse_header(resp.headers["Content-Disposition"])
+            mime = resp.headers["Content-Type"]
             filename = params.get('filename', attachment.split("/")[-1])
 
         # TODO: This also catches movies, but I can't work out how they present
-        # differently to images
+        #       differently to images
         if embed_item.type[0] == hangouts.ITEM_TYPE_PLUS_PHOTO:
-            mxc_url = await intent.upload_media(await self._get_remote_bytes(attachment),
-                                                filename=filename)
-            return await intent.send_image(self.mxid, mxc_url, file_name=filename)
+            data = await self._get_remote_bytes(attachment)
+            upload_mime = mime
+            decryption_info = None
+            if self.encrypted and encrypt_attachment:
+                data, decryption_info_dict = encrypt_attachment(data)
+                decryption_info = EncryptedFile.deserialize(decryption_info_dict)
+                upload_mime = "application/octet-stream"
+            mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
+            if decryption_info:
+                decryption_info.url = mxc_url
+            content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
+                                               info=ImageInfo(size=len(data), mimetype=mime))
+            return await self._send_message(intent, content)
+        return None
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
                                      ) -> None:
@@ -503,4 +560,5 @@ class Portal:
 def init(context: 'Context') -> None:
     global config
     Portal.az, config, Portal.loop = context.core
+    Portal.matrix = context.mx
     Portal.invite_own_puppet_to_pm = config["bridge.invite_own_puppet_to_pm"]
