@@ -488,7 +488,8 @@ class Portal(BasePortal):
             if decryption_info:
                 decryption_info.url = mxc_url
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
-                                               info=ImageInfo(size=len(data), mimetype=mime))
+                                               info=ImageInfo(size=len(data), mimetype=mime),
+                                               msgtype=MessageType.IMAGE)
             return await self._send_message(intent, content)
         return None
 
