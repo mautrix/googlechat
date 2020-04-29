@@ -251,6 +251,21 @@ class Portal(BasePortal):
         initial_state = [{
             "type": EventType.ROOM_POWER_LEVELS.serialize(),
             "content": power_levels.serialize(),
+        }, {
+            "type": "m.bridge",
+            "state_key": f"net.maunium.hangouts://hangouts/{self.gid}",
+            "content": {
+                "bridgebot": self.az.bot_mxid,
+                "creator": self.main_intent.mxid,
+                "protocol": {
+                    "id": "hangouts",
+                    "displayname": "Hangouts",
+                    "avatar_url": config["appservice.bot_avatar"],
+                },
+                "channel": {
+                    "id": self.gid
+                }
+            }
         }]
         if config["appservice.community_id"]:
             initial_state.append({
