@@ -49,7 +49,9 @@ RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
  && apk del .build-deps
 
 COPY . /opt/mautrix-hangouts
-RUN apk add --no-cache git && pip3 install .[e2be] && apk del git
+RUN apk add --no-cache git && pip3 install .[e2be] && apk del git \
+  # This doesn't make the image smaller, but it's needed so that the `version` command works properly
+  && cp mautrix_hangouts/example-config.yaml . && rm -rf mautrix_hangouts
 
 ENV UID=1337 GID=1337
 VOLUME /data
