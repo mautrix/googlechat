@@ -20,7 +20,7 @@ import io
 import cgi
 
 from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
-from hangups.user import User as HangoutsUser
+from hangups.user import User as HangoutsUser, UserID as HangoutsUserID
 from hangups.conversation import Conversation as HangoutsChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
                            TextMessageEventContent, MediaMessageEventContent, Membership,
@@ -41,7 +41,6 @@ try:
     from nio.crypto import decrypt_attachment, encrypt_attachment
 except ImportError:
     decrypt_attachment = encrypt_attachment = None
-
 
 config: Config
 
@@ -113,6 +112,11 @@ class Portal(BasePortal):
         return self.gid, self.receiver
 
     @property
+    def other_user_scoped_id(self) -> HangoutsUserID:
+        # TODO is chat_id ever different from gaia_id?
+        return HangoutsUserID(chat_id=self.other_user_id, gaia_id=self.other_user_id)
+
+    @property
     def gid_log(self) -> str:
         if self.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE:
             return f"{self.gid}-{self.receiver}"
@@ -176,14 +180,18 @@ class Portal(BasePortal):
             #     ),
             #     include_event=False,
             # ))
-        changed = any(await asyncio.gather(self._update_name(info.name),
-                                           self._update_participants(source, info),
-                                           loop=self.loop))
+        changed = await self._update_participants(source, info)
+        changed = await self._update_name(info) or changed
         if changed:
             self.save()
         return info
 
-    async def _update_name(self, name: str) -> bool:
+    async def _update_name(self, info: HangoutsChat) -> bool:
+        if self.is_direct:
+            other_user = info.get_user(self.other_user_scoped_id)
+            name = p.Puppet._get_name_from_info(other_user)
+        else:
+            name = info.name
         if self.name != name:
             self.name = name
             if self.mxid and (self.encrypted or not self.is_direct):
@@ -192,12 +200,12 @@ class Portal(BasePortal):
         return False
 
     async def _update_participants(self, source: 'u.User', info: HangoutsChat) -> None:
-        if not self.mxid:
-            return
         users = info.users
         if self.is_direct:
             users = [user for user in users if user.id_.gaia_id != source.gid]
             self.other_user_id = users[0].id_.gaia_id
+        if not self.mxid:
+            return
         puppets: Dict[HangoutsUser, p.Puppet] = {user: p.Puppet.get_by_gid(user.id_.gaia_id)
                                                  for user in users}
         await asyncio.gather(*[puppet.update_info(source=source, info=user)
@@ -245,27 +253,33 @@ class Portal(BasePortal):
             users = [user for user in info.users if user.id_.gaia_id != source.gid]
             self.other_user_id = users[0].id_.gaia_id
             puppet = p.Puppet.get_by_gid(self.other_user_id)
-            await puppet.update_info(source=source, info=info.get_user(self.other_user_id))
+            await puppet.update_info(source=source, info=info.get_user(self.other_user_scoped_id))
             power_levels.users[source.mxid] = 50
         power_levels.users[self.main_intent.mxid] = 100
+        bridge_info = {
+            "bridgebot": self.az.bot_mxid,
+            "creator": self.main_intent.mxid,
+            "protocol": {
+                "id": "hangouts",
+                "displayname": "Hangouts",
+                "avatar_url": config["appservice.bot_avatar"],
+            },
+            "channel": {
+                "id": self.gid
+            }
+        }
         initial_state = [{
             "type": EventType.ROOM_POWER_LEVELS.serialize(),
             "content": power_levels.serialize(),
         }, {
             "type": "m.bridge",
             "state_key": f"net.maunium.hangouts://hangouts/{self.gid}",
-            "content": {
-                "bridgebot": self.az.bot_mxid,
-                "creator": self.main_intent.mxid,
-                "protocol": {
-                    "id": "hangouts",
-                    "displayname": "Hangouts",
-                    "avatar_url": config["appservice.bot_avatar"],
-                },
-                "channel": {
-                    "id": self.gid
-                }
-            }
+            "content": bridge_info
+        }, {
+            # TODO remove this once https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
+            "type": "uk.half-shot.bridge",
+            "state_key": f"net.maunium.hangouts://hangouts/{self.gid}",
+            "content": bridge_info
         }]
         if config["appservice.community_id"]:
             initial_state.append({
