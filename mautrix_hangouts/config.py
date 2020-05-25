@@ -39,6 +39,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.update_avatar_initial_sync")
         copy("bridge.encryption.allow")
         copy("bridge.encryption.default")
+        copy("bridge.delivery_receipts")
 
         copy("bridge.web.auth.public")
         copy("bridge.web.auth.prefix")

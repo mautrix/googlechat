@@ -373,6 +373,13 @@ class Portal(BasePortal):
             pass
         return self._noop_lock
 
+    async def _send_delivery_receipt(self, event_id: EventID) -> None:
+        if event_id and config["bridge.delivery_receipts"]:
+            try:
+                await self.az.intent.mark_read(self.mxid, event_id)
+            except Exception:
+                self.log.exception("Failed to send delivery receipt for %s", event_id)
+
     async def handle_matrix_message(self, sender: 'u.User', message: MessageEventContent,
                                     event_id: EventID) -> None:
         puppet = p.Puppet.get_by_custom_mxid(sender.mxid)
@@ -399,6 +406,7 @@ class Portal(BasePortal):
             DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
                       index=0).insert()
             self._last_bridged_mxid = event_id
+        await self._send_delivery_receipt(event_id)
 
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent) -> str:
         return await sender.send_text(self.gid, message.body)
