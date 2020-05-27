@@ -38,7 +38,8 @@ RUN apk add --no-cache \
       py3-logbook@edge_testing \
       # Other dependencies
       ca-certificates \
-      su-exec
+      su-exec \
+	  py3-pysocks
 
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
