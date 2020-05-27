@@ -13,9 +13,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import asyncio
-
-from hangups import CredentialsPrompt, get_auth
 from mautrix.client import Client
 from mautrix.bridge import custom_puppet as cpu
 
@@ -59,3 +56,11 @@ async def logout_matrix(evt: CommandEvent) -> None:
         return
     await puppet.switch_mxid(None, None)
     await evt.reply("Restored the original puppet for your Hangouts account")
+
+
+@command_handler(needs_auth=False, management_only=True, help_section=SECTION_AUTH,
+                 help_text="Mark this room as your bridge notice room")
+async def set_notice_room(evt: CommandEvent) -> None:
+    evt.sender.notice_room = evt.room_id
+    evt.sender.save()
+    await evt.reply("This room has been marked as your bridge notice room")

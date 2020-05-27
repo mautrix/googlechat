@@ -34,6 +34,10 @@ class CommandEvent(BaseCommandEvent):
     sender: 'u.User'
     processor: 'CommandProcessor'
 
+    @property
+    def print_error_traceback(self) -> bool:
+        return self.sender.is_admin
+
     async def help_key(self) -> HelpCacheKey:
         return HelpCacheKey(is_management=self.is_management,
                             is_admin=self.sender.is_admin,)

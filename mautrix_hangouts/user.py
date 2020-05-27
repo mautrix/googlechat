@@ -28,9 +28,9 @@ from hangups import (hangouts_pb2 as hangouts,
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage
 
-from mautrix.types import UserID
-from mautrix.appservice import AppService
+from mautrix.types import UserID, RoomID
 from mautrix.client import Client as MxClient
+from mautrix.bridge import BaseUser
 from mautrix.bridge._community import CommunityHelper, CommunityID
 
 from .config import Config
@@ -44,21 +44,17 @@ if TYPE_CHECKING:
 config: Config
 
 
-class User:
-    az: AppService
-    loop: asyncio.AbstractEventLoop
-    log: logging.Logger = logging.getLogger("mau.user")
+class User(BaseUser):
     by_mxid: Dict[UserID, 'User'] = {}
 
     client: Optional[Client]
-    command_status: Optional[Dict[str, Any]]
-    is_whitelisted: bool
     is_admin: bool
     _db_instance: Optional[DBUser]
 
-    mxid: UserID
     gid: str
-    refresh_token: str
+    refresh_token: Optional[RoomID]
+    notice_room: RoomID
+    _notice_room_lock: asyncio.Lock
     name: Optional[str]
     name_future: asyncio.Future
     connected: bool
@@ -70,10 +66,13 @@ class User:
     _community_id: Optional[CommunityID]
 
     def __init__(self, mxid: UserID, gid: str = None, refresh_token: str = None,
+                 notice_room: Optional[RoomID] = None,
                  db_instance: Optional[DBUser] = None) -> None:
         self.mxid = mxid
         self.gid = gid
         self.refresh_token = refresh_token
+        self.notice_room = notice_room
+        self._notice_room_lock = asyncio.Lock()
         self.by_mxid[mxid] = self
         self.command_status = None
         self.is_whitelisted, self.is_admin, self.level = config.get_permissions(mxid)
@@ -89,18 +88,20 @@ class User:
     # region Sessions
 
     def save(self) -> None:
-        self.db_instance.edit(refresh_token=self.refresh_token, gid=self.gid)
+        self.db_instance.edit(refresh_token=self.refresh_token, gid=self.gid,
+                              notice_room=self.notice_room)
 
     @property
     def db_instance(self) -> DBUser:
         if not self._db_instance:
-            self._db_instance = DBUser(mxid=self.mxid, gid=self.gid,
+            self._db_instance = DBUser(mxid=self.mxid, gid=self.gid, notice_room=self.notice_room,
                                        refresh_token=self.refresh_token)
         return self._db_instance
 
     @classmethod
     def from_db(cls, db_user: DBUser) -> 'User':
-        return User(mxid=db_user.mxid, refresh_token=db_user.refresh_token, db_instance=db_user)
+        return User(mxid=db_user.mxid, refresh_token=db_user.refresh_token,
+                    notice_room=db_user.notice_room, db_instance=db_user)
 
     @classmethod
     def get_all(cls) -> Iterator['User']:
@@ -129,6 +130,25 @@ class User:
 
     # endregion
 
+    async def get_notice_room(self) -> RoomID:
+        if not self.notice_room:
+            async with self._notice_room_lock:
+                # If someone already created the room while this call was waiting,
+                # don't make a new room
+                if self.notice_room:
+                    return self.notice_room
+                self.notice_room = await self.az.intent.create_room(
+                    is_direct=True, invitees=[self.mxid],
+                    topic="Hangouts bridge notices")
+                self.save()
+        return self.notice_room
+
+    async def send_bridge_notice(self, text: str) -> None:
+        try:
+            await self.az.intent.send_notice(await self.get_notice_room(), text)
+        except Exception:
+            self.log.warning("Failed to send bridge notice '%s'", text, exc_info=True)
+
     async def is_logged_in(self) -> bool:
         return self.client and self.connected
 
@@ -146,6 +166,8 @@ class User:
             if auth_resp.success:
                 finish.append(user.login_complete(auth_resp.cookies))
             else:
+                await user.send_bridge_notice("Failed to resume session with stored "
+                                              f"refresh token: {auth_resp.error}")
                 user.log.exception("Failed to resume session with stored refresh token",
                                    exc_info=auth_resp.error)
         await asyncio.gather(*finish, loop=cls.loop)
@@ -162,8 +184,9 @@ class User:
         try:
             await self.client.connect()
             self.log.info("Client connection finished")
-        except Exception:
+        except Exception as e:
             self.log.exception("Exception in connection")
+            await self.send_bridge_notice(f"Exception in Hangouts connection: {e}")
 
     async def stop(self) -> None:
         if self.client:
@@ -172,6 +195,7 @@ class User:
     async def on_connect(self) -> None:
         self.connected = True
         asyncio.ensure_future(self.on_connect_later(), loop=self.loop)
+        await self.send_bridge_notice("Connected to Hangouts")
 
     async def on_connect_later(self) -> None:
         try:
@@ -201,9 +225,11 @@ class User:
 
     async def on_reconnect(self) -> None:
         self.connected = True
+        await self.send_bridge_notice("Reconnected to Hangouts")
 
     async def on_disconnect(self) -> None:
         self.connected = False
+        await self.send_bridge_notice("Disconnected from Hangouts")
 
     async def sync(self) -> None:
         users, chats = await hangups.build_user_conversation_list(self.client)

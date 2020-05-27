@@ -100,6 +100,15 @@ class MatrixHandler(BaseMatrixHandler):
     #     # The rest can probably be ignored
     #     pass
 
+    async def send_welcome_message(self, room_id: RoomID, inviter: 'u.User') -> None:
+        await super().send_welcome_message(room_id, inviter)
+        if not inviter.notice_room:
+            inviter.notice_room = room_id
+            inviter.save()
+            await self.az.intent.send_notice(room_id, "This room has been marked as your "
+                                                      "Hangouts bridge notice room.")
+
+
     async def handle_join(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
         user = u.User.get_by_mxid(user_id)
 

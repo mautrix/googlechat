@@ -18,7 +18,7 @@ from typing import Optional, Iterable
 from sqlalchemy import Column, String, ForeignKey, ForeignKeyConstraint, Boolean, and_
 from sqlalchemy.sql import expression
 
-from mautrix.types import UserID
+from mautrix.types import UserID, RoomID
 from mautrix.util.db import Base
 
 
@@ -28,6 +28,7 @@ class User(Base):
     mxid: UserID = Column(String(255), primary_key=True)
     gid: str = Column(String(255), nullable=True)
     refresh_token: str = Column(String(255), nullable=True)
+    notice_room: RoomID = Column(String(255), nullable=True)
 
     @classmethod
     def all(cls) -> Iterable['User']:
