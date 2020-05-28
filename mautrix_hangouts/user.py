@@ -440,7 +440,7 @@ class UserRefreshTokenCache(RefreshTokenCache):
         return self.user.refresh_token
 
     def set(self, refresh_token: str) -> None:
-        self.user.log.debug("New refresh token: %s", refresh_token)
+        self.user.log.trace("New refresh token: %s", refresh_token)
         self.user.refresh_token = refresh_token
         self.user.save()
 

@@ -476,11 +476,12 @@ class Portal(BasePortal):
         if not self.mxid:
             await self.create_matrix_room(source)
         intent = sender.intent_for(self)
+        self.log.debug("Handling hangouts message %s", event.id_)
 
         event_id = None
         if event.attachments:
-            self.log.debug(f"Attachments: {event.attachments}")
             self.log.debug("Processing attachments.")
+            self.log.trace("Attachments: %s", event.attachments)
             event_id = await self.process_hangouts_attachments(event, intent)
         # Just to fallback to text if something else hasn't worked.
         if not event_id:
@@ -489,6 +490,7 @@ class Portal(BasePortal):
                                                                         body=event.text))
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
                   index=0).insert()
+        self.log.debug("Handled Hangouts message %s -> %s", event.id_, event_id)
 
     async def _get_remote_bytes(self, url):
         async with self.az.http_session.request("GET", url) as resp:
