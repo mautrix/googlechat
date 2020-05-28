@@ -17,7 +17,7 @@ RUN apk add --no-cache \
         py3-async-timeout \
         py3-requests \
         py3-appdirs \
-        py3-protobuf@edge_testing \
+        #py3-protobuf@edge_community \ # (too new)
         #py3-urwid \ # (too new in repos)
         #mechanicalsoup
           py3-beautifulsoup4 \
@@ -39,7 +39,7 @@ RUN apk add --no-cache \
       # Other dependencies
       ca-certificates \
       su-exec \
-	  py3-pysocks
+      py3-pysocks
 
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
