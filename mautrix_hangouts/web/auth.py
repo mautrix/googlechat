@@ -140,6 +140,7 @@ class HangoutsAuthServer:
             "permissions": user.level,
             "mxid": user.mxid,
             "hangouts": {
+                "name": user.name,
                 "gid": user.gid,
                 "connected": user.connected,
             } if user.client else None,
