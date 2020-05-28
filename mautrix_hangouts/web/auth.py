@@ -17,6 +17,7 @@ from typing import Optional, Dict, Any, Callable
 from concurrent import futures
 from enum import Enum
 from time import time
+import urllib.parse
 import pkg_resources
 import asyncio
 import logging
@@ -26,7 +27,7 @@ import random
 from aiohttp import web
 
 from hangups import CredentialsPrompt, GoogleAuthError, get_auth
-from hangups.auth import OAUTH2_LOGIN_URL
+from hangups.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES
 from mautrix.types import UserID
 from mautrix.util.signed_token import sign_token, verify_token
 
@@ -59,6 +60,12 @@ async def error_middleware(request: web.Request, handler) -> web.Response:
 log = logging.getLogger("mau.hg.auth")
 
 LOGIN_TIMEOUT = 10 * 60
+OAUTH2_LOGIN_URL = 'https://accounts.google.com/o/oauth2/programmatic_auth?{}'.format(
+    urllib.parse.urlencode({
+        "scope": "+".join(OAUTH2_SCOPES),
+        "client_id": OAUTH2_CLIENT_ID,
+        "device_name": "Mautrix-Hangouts bridge",
+    }, safe='+'))
 
 
 class HangoutsAuthServer:
@@ -68,7 +75,8 @@ class HangoutsAuthServer:
     shared_secret: Optional[str]
     secret_key: str
 
-    def __init__(self, shared_secret: Optional[str], loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+    def __init__(self, shared_secret: Optional[str],
+                 loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         self.loop = loop or asyncio.get_event_loop()
         self.app = web.Application(loop=self.loop, middlewares=[error_middleware])
         self.ongoing = {}
