@@ -578,7 +578,8 @@ class Portal(BasePortal):
         if not event_id:
             event_id = await self._send_message(intent,
                                                 TextMessageEventContent(msgtype=MessageType.TEXT,
-                                                                        body=event.text))
+                                                                        body=event.text),
+                                                timestamp=event.timestamp)
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
                   index=0).insert()
         self.log.debug("Handled Hangouts message %s -> %s", event.id_, event_id)
@@ -622,7 +623,7 @@ class Portal(BasePortal):
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
                                                info=ImageInfo(size=len(data), mimetype=mime),
                                                msgtype=MessageType.IMAGE)
-            return await self._send_message(intent, content)
+            return await self._send_message(intent, content, timestamp=event.timestamp)
         return None
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
