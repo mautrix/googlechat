@@ -97,7 +97,7 @@ bridge:
     # Settings for backfilling messages from Hangouts.
     backfill:
         # Whether or not the Hangouts users of logged in Matrix users should be
-        # invited to private chats when backfilling history from Facebook. This is
+        # invited to private chats when backfilling history from Hangouts. This is
         # usually needed to prevent rate limits and to allow timestamp massaging.
         invite_own_puppet: true
         # Maximum number of messages to backfill initially.
