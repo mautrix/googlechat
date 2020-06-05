@@ -106,7 +106,7 @@ bridge:
         # Maximum number of messages to backfill if messages were missed while
         # the bridge was disconnected.
         # Set to 0 to disable backfilling missed messages.
-        missed_limit: 1000
+        missed_limit: 100
 
     # Public website and API configs
     web:

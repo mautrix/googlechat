@@ -437,6 +437,7 @@ class Portal(BasePortal):
             await intent.leave_room(room_id)
         except MatrixError:
             pass
+        DBMessage.delete_all_by_mxid(room_id)
 
     async def unbridge(self) -> None:
         await self.cleanup_room(self.main_intent, self.mxid, "Room unbridged", puppets_only=True)

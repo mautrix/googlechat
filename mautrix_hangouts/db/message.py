@@ -40,3 +40,7 @@ class Message(Base):
     @classmethod
     def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional['Message']:
         return cls._select_one_or_none(and_(cls.c.mxid == mxid, cls.c.mx_room == mx_room))
+
+    @classmethod
+    def delete_all_by_mxid(cls, mx_room: RoomID) -> None:
+        cls.db.execute(cls.t.delete().where(cls.c.mx_room == mx_room))
