@@ -18,7 +18,6 @@ from typing import (Any, Dict, Iterator, Optional, List, Awaitable, Union, Calla
 from concurrent import futures
 import datetime
 import asyncio
-import logging
 import time
 
 import hangups
@@ -34,7 +33,7 @@ from mautrix.bridge import BaseUser
 from mautrix.bridge._community import CommunityHelper, CommunityID
 
 from .config import Config
-from .db import User as DBUser, UserPortal, Contact
+from .db import User as DBUser, UserPortal, Contact, Message as DBMessage
 from .util.hangups_try_auth import try_auth, TryAuthResp
 from . import puppet as pu, portal as po
 
@@ -279,12 +278,21 @@ class User(BaseUser):
             max_events_per_conversation=1,
             sync_filter=[hangouts.SYNC_FILTER_INBOX],
         ))
-        res = sorted((conv_state.conversation for conv_state in res.conversation_state),
-                     reverse=True, key=lambda conv: conv.self_conversation_state.sort_timestamp)
-        res = (chats.get(conv.conversation_id.id) for conv in res)
-        await asyncio.gather(
-            *[po.Portal.get_by_conversation(info, self.gid).create_matrix_room(self, info)
-              for info in res], loop=self.loop)
+        self.log.debug("Server returned %d conversations", len(res.conversation_state))
+        convs = sorted(res.conversation_state, reverse=True,
+                       key=lambda state: state.conversation.self_conversation_state.sort_timestamp)
+        for state in convs:
+            self.log.debug("Syncing %s", state.conversation_id.id)
+            chat = chats.get(state.conversation_id.id)
+            portal = po.Portal.get_by_conversation(chat, self.gid)
+            if portal.mxid:
+                await portal.update_matrix_room(self, chat)
+                if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
+                    self.log.debug("Last message %s in chat %s not found in db, backfilling...",
+                                   state.event[0].event_id, state.conversation_id.id)
+                    await portal.backfill(self, is_initial=False)
+            else:
+                await portal.create_matrix_room(self, chat)
 
     # region Hangouts event handling
 

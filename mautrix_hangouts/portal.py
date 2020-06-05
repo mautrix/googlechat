@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Deque, Optional, Tuple, Union, Set, Iterator, TYPE_CHECKING
+from typing import Dict, Deque, Optional, Tuple, Union, Set, List, Iterator, TYPE_CHECKING
 from collections import deque
 import asyncio
 import io
@@ -28,6 +28,7 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
 from mautrix.appservice import IntentAPI
 from mautrix.errors import MatrixError
 from mautrix.bridge import BasePortal
+from mautrix.util.simple_lock import SimpleLock
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage
@@ -77,6 +78,7 @@ class Portal(BasePortal):
     _send_locks: Dict[str, asyncio.Lock]
     _noop_lock: FakeLock = FakeLock()
     _typing: Set['u.User']
+    backfill_lock: SimpleLock
 
     def __init__(self, gid: str, receiver: str, conv_type: int, other_user_id: Optional[str] = None,
                  mxid: Optional[RoomID] = None, encrypted: bool = False, name: str = "",
@@ -102,6 +104,8 @@ class Portal(BasePortal):
         self._typing = set()
 
         self.log = self.log.getChild(self.gid_log)
+        self.backfill_lock = SimpleLock("Waiting for backfilling to finish before handling %s",
+                                        log=self.log, loop=self.loop)
 
         self.by_gid[self.full_gid] = self
         if self.mxid:
@@ -214,6 +218,80 @@ class Portal(BasePortal):
                                for puppet in puppets.values()])
 
     # endregion
+
+    async def _load_messages(self, source: 'u.User', limit: int = 100,
+                             token: Optional[hangouts.EventContinuationToken] = None
+                             ) -> Tuple[List[ChatMessageEvent], hangouts.EventContinuationToken]:
+        resp = await source.client.get_conversation(hangouts.GetConversationRequest(
+            request_header=source.client.get_request_header(),
+            conversation_spec=hangouts.ConversationSpec(
+                conversation_id=hangouts.ConversationId(id=self.gid),
+            ),
+            include_conversation_metadata=False,
+            include_event=True,
+            max_events_per_conversation=limit,
+            event_continuation_token=token
+        ))
+        return ([HangoutsChat._wrap_event(evt) for evt in resp.conversation_state.event],
+               resp.conversation_state.event_continuation_token)
+
+    async def _load_many_messages(self, source: 'u.User', is_initial: bool
+                                  ) -> List[ChatMessageEvent]:
+        limit = (config["bridge.backfill.initial_limit"] if is_initial
+                 else config["bridge.backfill.missed_limit"])
+        if limit == 0:
+            return []
+        elif limit < 0:
+            limit = None
+        messages = []
+        self.log.debug("Fetching up to %d messages through %s", limit, source.gid)
+        token = None
+        while True:
+            chunk_limit = min(limit, 100)
+            chunk, token = await self._load_messages(source, chunk_limit, token)
+            for message in reversed(chunk):
+                if DBMessage.get_by_gid(message.id_):
+                    self.log.debug("Stopping backfilling at %s (ts: %s) "
+                                   "as message was already bridged",
+                                   message.id_, message.timestamp)
+                    return messages
+                messages.append(message)
+            if len(chunk) < chunk_limit:
+                return messages
+            limit -= len(chunk)
+
+    async def backfill(self, source: 'u.User', is_initial: bool = False) -> None:
+        try:
+            with self.backfill_lock:
+                await self._backfill(source, is_initial)
+        except Exception:
+            self.log.exception("Failed to backfill portal")
+
+    async def _backfill(self, source: 'u.User', is_initial: bool = False) -> None:
+        self.log.debug("Backfilling history through %s", source.mxid)
+        messages = await self._load_many_messages(source, is_initial)
+        if not messages:
+            self.log.debug("Didn't get any messages from server")
+            return
+        self.log.debug("Got %d messages from server", len(messages))
+        backfill_leave = set()
+        if config["bridge.backfill.invite_own_puppet"]:
+            self.log.debug("Adding %s's default puppet to room for backfilling", source.mxid)
+            sender = p.Puppet.get_by_gid(source.gid)
+            await self.main_intent.invite_user(self.mxid, sender.default_mxid)
+            await sender.default_mxid_intent.join_room_by_id(self.mxid)
+            backfill_leave.add(sender.default_mxid_intent)
+        for message in reversed(messages):
+            if isinstance(message, ChatMessageEvent):
+                puppet = p.Puppet.get_by_gid(message.user_id.gaia_id)
+                await self.handle_hangouts_message(source, puppet, message)
+            else:
+                self.log.trace("Unhandled event type %s while backfilling", type(message))
+        for intent in backfill_leave:
+            self.log.trace("Leaving room with %s post-backfill", intent.mxid)
+            await intent.leave_room(self.mxid)
+        self.log.info("Backfilled %d messages through %s", len(messages), source.mxid)
+
     # region Matrix room creation
 
     async def _update_matrix_room(self, source: 'u.User',
@@ -223,6 +301,13 @@ class Portal(BasePortal):
         if puppet:
             await puppet.intent.ensure_joined(self.mxid)
         await self.update_info(source, info)
+
+    async def update_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
+                                 ) -> None:
+        try:
+            await self._update_matrix_room(source, info)
+        except Exception:
+            self.log.exception("Failed to update portal")
 
     async def create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
                                  ) -> RoomID:
@@ -296,30 +381,36 @@ class Portal(BasePortal):
                 invites.append(self.az.bot_mxid)
         if self.encrypted or not self.is_direct:
             name = self.name
-        self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
-                                                       invitees=invites,
-                                                       initial_state=initial_state)
-        if not self.mxid:
-            raise Exception("Failed to create room: no mxid returned")
-        if self.encrypted and self.matrix.e2ee:
-            members = [self.main_intent.mxid]
-            if self.is_direct:
-                # This isn't very accurate, but let's do it anyway
-                members += [source.mxid]
-                try:
-                    await self.az.intent.join_room_by_id(self.mxid)
-                    members += [self.az.intent.mxid]
-                except Exception:
-                    self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
-            await self.matrix.e2ee.add_room(self.mxid, members=members, encrypted=True)
-        self.save()
-        self.log.debug(f"Matrix room created: {self.mxid}")
-        self.by_mxid[self.mxid] = self
-        await self._update_participants(source, info)
-        puppet = p.Puppet.get_by_custom_mxid(source.mxid)
-        if puppet:
-            await puppet.intent.ensure_joined(self.mxid)
-        await source._community_helper.add_room(source._community_id, self.mxid)
+        # We lock backfill lock here so any messages that come between the room being created
+        # and the initial backfill finishing wouldn't be bridged before the backfill messages.
+        with self.backfill_lock:
+            self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
+                                                           invitees=invites,
+                                                           initial_state=initial_state)
+            if not self.mxid:
+                raise Exception("Failed to create room: no mxid returned")
+            if self.encrypted and self.matrix.e2ee:
+                members = [self.main_intent.mxid]
+                if self.is_direct:
+                    # This isn't very accurate, but let's do it anyway
+                    members += [source.mxid]
+                    try:
+                        await self.az.intent.join_room_by_id(self.mxid)
+                        members += [self.az.intent.mxid]
+                    except Exception:
+                        self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
+                await self.matrix.e2ee.add_room(self.mxid, members=members, encrypted=True)
+            self.save()
+            self.log.debug(f"Matrix room created: {self.mxid}")
+            self.by_mxid[self.mxid] = self
+            await self._update_participants(source, info)
+            puppet = p.Puppet.get_by_custom_mxid(source.mxid)
+            if puppet:
+                await puppet.intent.ensure_joined(self.mxid)
+            await source._community_helper.add_room(source._community_id, self.mxid)
+
+            await self.backfill(source, is_initial=True)
+
         return self.mxid
 
     # endregion

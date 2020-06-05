@@ -94,6 +94,19 @@ bridge:
     # Whether or not the bridge should send a read receipt from the bridge bot when a message has
     # been sent to Hangouts.
     delivery_receipts: false
+    # Settings for backfilling messages from Hangouts.
+    backfill:
+        # Whether or not the Hangouts users of logged in Matrix users should be
+        # invited to private chats when backfilling history from Facebook. This is
+        # usually needed to prevent rate limits and to allow timestamp massaging.
+        invite_own_puppet: true
+        # Maximum number of messages to backfill initially.
+        # Set to 0 to disable backfilling when creating portal.
+        initial_limit: 0
+        # Maximum number of messages to backfill if messages were missed while
+        # the bridge was disconnected.
+        # Set to 0 to disable backfilling missed messages.
+        missed_limit: 1000
 
     # Public website and API configs
     web:

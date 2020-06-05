@@ -133,7 +133,8 @@ class Puppet(CustomPuppetMixin):
                                if portal.mxid], loop=self.loop)
 
     def intent_for(self, portal: 'p.Portal') -> IntentAPI:
-        if portal.other_user_id == self.gid:
+        if portal.other_user_id == self.gid or (portal.backfill_lock.locked
+                                                and config["bridge.backfill.invite_own_puppet"]):
             return self.default_mxid_intent
         return self.intent
 
