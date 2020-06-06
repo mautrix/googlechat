@@ -39,7 +39,9 @@ RUN apk add --no-cache \
       # Other dependencies
       ca-certificates \
       su-exec \
-      py3-pysocks
+      py3-pysocks \
+      # Explicit dependency with different repository
+      py3-python-editor@edge_community
 
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
