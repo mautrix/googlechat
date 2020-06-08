@@ -107,6 +107,9 @@ bridge:
         # the bridge was disconnected.
         # Set to 0 to disable backfilling missed messages.
         missed_limit: 100
+        # If using double puppeting, should notifications be disabled
+        # while the initial backfill is in progress?
+        disable_notifications: false
 
     # Public website and API configs
     web:

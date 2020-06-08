@@ -27,7 +27,7 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
                            PowerLevelStateEventContent, EncryptedFile)
 from mautrix.appservice import IntentAPI
 from mautrix.errors import MatrixError
-from mautrix.bridge import BasePortal
+from mautrix.bridge import BasePortal, NotificationDisabler
 from mautrix.util.simple_lock import SimpleLock
 
 from .config import Config
@@ -281,12 +281,13 @@ class Portal(BasePortal):
             await self.main_intent.invite_user(self.mxid, sender.default_mxid)
             await sender.default_mxid_intent.join_room_by_id(self.mxid)
             backfill_leave.add(sender.default_mxid_intent)
-        for message in reversed(messages):
-            if isinstance(message, ChatMessageEvent):
-                puppet = p.Puppet.get_by_gid(message.user_id.gaia_id)
-                await self.handle_hangouts_message(source, puppet, message)
-            else:
-                self.log.trace("Unhandled event type %s while backfilling", type(message))
+        async with NotificationDisabler(self.mxid, source):
+            for message in reversed(messages):
+                if isinstance(message, ChatMessageEvent):
+                    puppet = p.Puppet.get_by_gid(message.user_id.gaia_id)
+                    await self.handle_hangouts_message(source, puppet, message)
+                else:
+                    self.log.trace("Unhandled event type %s while backfilling", type(message))
         for intent in backfill_leave:
             self.log.trace("Leaving room with %s post-backfill", intent.mxid)
             await intent.leave_room(self.mxid)
@@ -697,3 +698,5 @@ def init(context: 'Context') -> None:
     Portal.az, config, Portal.loop = context.core
     Portal.matrix = context.mx
     Portal.invite_own_puppet_to_pm = config["bridge.invite_own_puppet_to_pm"]
+    NotificationDisabler.puppet_cls = p.Puppet
+    NotificationDisabler.config_enabled = config["bridge.backfill.disable_notifications"]

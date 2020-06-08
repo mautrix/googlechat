@@ -43,6 +43,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.backfill.invite_own_puppet")
         copy("bridge.backfill.initial_limit")
         copy("bridge.backfill.missed_limit")
+        copy("bridge.backfill.disable_notifications")
 
         copy("bridge.web.auth.public")
         copy("bridge.web.auth.prefix")
