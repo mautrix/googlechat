@@ -553,21 +553,30 @@ class Portal(BasePortal):
             event_type, content = await self.matrix.e2ee.encrypt(self.mxid, event_type, content)
         return await intent.send_message_event(self.mxid, event_type, content, **kwargs)
 
-    async def handle_hangouts_message(self, source: 'u.User', sender: 'p.Puppet',
-                                      event: ChatMessageEvent) -> None:
-        if self.is_direct and sender.gid == source.gid:
-            if self.invite_own_puppet_to_pm:
+    async def _bridge_own_message_pm(self, source: 'u.User', sender: 'p.Puppet', msg_id: str,
+                                     invite: bool = True) -> bool:
+        if self.is_direct and sender.gid == source.gid and not sender.is_real_user:
+            if self.invite_own_puppet_to_pm and invite:
                 await self.main_intent.invite_user(self.mxid, sender.mxid)
             elif self.az.state_store.get_membership(self.mxid, sender.mxid) != Membership.JOIN:
-                self.log.debug(f"Ignoring own message {event.id_} in private chat because own"
-                               " puppet is not in room.")
-                return
+                self.log.warning(f"Ignoring own {msg_id} in private chat "
+                                 "because own puppet is not in room.")
+                return False
+        return True
+
+    async def handle_hangouts_message(self, source: 'u.User', sender: 'p.Puppet',
+                                      event: ChatMessageEvent) -> None:
         async with self.optional_send_lock(sender.gid):
             if event.id_ in self._dedup:
                 return
             self._dedup.appendleft(event.id_)
         if not self.mxid:
-            await self.create_matrix_room(source)
+            mxid = await self.create_matrix_room(source)
+            if not mxid:
+                # Failed to create
+                return
+        if not await self._bridge_own_message_pm(source, sender, f"message {event.id_}"):
+            return
         intent = sender.intent_for(self)
         self.log.debug("Handling hangouts message %s", event.id_)
 
