@@ -594,6 +594,7 @@ class Portal(BasePortal):
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
                   index=0).insert()
         self.log.debug("Handled Hangouts message %s -> %s", event.id_, event_id)
+        await self._send_delivery_receipt(event_id)
 
     async def _get_remote_bytes(self, url):
         async with self.az.http_session.request("GET", url) as resp:
