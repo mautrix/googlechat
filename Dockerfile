@@ -1,7 +1,9 @@
 FROM docker.io/alpine:3.12
 
-RUN echo "@edge_testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
-RUN echo "@edge_community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+RUN echo $'\
+@edge http://dl-cdn.alpinelinux.org/alpine/edge/main\n\
+@edge http://dl-cdn.alpinelinux.org/alpine/edge/testing\n\
+@edge http://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories
 
 RUN apk add --no-cache \
       python3 py3-pip py3-setuptools py3-wheel \
@@ -11,9 +13,8 @@ RUN apk add --no-cache \
       py3-sqlalchemy \
       py3-psycopg2 \
       py3-ruamel.yaml \
-      py3-commonmark@edge_testing \
-      py3-alembic@edge_testing \
-        py3-python-editor@edge_community \
+      py3-commonmark@edge \
+      py3-alembic@edge \
       #hangups
         py3-async-timeout \
         py3-requests \
@@ -35,9 +36,9 @@ RUN apk add --no-cache \
       #py3-aiofiles \ # (too new)
       py3-cachetools \
       py3-unpaddedbase64 \
-      py3-h2@edge_testing \
-      py3-pyaes@edge_testing \
-      py3-logbook@edge_testing \
+      py3-h2@edge \
+      py3-pyaes@edge \
+      py3-logbook@edge \
       # Other dependencies
       ca-certificates \
       su-exec \
