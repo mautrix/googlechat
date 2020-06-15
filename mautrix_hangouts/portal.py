@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Deque, Optional, Tuple, Union, Set, List, Iterator, TYPE_CHECKING
+from typing import Dict, Deque, Optional, Tuple, Union, Set, List, Iterator, Any, TYPE_CHECKING
 from collections import deque
 import asyncio
 import io
@@ -52,6 +52,10 @@ class FakeLock:
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         pass
+
+
+StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
+StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 
 
 class Portal(BasePortal):
@@ -188,6 +192,7 @@ class Portal(BasePortal):
         changed = await self._update_name(info) or changed
         if changed:
             self.save()
+            await self.update_bridge_info()
         return info
 
     async def _update_name(self, info: HangoutsChat) -> bool:
@@ -233,7 +238,7 @@ class Portal(BasePortal):
             event_continuation_token=token
         ))
         return ([HangoutsChat._wrap_event(evt) for evt in resp.conversation_state.event],
-               resp.conversation_state.event_continuation_token)
+                resp.conversation_state.event_continuation_token)
 
     async def _load_many_messages(self, source: 'u.User', is_initial: bool
                                   ) -> List[ChatMessageEvent]:
@@ -324,6 +329,37 @@ class Portal(BasePortal):
             except Exception:
                 self.log.exception("Failed to create portal")
 
+    @property
+    def bridge_info_state_key(self) -> str:
+        return f"net.maunium.hangouts://hangouts/{self.gid}"
+
+    @property
+    def bridge_info(self) -> Dict[str, Any]:
+        return {
+            "bridgebot": self.az.bot_mxid,
+            "creator": self.main_intent.mxid,
+            "protocol": {
+                "id": "hangouts",
+                "displayname": "Hangouts",
+                "avatar_url": config["appservice.bot_avatar"],
+            },
+            "channel": {
+                "id": self.gid,
+                "displayname": self.name,
+            }
+        }
+
+    async def update_bridge_info(self) -> None:
+        try:
+            self.log.debug("Updating bridge info...")
+            await self.main_intent.send_state_event(self.mxid, StateBridge,
+                                                    self.bridge_info, self.bridge_info_state_key)
+            # TODO remove this once https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
+            await self.main_intent.send_state_event(self.mxid, StateHalfShotBridge,
+                                                    self.bridge_info, self.bridge_info_state_key)
+        except Exception:
+            self.log.warning("Failed to update bridge info", exc_info=True)
+
     async def _create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
                                   ) -> RoomID:
         if self.mxid:
@@ -342,30 +378,18 @@ class Portal(BasePortal):
             await puppet.update_info(source=source, info=info.get_user(self.other_user_scoped_id))
             power_levels.users[source.mxid] = 50
         power_levels.users[self.main_intent.mxid] = 100
-        bridge_info = {
-            "bridgebot": self.az.bot_mxid,
-            "creator": self.main_intent.mxid,
-            "protocol": {
-                "id": "hangouts",
-                "displayname": "Hangouts",
-                "avatar_url": config["appservice.bot_avatar"],
-            },
-            "channel": {
-                "id": self.gid
-            }
-        }
         initial_state = [{
             "type": EventType.ROOM_POWER_LEVELS.serialize(),
             "content": power_levels.serialize(),
         }, {
-            "type": "m.bridge",
-            "state_key": f"net.maunium.hangouts://hangouts/{self.gid}",
-            "content": bridge_info
+            "type": str(StateBridge),
+            "state_key": self.bridge_info_state_key,
+            "content": self.bridge_info,
         }, {
             # TODO remove this once https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
-            "type": "uk.half-shot.bridge",
-            "state_key": f"net.maunium.hangouts://hangouts/{self.gid}",
-            "content": bridge_info
+            "type": str(StateHalfShotBridge),
+            "state_key": self.bridge_info_state_key,
+            "content": self.bridge_info,
         }]
         if config["appservice.community_id"]:
             initial_state.append({
