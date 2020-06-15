@@ -721,6 +721,14 @@ class Portal(BasePortal):
                 yield cls.from_db(db_portal)
 
     @classmethod
+    def all(cls) -> Iterator['Portal']:
+        for db_portal in DBPortal.all():
+            try:
+                yield cls.by_gid[(db_portal.gid, db_portal.receiver)]
+            except KeyError:
+                yield cls.from_db(db_portal)
+
+    @classmethod
     def get_by_conversation(cls, conversation: HangoutsChat, receiver: str) -> Optional['Portal']:
         return cls.get_by_gid(conversation.id_, receiver, conversation._conversation.type)
 

@@ -13,15 +13,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from itertools import chain
-
 from mautrix.bridge import Bridge
 
 from .config import Config
 from .db import init as init_db
 from .sqlstatestore import SQLStateStore
 from .user import User, init as init_user
-from .portal import init as init_portal
+from .portal import Portal, init as init_portal
 from .puppet import Puppet, init as init_puppet
 from .matrix import MatrixHandler
 from .context import Context
@@ -60,6 +58,16 @@ class HangoutsBridge(Bridge):
         self.add_startup_actions(init_user(context))
         init_portal(context)
         self.add_startup_actions(init_puppet(context))
+        if self.config["bridge.resend_bridge_info"]:
+            self.add_startup_actions(self.resend_bridge_info())
+
+    async def resend_bridge_info(self) -> None:
+        self.config["bridge.resend_bridge_info"] = False
+        self.config.save()
+        self.log.info("Re-sending bridge info state event to all portals")
+        for portal in Portal.all():
+            await portal.update_bridge_info()
+        self.log.info("Finished re-sending bridge info state events")
 
     async def stop(self) -> None:
         self.shutdown_actions = (user.stop() for user in User.by_mxid.values())

@@ -110,6 +110,10 @@ bridge:
         # If using double puppeting, should notifications be disabled
         # while the initial backfill is in progress?
         disable_notifications: false
+    # Set this to true to tell the bridge to re-send m.bridge events to all rooms on the next run.
+    # This field will automatically be changed back to false after it,
+    # except if the config file is not writable.
+    resend_bridge_info: false
 
     # Public website and API configs
     web:
