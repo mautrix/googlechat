@@ -27,12 +27,12 @@
     * [ ] Media
       * [ ] Files
       * [ ] Videos
-      * [ ] Images
+      * [x] Images
       * [ ] Locations
     * [ ] Formatting
-  * [ ] Message history
+  * [x] Message history
   * [ ] Presence
-  * [ ] Typing notifications
+  * [x] Typing notifications
   * [ ] Read receipts
   * [ ] Membership actions
     * [ ] Invite
