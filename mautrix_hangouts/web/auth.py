@@ -168,7 +168,7 @@ class HangoutsAuthServer:
             return web.json_response(self.ongoing[user.mxid].current_status)
         except KeyError:
             pass
-        login = WebCredentialsPrompt(self, user, manual, self.loop)
+        login = WebCredentialsPrompt(self, user, manual, self.device_name, self.loop)
         self.ongoing[user.mxid] = login
         try:
             return web.json_response(await login.start())
