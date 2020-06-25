@@ -49,7 +49,7 @@ class HangoutsBridge(Bridge):
 
     def prepare_bridge(self) -> None:
         self.auth_server = HangoutsAuthServer(self.config["bridge.web.auth.shared_secret"],
-                                              self.loop)
+                                              self.config["hangouts.device_name"], self.loop)
         self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
 
         context = Context(az=self.az, config=self.config, loop=self.loop,

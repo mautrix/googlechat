@@ -27,6 +27,8 @@ class Config(BaseBridgeConfig):
 
         copy("appservice.community_id")
 
+        copy("hangouts.device_name")
+
         copy("bridge.username_template")
         copy("bridge.displayname_template")
         copy("bridge.community_template")

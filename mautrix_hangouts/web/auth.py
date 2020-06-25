@@ -60,12 +60,15 @@ async def error_middleware(request: web.Request, handler) -> web.Response:
 log = logging.getLogger("mau.hg.auth")
 
 LOGIN_TIMEOUT = 10 * 60
-OAUTH2_LOGIN_URL = 'https://accounts.google.com/o/oauth2/programmatic_auth?{}'.format(
-    urllib.parse.urlencode({
+
+
+def make_login_url(device_name: str) -> str:
+    query = urllib.parse.urlencode({
         "scope": "+".join(OAUTH2_SCOPES),
         "client_id": OAUTH2_CLIENT_ID,
-        "device_name": "Mautrix-Hangouts bridge",
-    }, safe='+'))
+        "device_name": device_name,
+    }, safe='+')
+    return f"https://accounts.google.com/o/oauth2/programmatic_auth?{query}"
 
 
 class HangoutsAuthServer:
@@ -74,12 +77,14 @@ class HangoutsAuthServer:
     ongoing: Dict[UserID, 'WebCredentialsPrompt']
     shared_secret: Optional[str]
     secret_key: str
+    device_name: str
 
-    def __init__(self, shared_secret: Optional[str],
+    def __init__(self, shared_secret: Optional[str], device_name: str,
                  loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         self.loop = loop or asyncio.get_event_loop()
         self.app = web.Application(loop=self.loop, middlewares=[error_middleware])
         self.ongoing = {}
+        self.device_name = device_name
         self.shared_secret = shared_secret
         self.secret_key = "".join(random.choices(string.ascii_lowercase + string.digits, k=64))
         self.app.router.add_post("/api/verify", self.verify)
@@ -251,6 +256,7 @@ class WebCredentialsPrompt(CredentialsPrompt):
     loop: asyncio.AbstractEventLoop
     auth_server: 'HangoutsAuthServer'
     user: 'u.User'
+    device_name: str
     current_status: Dict
     cancelled: bool
 
@@ -258,10 +264,11 @@ class WebCredentialsPrompt(CredentialsPrompt):
     expecting: Optional[CredentialType]
 
     def __init__(self, auth_server: 'HangoutsAuthServer', user: 'u.User', manual: bool,
-                 loop: asyncio.AbstractEventLoop) -> None:
+                 device_name: str, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
         self.auth_server = auth_server
         self.user = user
+        self.device_name = device_name
         self.manual = manual
         self.queue = SingleItemBidiChannel()
         self.cancelled = False
@@ -327,7 +334,7 @@ class WebCredentialsPrompt(CredentialsPrompt):
             "next_step": result_type.value,
         }
         if result_type == CredentialType.AUTHORIZATION:
-            self.current_status["manual_auth_url"] = OAUTH2_LOGIN_URL
+            self.current_status["manual_auth_url"] = make_login_url(self.device_name)
         try:
             return self.queue.send_to_async(self.current_status,
                                             lambda: self._set_expecting(result_type))

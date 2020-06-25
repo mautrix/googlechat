@@ -45,6 +45,10 @@ appservice:
     as_token: "This value is generated when generating the registration"
     hs_token: "This value is generated when generating the registration"
 
+hangouts:
+    # Device name shown in Google account settings
+    device_name: Mautrix-Hangouts bridge
+
 # Bridge config
 bridge:
     # Localpart template of MXIDs for Hangouts users.
