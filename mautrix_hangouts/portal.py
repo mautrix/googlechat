@@ -244,14 +244,12 @@ class Portal(BasePortal):
                                   ) -> List[ChatMessageEvent]:
         limit = (config["bridge.backfill.initial_limit"] if is_initial
                  else config["bridge.backfill.missed_limit"])
-        if limit == 0:
+        if limit <= 0:
             return []
-        elif limit < 0:
-            limit = None
         messages = []
         self.log.debug("Fetching up to %d messages through %s", limit, source.gid)
         token = None
-        while True:
+        while limit > 0:
             chunk_limit = min(limit, 100)
             chunk, token = await self._load_messages(source, chunk_limit, token)
             for message in reversed(chunk):
@@ -259,11 +257,12 @@ class Portal(BasePortal):
                     self.log.debug("Stopping backfilling at %s (ts: %s) "
                                    "as message was already bridged",
                                    message.id_, message.timestamp)
-                    return messages
+                    break
                 messages.append(message)
             if len(chunk) < chunk_limit:
-                return messages
+                break
             limit -= len(chunk)
+        return messages
 
     async def backfill(self, source: 'u.User', is_initial: bool = False) -> None:
         try:
