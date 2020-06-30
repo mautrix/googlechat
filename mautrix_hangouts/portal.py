@@ -261,7 +261,7 @@ class Portal(BasePortal):
                                    message.id_, message.timestamp)
                     return messages
                 messages.append(message)
-            if len(chunk) < chunk_limit:
+            if len(chunk) <= chunk_limit:
                 return messages
             limit -= len(chunk)
 
