@@ -41,6 +41,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.update_avatar_initial_sync")
         copy("bridge.encryption.allow")
         copy("bridge.encryption.default")
+        copy("bridge.encryption.database")
         copy("bridge.delivery_receipts")
         copy("bridge.backfill.invite_own_puppet")
         copy("bridge.backfill.initial_limit")

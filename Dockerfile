@@ -19,30 +19,23 @@ RUN apk add --no-cache \
         py3-async-timeout \
         py3-requests \
         py3-appdirs \
+        #py3-configargparse \ # (too new)
         #py3-protobuf \ # (too new)
         #py3-urwid \ # (too new)
         #mechanicalsoup
           py3-beautifulsoup4 \
       py3-idna \
-      # matrix-nio
+      # encryption
       olm-dev \
       py3-cffi \
-      py3-future \
-      py3-atomicwrites \
       py3-pycryptodome \
-      py3-peewee \
-      py3-pyrsistent \
-      py3-jsonschema \
-      #py3-aiofiles \ # (too new)
-      py3-cachetools \
       py3-unpaddedbase64 \
-      py3-h2@edge \
-      py3-pyaes@edge \
-      py3-logbook@edge \
+      py3-future \
+      # proxy support
+      py3-pysocks \
       # Other dependencies
       ca-certificates \
-      su-exec \
-      py3-pysocks
+      su-exec
 
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
