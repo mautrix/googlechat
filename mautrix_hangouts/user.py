@@ -305,10 +305,11 @@ class User(BaseUser):
         sender = pu.Puppet.get_by_gid(event.user_id.gaia_id)
 
         if isinstance(event, ChatMessageEvent):
+            await portal.backfill_lock.wait(event.id_)
             await portal.handle_hangouts_message(self, sender, event)
         elif isinstance(event, MembershipChangeEvent):
-            self.log.info(
-                f"{event.id_} by {event.user_id} in {event.conversation_id} ({conv._conversation.type}): {event.participant_ids} {event.type_}'d")
+            self.log.info(f"{event.id_} by {event.user_id} in {event.conversation_id} "
+                          f"({conv._conversation.type}): {event.participant_ids} {event.type_}'d")
         else:
             self.log.info(f"Unrecognized event {event}")
 
