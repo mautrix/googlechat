@@ -1,4 +1,4 @@
-from mautrix.bridge.db import RoomState, UserProfile
+from mautrix.client.state_store.sqlalchemy import RoomState, UserProfile
 
 from .message import Message
 from .portal import Portal

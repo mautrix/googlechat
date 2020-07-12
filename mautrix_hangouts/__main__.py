@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from mautrix.bridge import Bridge
+from mautrix.types import RoomID, UserID
 
 from .config import Config
 from .db import init as init_db
-from .sqlstatestore import SQLStateStore
 from .user import User, init as init_user
 from .portal import Portal, init as init_portal
 from .puppet import Puppet, init as init_puppet
@@ -38,7 +38,6 @@ class HangoutsBridge(Bridge):
     markdown_version = linkified_version
     config_class = Config
     matrix_class = MatrixHandler
-    state_store_class = SQLStateStore
 
     config: Config
     auth_server: HangoutsAuthServer
@@ -80,6 +79,18 @@ class HangoutsBridge(Bridge):
         self.log.debug("Saving user sessions")
         for mxid, user in User.by_mxid.items():
             user.save()
+
+    async def get_portal(self, room_id: RoomID) -> Portal:
+        return Portal.get_by_mxid(room_id)
+
+    async def get_puppet(self, user_id: UserID, create: bool = False) -> Puppet:
+        return Puppet.get_by_mxid(user_id, create=create)
+
+    async def get_double_puppet(self, user_id: UserID) -> Puppet:
+        return Puppet.get_by_custom_mxid(user_id)
+
+    async def get_user(self, user_id: UserID) -> User:
+        return User.get_by_mxid(user_id)
 
 
 HangoutsBridge().run()
