@@ -54,6 +54,7 @@ class User(BaseUser):
     refresh_token: Optional[RoomID]
     notice_room: RoomID
     _notice_room_lock: asyncio.Lock
+    _intentional_disconnect: bool
     name: Optional[str]
     name_future: asyncio.Future
     connected: bool
@@ -81,6 +82,7 @@ class User(BaseUser):
         self.name = None
         self.name_future = asyncio.Future()
         self.connected = False
+        self._intentional_disconnect = False
 
         self.log = self.log.getChild(self.mxid)
 
@@ -172,7 +174,7 @@ class User(BaseUser):
         await asyncio.gather(*finish, loop=cls.loop)
 
     async def login_complete(self, cookies: dict) -> None:
-        self.client = Client(cookies)
+        self.client = Client(cookies, max_retries=30, retry_backoff_base=1.5)
         await self._create_community()
         asyncio.ensure_future(self.start(), loop=self.loop)
         self.client.on_connect.add_observer(self.on_connect)
@@ -181,14 +183,20 @@ class User(BaseUser):
 
     async def start(self) -> None:
         try:
+            self._intentional_disconnect = False
             await self.client.connect()
-            self.log.info("Client connection finished")
+            if self._intentional_disconnect:
+                self.log.info("Client connection finished")
+            else:
+                self.log.warning("Client connection finished unexpectedly")
+                await self.send_bridge_notice("Client connection finished unexpectedly")
         except Exception as e:
             self.log.exception("Exception in connection")
             await self.send_bridge_notice(f"Exception in Hangouts connection: {e}")
 
     async def stop(self) -> None:
         if self.client:
+            self._intentional_disconnect = True
             await self.client.disconnect()
 
     async def on_connect(self) -> None:
