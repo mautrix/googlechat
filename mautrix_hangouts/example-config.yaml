@@ -139,7 +139,7 @@ bridge:
             public: http://example.com/login/
             # Internal prefix in the appservice web server for the login endpoints.
             prefix: /login
-            # Shared secret for integration managers such as Dimension.
+            # Shared secret for integration managers such as mautrix-manager.
             # If set to "generate", a random string will be generated on the next startup.
             # If null, integration manager access to the API will not be possible.
             shared_secret: generate
