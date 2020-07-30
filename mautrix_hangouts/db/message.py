@@ -14,12 +14,32 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Optional
+from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, SmallInteger, UniqueConstraint, and_
+from sqlalchemy import Column, String, SmallInteger, UniqueConstraint, and_, types
 
 from mautrix.types import RoomID, EventID
 
 from mautrix.util.db import Base
+
+
+class UTCDateTime(types.TypeDecorator):
+    impl = types.DateTime
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            elif value.tzinfo != timezone.utc:
+                value = value.astimezone(timezone.utc)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        else:
+            return value
 
 
 class Message(Base):
@@ -30,12 +50,22 @@ class Message(Base):
     gid: str = Column(String(255), primary_key=True)
     receiver: str = Column(String(255), primary_key=True)
     index: int = Column(SmallInteger, primary_key=True)
+    date: Optional[datetime] = Column(UTCDateTime(timezone=True), nullable=True)
 
     __table_args__ = (UniqueConstraint("mxid", "mx_room", name="_mx_id_room"),)
 
     @classmethod
     def get_by_gid(cls, gid: str) -> Optional['Message']:
         return cls._select_one_or_none(cls.c.gid == gid)
+
+    @classmethod
+    def get_most_recent(cls, mx_room: RoomID, max_date: Optional[datetime] = None
+                        ) -> Optional['Message']:
+        cond = cls.c.mx_room == mx_room
+        if max_date is not None:
+            cond &= cls.c.date <= max_date
+        return cls._one_or_none(cls.db.execute(cls.t.select().where(cond)
+                                               .order_by(cls.c.date.desc()).limit(1)))
 
     @classmethod
     def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional['Message']:

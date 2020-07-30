@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Dict, Deque, Optional, Tuple, Union, Set, List, Iterator, Any, TYPE_CHECKING
+from datetime import datetime
 from collections import deque
 import asyncio
 import io
@@ -516,8 +517,9 @@ class Portal(BasePortal):
             if not gid:
                 return
             self._dedup.appendleft(gid)
+            # TODO pass through actual timestamp instead of using datetime.now()
             DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
-                      index=0).insert()
+                      index=0, date=datetime.utcnow()).insert()
             self._last_bridged_mxid = event_id
         await self._send_delivery_receipt(event_id)
 
@@ -607,12 +609,10 @@ class Portal(BasePortal):
             event_id = await self.process_hangouts_attachments(event, intent)
         # Just to fallback to text if something else hasn't worked.
         if not event_id:
-            event_id = await self._send_message(intent,
-                                                TextMessageEventContent(msgtype=MessageType.TEXT,
-                                                                        body=event.text),
-                                                timestamp=event.timestamp)
+            content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
+            event_id = await self._send_message(intent, content, timestamp=event.timestamp)
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
-                  index=0).insert()
+                  index=0, date=event.timestamp).insert()
         self.log.debug("Handled Hangouts message %s -> %s", event.id_, event_id)
         await self._send_delivery_receipt(event_id)
 

@@ -25,7 +25,7 @@ from hangups import (hangouts_pb2 as hangouts,
                      Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
                      MembershipChangeEvent)
 from hangups.conversation import ConversationList, Conversation
-from hangups.parsers import TypingStatusMessage
+from hangups.parsers import TypingStatusMessage, WatermarkNotification
 
 from mautrix.types import UserID, RoomID
 from mautrix.client import Client as MxClient
@@ -277,6 +277,7 @@ class User(BaseUser):
         portals = {conv.id_: po.Portal.get_by_conversation(conv, self.gid)
                    for conv in chats.get_all()}
         await self._sync_community_rooms(portals)
+        self.chats.on_watermark_notification.add_observer(self._ensure_future_proxy(self.on_receipt))
         self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
         self.chats.on_typing.add_observer(self._ensure_future_proxy(self.on_typing))
         self.log.debug("Fetching recent conversations to create portals for")
@@ -303,6 +304,17 @@ class User(BaseUser):
                 await portal.create_matrix_room(self, chat)
 
     # region Hangouts event handling
+
+    async def on_receipt(self, event: WatermarkNotification) -> None:
+        conv: Conversation = self.chats.get(event.conv_id)
+        portal = po.Portal.get_by_conversation(conv, self.gid)
+        if not portal:
+            return
+        message = DBMessage.get_most_recent(portal.mxid, event.read_timestamp)
+        if not message:
+            return
+        puppet = pu.Puppet.get_by_gid(event.user_id.gaia_id)
+        await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
 
     async def on_event(self, event: ConversationEvent) -> None:
         conv: Conversation = self.chats.get(event.conversation_id)
