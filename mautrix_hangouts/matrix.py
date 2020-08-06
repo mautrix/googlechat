@@ -32,8 +32,7 @@ class MatrixHandler(BaseMatrixHandler):
         self.user_id_prefix = f"@{prefix}"
         self.user_id_suffix = f"{suffix}:{homeserver}"
 
-        super().__init__(context.az, context.config, command_processor=c.CommandProcessor(context),
-                         bridge=context.bridge)
+        super().__init__(command_processor=c.CommandProcessor(context), bridge=context.bridge)
 
     # async def handle_puppet_invite(self, room_id: RoomID, puppet: 'pu.Puppet', invited_by: 'u.User'
     #                                ) -> None:
@@ -179,10 +178,3 @@ class MatrixHandler(BaseMatrixHandler):
             await self.handle_typing(evt.room_id, evt.content.user_ids)
         elif evt.type == EventType.RECEIPT:
             await self.handle_receipt(evt)
-
-    async def handle_state_event(self, evt: StateEvent) -> None:
-        if evt.type == EventType.ROOM_ENCRYPTION:
-            portal = po.Portal.get_by_mxid(evt.room_id)
-            if portal:
-                portal.encrypted = True
-                portal.save()

@@ -80,6 +80,5 @@ class CommandProcessor(BaseCommandProcessor):
     context: c.Context
 
     def __init__(self, context: c.Context) -> None:
-        super().__init__(az=context.az, config=context.config, event_class=CommandEvent,
-                         loop=context.loop, bridge=context.bridge)
+        super().__init__(event_class=CommandEvent, bridge=context.bridge)
         self.context = context

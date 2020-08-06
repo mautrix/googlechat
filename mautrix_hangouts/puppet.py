@@ -24,10 +24,10 @@ import magic
 from hangups.user import User as HangoutsUser
 from mautrix.types import RoomID, UserID, ContentURI, SyncToken
 from mautrix.appservice import AppService, IntentAPI
+from mautrix.bridge import BasePuppet
 
 from .config import Config
 from .db import Puppet as DBPuppet
-from mautrix.bridge.custom_puppet import CustomPuppetMixin
 from . import user as u, portal as p, matrix as m
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 config: Config
 
 
-class Puppet(CustomPuppetMixin):
+class Puppet(BasePuppet):
     log: logging.Logger = logging.getLogger("mau.puppet")
     az: AppService
     loop: asyncio.AbstractEventLoop
@@ -114,7 +114,7 @@ class Puppet(CustomPuppetMixin):
                       access_token=db_puppet.access_token, next_batch=db_puppet.next_batch,
                       db_instance=db_puppet)
 
-    def save(self) -> None:
+    async def save(self) -> None:
         self.db_instance.edit(name=self.name, photo_url=self.photo_url,
                               matrix_registered=self.is_registered, custom_mxid=self.custom_mxid,
                               access_token=self.access_token)
@@ -154,7 +154,7 @@ class Puppet(CustomPuppetMixin):
         if update_avatar:
             changed = await self._update_photo(info.photo_url) or changed
         if changed:
-            self.save()
+            await self.save()
 
     @staticmethod
     def _get_name_from_info(info: HangoutsUser) -> str:
@@ -215,7 +215,7 @@ class Puppet(CustomPuppetMixin):
         return None
 
     @classmethod
-    def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional['Puppet']:
+    async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional['Puppet']:
         gid = cls.get_id_from_mxid(mxid)
         if gid:
             return cls.get_by_gid(gid, create)
@@ -223,7 +223,7 @@ class Puppet(CustomPuppetMixin):
         return None
 
     @classmethod
-    def get_by_custom_mxid(cls, mxid: UserID) -> Optional['Puppet']:
+    async def get_by_custom_mxid(cls, mxid: UserID) -> Optional['Puppet']:
         try:
             return cls.by_custom_mxid[mxid]
         except KeyError:
@@ -265,7 +265,7 @@ def init(context: 'Context') -> Iterable[Awaitable[None]]:
     Puppet.az, config, Puppet.loop = context.core
     Puppet.mx = context.mx
     username_template = config["bridge.username_template"].lower()
-    CustomPuppetMixin.sync_with_custom_puppets = config["bridge.sync_with_custom_puppets"]
+    Puppet.sync_with_custom_puppets = config["bridge.sync_with_custom_puppets"]
     index = username_template.index("{userid}")
     length = len("{userid}")
     Puppet.hs_domain = config["homeserver"]["domain"]
