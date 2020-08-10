@@ -613,8 +613,7 @@ class Portal(BasePortal):
             upload_mime = mime
             decryption_info = None
             if self.encrypted and encrypt_attachment:
-                data, decryption_info_dict = encrypt_attachment(data)
-                decryption_info = EncryptedFile.deserialize(decryption_info_dict)
+                data, decryption_info = encrypt_attachment(data)
                 upload_mime = "application/octet-stream"
             mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
             if decryption_info:
