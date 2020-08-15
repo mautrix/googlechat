@@ -1,5 +1,7 @@
 FROM docker.io/alpine:3.12
 
+ARG TARGETARCH=amd64
+
 RUN echo $'\
 @edge http://dl-cdn.alpinelinux.org/alpine/edge/main\n\
 @edge http://dl-cdn.alpinelinux.org/alpine/edge/testing\n\
@@ -35,7 +37,12 @@ RUN apk add --no-cache \
       py3-pysocks \
       # Other dependencies
       ca-certificates \
-      su-exec
+      su-exec \
+      bash \
+      curl \
+      jq && \
+  curl -sLo yq https://github.com/mikefarah/yq/releases/download/3.3.2/yq_linux_${TARGETARCH} && \
+  chmod +x yq && mv yq /usr/bin/yq
 
 COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
