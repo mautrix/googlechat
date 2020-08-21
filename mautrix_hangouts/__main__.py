@@ -92,5 +92,7 @@ class HangoutsBridge(Bridge):
     async def get_user(self, user_id: UserID) -> User:
         return User.get_by_mxid(user_id)
 
+    def is_bridge_ghost(self, user_id: UserID) -> bool:
+        return bool(Puppet.get_id_from_mxid(user_id))
 
 HangoutsBridge().run()

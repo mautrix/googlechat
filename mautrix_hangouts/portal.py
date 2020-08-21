@@ -429,7 +429,9 @@ class Portal(BasePortal):
             await self._update_participants(source, info)
             puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
             if puppet:
-                await puppet.intent.ensure_joined(self.mxid)
+                did_join = await puppet.intent.ensure_joined(self.mxid)
+                if did_join and self.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE:
+                    await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
             await source._community_helper.add_room(source._community_id, self.mxid)
 
             await self.backfill(source, is_initial=True)

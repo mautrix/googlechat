@@ -50,8 +50,8 @@ class Portal(Base):
 
     @classmethod
     def get_all_by_receiver(cls, receiver: str) -> Iterator['Portal']:
-        return cls._select_all(and_(cls.c.receiver == receiver,
-                                    cls.c.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE))
+        return cls._select_all(cls.c.receiver == receiver,
+                               cls.c.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE)
 
     @classmethod
     def all(cls) -> Iterator['Portal']:

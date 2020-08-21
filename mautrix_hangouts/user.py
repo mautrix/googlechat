@@ -33,7 +33,7 @@ from mautrix.bridge import BaseUser
 from mautrix.bridge._community import CommunityHelper, CommunityID
 
 from .config import Config
-from .db import User as DBUser, UserPortal, Contact, Message as DBMessage
+from .db import User as DBUser, UserPortal, Contact, Message as DBMessage, Portal as DBPortal
 from .util.hangups_try_auth import try_auth, TryAuthResp
 from . import puppet as pu, portal as po
 
@@ -83,6 +83,7 @@ class User(BaseUser):
         self.name_future = asyncio.Future()
         self.connected = False
         self._intentional_disconnect = False
+        self.dm_update_lock = asyncio.Lock()
 
         self.log = self.log.getChild(self.mxid)
 
@@ -272,6 +273,13 @@ class User(BaseUser):
 
         return proxy
 
+    async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
+        return {
+            pu.Puppet.get_mxid_from_id(portal.other_user_id): [portal.mxid]
+            for portal in DBPortal.get_all_by_receiver(self.gid)
+            if portal.mxid
+        }
+
     async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
         portals = {conv.id_: po.Portal.get_by_conversation(conv, self.gid)
@@ -302,6 +310,7 @@ class User(BaseUser):
                     await portal.backfill(self, is_initial=False)
             else:
                 await portal.create_matrix_room(self, chat)
+        await self.update_direct_chats()
 
     # region Hangouts event handling
 
@@ -477,5 +486,6 @@ class UserRefreshTokenCache(RefreshTokenCache):
 def init(context: 'Context') -> Awaitable[None]:
     global config
     User.az, config, User.loop = context.core
+    User.bridge = context.bridge
     User._community_helper = CommunityHelper(User.az)
     return User.init_all()
