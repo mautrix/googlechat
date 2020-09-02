@@ -212,12 +212,14 @@ class User(BaseUser):
         self.connected = False
 
         self.chats = None
-        self.chats_future.set_exception(Exception("logged out"))
+        if not self.chats_future.done():
+            self.chats_future.set_exception(Exception("logged out"))
         self.chats_future = asyncio.Future()
         self.users = None
 
         self.name = None
-        self.name_future.set_exception(Exception("logged out"))
+        if not self.name_future.done():
+            self.name_future.set_exception(Exception("logged out"))
         self.name_future = asyncio.Future()
 
     async def on_connect(self) -> None:
