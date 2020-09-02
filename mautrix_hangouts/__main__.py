@@ -68,14 +68,13 @@ class HangoutsBridge(Bridge):
             await portal.update_bridge_info()
         self.log.info("Finished re-sending bridge info state events")
 
-    async def stop(self) -> None:
+    def prepare_stop(self) -> None:
         self.shutdown_actions = (user.stop() for user in User.by_mxid.values())
-        await super().stop()
-
-    def prepare_shutdown(self) -> None:
         self.log.debug("Stopping puppet syncers")
         for puppet in Puppet.by_custom_mxid.values():
             puppet.stop()
+
+    def prepare_shutdown(self) -> None:
         self.log.debug("Saving user sessions")
         for mxid, user in User.by_mxid.items():
             user.save()
