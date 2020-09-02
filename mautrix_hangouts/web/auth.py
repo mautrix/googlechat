@@ -91,6 +91,7 @@ class HangoutsAuthServer:
         self.app.router.add_post("/api/start", self.start_login)
         self.app.router.add_post("/api/{post_type}", self.login_step)
         self.app.router.add_post("/api/cancel", self.cancel_login)
+        self.app.router.add_post("/api/logout", self.logout)
         self.app.router.add_get("/api/whoami", self.whoami)
         self.app.router.add_get("", self.redirect_index)
         self.app.router.add_get("/", self.get_index)
@@ -137,6 +138,14 @@ class HangoutsAuthServer:
         return web.json_response({
             "user_id": self.verify_token(request),
         })
+
+    async def logout(self, request: web.Request) -> web.Response:
+        user_id = self.verify_token(request)
+        user = u.User.get_by_mxid(user_id)
+        if not await user.is_logged_in():
+            raise ErrorResponse(400, "You're not logged in", "M_FORBIDDEN")
+        await user.logout()
+        return web.json_response({})
 
     async def whoami(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)

@@ -50,23 +50,24 @@ class User(BaseUser):
     is_admin: bool
     _db_instance: Optional[DBUser]
 
-    gid: str
-    refresh_token: Optional[RoomID]
-    notice_room: RoomID
+    gid: Optional[str]
+    refresh_token: Optional[str]
+    notice_room: Optional[RoomID]
     _notice_room_lock: asyncio.Lock
     _intentional_disconnect: bool
     name: Optional[str]
     name_future: asyncio.Future
     connected: bool
 
-    chats: ConversationList
-    users: UserList
+    chats: Optional[ConversationList]
+    chats_future: asyncio.Future
+    users: Optional[UserList]
 
     _community_helper: CommunityHelper
     _community_id: Optional[CommunityID]
 
-    def __init__(self, mxid: UserID, gid: str = None, refresh_token: str = None,
-                 notice_room: Optional[RoomID] = None,
+    def __init__(self, mxid: UserID, gid: Optional[str] = None,
+                 refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None,
                  db_instance: Optional[DBUser] = None) -> None:
         self.mxid = mxid
         self.gid = gid
@@ -82,6 +83,9 @@ class User(BaseUser):
         self.name = None
         self.name_future = asyncio.Future()
         self.connected = False
+        self.chats = None
+        self.chats_future = asyncio.Future()
+        self.users = None
         self._intentional_disconnect = False
         self.dm_update_lock = asyncio.Lock()
 
@@ -200,6 +204,22 @@ class User(BaseUser):
             self._intentional_disconnect = True
             await self.client.disconnect()
 
+    async def logout(self) -> None:
+        await self.stop()
+        self.client = None
+        self.gid = None
+        self.refresh_token = None
+        self.connected = False
+
+        self.chats = None
+        self.chats_future.set_exception(Exception("logged out"))
+        self.chats_future = asyncio.Future()
+        self.users = None
+
+        self.name = None
+        self.name_future.set_exception(Exception("logged out"))
+        self.name_future = asyncio.Future()
+
     async def on_connect(self) -> None:
         self.connected = True
         asyncio.ensure_future(self.on_connect_later(), loop=self.loop)
@@ -282,6 +302,7 @@ class User(BaseUser):
 
     async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
+        self.chats_future.set_result(None)
         portals = {conv.id_: po.Portal.get_by_conversation(conv, self.gid)
                    for conv in chats.get_all()}
         await self._sync_community_rooms(portals)
@@ -315,6 +336,9 @@ class User(BaseUser):
     # region Hangouts event handling
 
     async def on_receipt(self, event: WatermarkNotification) -> None:
+        if not self.chats:
+            self.log.debug("Received receipt event before chat list, ignoring")
+            return
         conv: Conversation = self.chats.get(event.conv_id)
         portal = po.Portal.get_by_conversation(conv, self.gid)
         if not portal:
@@ -326,6 +350,9 @@ class User(BaseUser):
         await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
 
     async def on_event(self, event: ConversationEvent) -> None:
+        if not self.chats:
+            self.log.debug("Received message event before chat list, waiting for chat list")
+            await self.chats_future
         conv: Conversation = self.chats.get(event.conversation_id)
         portal = po.Portal.get_by_conversation(conv, self.gid)
         if not portal:
@@ -362,7 +389,10 @@ class User(BaseUser):
             type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
         ))
 
-    def _get_event_request_header(self, conversation_id: str) -> hangouts.EventRequestHeader:
+    async def _get_event_request_header(self, conversation_id: str) -> hangouts.EventRequestHeader:
+        if not self.chats:
+            self.log.debug("Tried to send message before receiving chat list, waiting")
+            await self.chats_future
         delivery_medium = self.chats.get(conversation_id)._get_default_delivery_medium()
         return hangouts.EventRequestHeader(
             conversation_id=hangouts.ConversationId(
@@ -376,7 +406,7 @@ class User(BaseUser):
         resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
             request_header=self.client.get_request_header(),
             annotation=[hangouts.EventAnnotation(type=4)],
-            event_request_header=self._get_event_request_header(conversation_id),
+            event_request_header=await self._get_event_request_header(conversation_id),
             message_content=hangouts.MessageContent(
                 segment=[hangups.ChatMessageSegment(text).serialize()],
             ),
@@ -386,7 +416,7 @@ class User(BaseUser):
     async def send_text(self, conversation_id: str, text: str) -> str:
         resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
             request_header=self.client.get_request_header(),
-            event_request_header=self._get_event_request_header(conversation_id),
+            event_request_header=await self._get_event_request_header(conversation_id),
             message_content=hangouts.MessageContent(
                 segment=[hangups.ChatMessageSegment(text).serialize()],
             ),
@@ -396,7 +426,7 @@ class User(BaseUser):
     async def send_image(self, conversation_id: str, id: str) -> str:
         resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
             request_header=self.client.get_request_header(),
-            event_request_header=self._get_event_request_header(conversation_id),
+            event_request_header=await self._get_event_request_header(conversation_id),
             existing_media=hangouts.ExistingMedia(
                 photo=hangouts.Photo(photo_id=id),
             ),

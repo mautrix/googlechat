@@ -49,6 +49,14 @@ async def login_matrix(evt: CommandEvent) -> None:
 
 
 @command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
+async def logout(evt: CommandEvent) -> None:
+    puppet = pu.Puppet.get_by_gid(evt.sender.gid)
+    await evt.sender.logout()
+    if puppet and puppet.is_real_user:
+        await puppet.switch_mxid(None, None)
+
+
+@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
 async def logout_matrix(evt: CommandEvent) -> None:
     puppet = pu.Puppet.get_by_gid(evt.sender.gid)
     if not puppet.is_real_user:
