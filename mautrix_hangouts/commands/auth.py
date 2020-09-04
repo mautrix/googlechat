@@ -69,7 +69,7 @@ async def ping(evt: CommandEvent) -> None:
         await evt.reply(f"Failed to get user info: {e}")
         return
     name = info.self_entity.properties.display_name
-    email = (f" <{info.self_entity.properties.email[0]}>"
+    email = (f" &lt;{info.self_entity.properties.email[0]}&gt;"
              if info.self_entity.properties.email else "")
     id = info.self_entity.id.gaia_id
     await evt.reply(f"You're logged in as {name}{email} ({id})", allow_html=False)
