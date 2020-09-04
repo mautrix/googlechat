@@ -16,6 +16,8 @@
 from mautrix.client import Client
 from mautrix.bridge import custom_puppet as cpu
 
+from hangups import hangouts_pb2 as hangouts
+
 from .. import puppet as pu
 from . import command_handler, CommandEvent, SECTION_AUTH
 
@@ -54,6 +56,23 @@ async def logout(evt: CommandEvent) -> None:
     await evt.sender.logout()
     if puppet and puppet.is_real_user:
         await puppet.switch_mxid(None, None)
+
+
+@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
+async def ping(evt: CommandEvent) -> None:
+    try:
+        info = await evt.sender.client.get_self_info(hangouts.GetSelfInfoRequest(
+            request_header=evt.sender.client.get_request_header()
+        ))
+    except Exception as e:
+        evt.log.exception("Failed to get user info", exc_info=True)
+        await evt.reply(f"Failed to get user info: {e}")
+        return
+    name = info.self_entity.properties.display_name
+    email = (f" <{info.self_entity.properties.email[0]}>"
+             if info.self_entity.properties.email else "")
+    id = info.self_entity.id.gaia_id
+    await evt.reply(f"You're logged in as {name}{email} ({id})", allow_html=False)
 
 
 @command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
