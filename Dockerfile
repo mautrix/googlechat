@@ -22,7 +22,7 @@ RUN apk add --no-cache \
         py3-requests \
         py3-appdirs \
         #py3-configargparse \ # (too new)
-        #py3-protobuf \ # (too new)
+        py3-protobuf \
         #py3-urwid \ # (too new)
         #mechanicalsoup
           py3-beautifulsoup4 \
