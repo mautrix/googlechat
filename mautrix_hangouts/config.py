@@ -57,6 +57,8 @@ class Config(BaseBridgeConfig):
         copy("bridge.backfill.missed_limit")
         copy("bridge.backfill.disable_notifications")
         copy("bridge.resend_bridge_info")
+        copy("bridge.reconnect.max_retries")
+        copy("bridge.reconnect.retry_backoff_base")
 
         copy("bridge.web.auth.public")
         copy("bridge.web.auth.prefix")
