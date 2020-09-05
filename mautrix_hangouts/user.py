@@ -179,7 +179,8 @@ class User(BaseUser):
         await asyncio.gather(*finish, loop=cls.loop)
 
     async def login_complete(self, cookies: dict) -> None:
-        self.client = Client(cookies, max_retries=30, retry_backoff_base=1.5)
+        self.client = Client(cookies, max_retries=config['bridge.reconnect.max_retries'],
+            retry_backoff_base=config['bridge.reconnect.retry_backoff_base'])
         await self._create_community()
         asyncio.ensure_future(self.start(), loop=self.loop)
         self.client.on_connect.add_observer(self.on_connect)
