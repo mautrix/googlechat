@@ -28,6 +28,8 @@ appservice:
     #   SQLite:   sqlite:///filename.db
     #   Postgres: postgres://username:password@hostname/dbname
     database: sqlite:///mautrix-hangouts.db
+    # Optional extra arguments for SQLAlchemy's create_engine
+    database_opts: {}
 
     # The unique ID of this appservice.
     id: hangouts
