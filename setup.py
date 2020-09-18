@@ -57,20 +57,15 @@ setuptools.setup(
         "Framework :: AsyncIO",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
-    entry_points="""
-        [console_scripts]
-        mautrix-hangouts=mautrix_hangouts.__main__:main
-    """,
     package_data={"mautrix_hangouts": [
         "web/static/*.png", "web/static/*.css", "web/static/*.html", "web/static/*.js",
         "example-config.yaml"
     ]},
     data_files=[
-        (".", ["alembic.ini"]),
+        (".", ["alembic.ini", "mautrix_hangouts/example-config.yaml"]),
         ("alembic", ["alembic/env.py"]),
         ("alembic/versions", glob.glob("alembic/versions/*.py"))
     ],
