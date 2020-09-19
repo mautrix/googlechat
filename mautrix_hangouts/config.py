@@ -31,6 +31,9 @@ class Config(BaseBridgeConfig):
 
         copy("hangouts.device_name")
 
+        copy("metrics.enabled")
+        copy("metrics.listen_port")
+
         copy("bridge.username_template")
         copy("bridge.displayname_template")
         copy("bridge.community_template")
