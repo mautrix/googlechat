@@ -31,7 +31,7 @@ from mautrix.types import UserID, RoomID
 from mautrix.client import Client as MxClient
 from mautrix.bridge import BaseUser
 from mautrix.bridge._community import CommunityHelper, CommunityID
-from mautrix.util.opt_prometheus import Enum, Summary
+from mautrix.util.opt_prometheus import Enum, Summary, async_time
 
 from .config import Config
 from .db import User as DBUser, UserPortal, Contact, Message as DBMessage, Portal as DBPortal
@@ -280,7 +280,7 @@ class User(BaseUser):
         users, chats = await hangups.build_user_conversation_list(self.client)
         await asyncio.gather(self.sync_users(users), self.sync_chats(chats), loop=self.loop)
 
-    @METRIC_SYNC_USERS.time()
+    @async_time(METRIC_SYNC_USERS)
     async def sync_users(self, users: UserList) -> None:
         self.users = users
         puppets: Dict[str, pu.Puppet] = {}
@@ -318,7 +318,7 @@ class User(BaseUser):
             if portal.mxid
         }
 
-    @METRIC_SYNC_CHATS.time()
+    @async_time(METRIC_SYNC_CHATS)
     async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
         self.chats_future.set_result(None)
@@ -355,7 +355,7 @@ class User(BaseUser):
 
     # region Hangouts event handling
 
-    @METRIC_RECEIPT.time()
+    @async_time(METRIC_RECEIPT)
     async def on_receipt(self, event: WatermarkNotification) -> None:
         if not self.chats:
             self.log.debug("Received receipt event before chat list, ignoring")
@@ -370,7 +370,7 @@ class User(BaseUser):
         puppet = pu.Puppet.get_by_gid(event.user_id.gaia_id)
         await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
 
-    @METRIC_EVENT.time()
+    @async_time(METRIC_EVENT)
     async def on_event(self, event: ConversationEvent) -> None:
         if not self.chats:
             self.log.debug("Received message event before chat list, waiting for chat list")
@@ -391,7 +391,7 @@ class User(BaseUser):
         else:
             self.log.info(f"Unrecognized event {event}")
 
-    @METRIC_TYPING.time()
+    @async_time(METRIC_TYPING)
     async def on_typing(self, event: TypingStatusMessage):
         portal = po.Portal.get_by_gid(event.conv_id, self.gid)
         if not portal:
