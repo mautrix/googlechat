@@ -24,6 +24,7 @@ RUN apk add --no-cache \
         py3-configargparse \
         py3-protobuf \
         py3-urwid \
+        py3-lxml \
         #mechanicalsoup
           py3-beautifulsoup4 \
       py3-idna \
