@@ -577,7 +577,8 @@ class Portal(BasePortal):
             self.log.trace("Attachments: %s", event.attachments)
             try:
                 event_id = await self.process_hangouts_attachments(event, intent)
-            except:
+            except Exception:
+                self.log.warning("Failed to process attachment", exc_info=True)
                 event_id = None
         # Just to fallback to text if something else hasn't worked.
         if not event_id:
