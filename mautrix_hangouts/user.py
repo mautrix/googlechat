@@ -442,7 +442,7 @@ class User(BaseUser):
             request_header=self.client.get_request_header(),
             event_request_header=await self._get_event_request_header(conversation_id),
             message_content=hangouts.MessageContent(
-                segment=[hangups.ChatMessageSegment(text).serialize()],
+                segment=[segment.serialize() for segment in hangups.ChatMessageSegment.from_str(text)],
             ),
         ))
         return resp.created_event.event_id
