@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from mautrix.appservice import AppService
 
+    from .__main__ import HangoutsBridge
     from .config import Config
     from .matrix import MatrixHandler
     from .web import HangoutsAuthServer

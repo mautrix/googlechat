@@ -19,7 +19,7 @@ from mautrix.types import (EventID, RoomID, UserID, Event, EventType, MessageEve
                            EncryptedEvent, PresenceEventContent, ReceiptEvent, PresenceState)
 from mautrix.bridge import BaseMatrixHandler
 
-from . import user as u, puppet as pu, portal as po, commands as c
+from . import user as u, puppet as pu, portal as po
 
 if TYPE_CHECKING:
     from .context import Context
@@ -32,7 +32,7 @@ class MatrixHandler(BaseMatrixHandler):
         self.user_id_prefix = f"@{prefix}"
         self.user_id_suffix = f"{suffix}:{homeserver}"
 
-        super().__init__(command_processor=c.CommandProcessor(context), bridge=context.bridge)
+        super().__init__(bridge=context.bridge)
 
     # async def handle_puppet_invite(self, room_id: RoomID, puppet: 'pu.Puppet', invited_by: 'u.User'
     #                                ) -> None:

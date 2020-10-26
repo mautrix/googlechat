@@ -1,9 +1,9 @@
 # Homeserver details
 homeserver:
     # The address that this appservice can use to connect to the homeserver.
-    address: https://matrix.org
+    address: https://example.com
     # The domain of the homeserver (for MXIDs, etc).
-    domain: matrix.org
+    domain: example.com
     # Whether or not to verify the SSL certificate of the homeserver.
     # Only applies if address starts with https://
     verify_ssl: true
@@ -88,12 +88,20 @@ bridge:
     # Note that updating the m.direct event is not atomic (except with mautrix-asmux)
     # and is therefore prone to race conditions.
     sync_direct_chat_list: false
+    # Servers to always allow double puppeting from
+    double_puppet_server_map:
+        example.com: https://example.com
+    # Allow using double puppeting from any server with a valid client .well-known file.
+    double_puppet_allow_discovery: false
     # Shared secret for https://github.com/devture/matrix-synapse-shared-secret-auth
     #
     # If set, custom puppets will be enabled automatically for local users
     # instead of users having to find an access token and run `login-matrix`
     # manually.
-    login_shared_secret: null
+    # If using this for other servers than the bridge's server,
+    # you must also set the URL in the double_puppet_server_map.
+    login_shared_secret_map:
+        example.com: foobar
     # Whether or not to update avatars when syncing all contacts at startup.
     update_avatar_initial_sync: true
     # End-to-bridge encryption support options. These require matrix-nio to be installed with pip

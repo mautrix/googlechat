@@ -57,6 +57,7 @@ class Puppet(BasePuppet):
     custom_mxid: UserID
     access_token: str
     _next_batch: SyncToken
+    base_url: Optional[URL]
 
     _db_instance: Optional[DBPuppet]
 
@@ -64,7 +65,7 @@ class Puppet(BasePuppet):
 
     def __init__(self, gid: str, name: str = "", photo_url: str = "", is_registered: bool = False,
                  custom_mxid: UserID = "", access_token: str = "", next_batch: SyncToken = "",
-                 db_instance: Optional[DBPuppet] = None) -> None:
+                 base_url: Optional[str] = None, db_instance: Optional[DBPuppet] = None) -> None:
         self.gid = gid
         self.name = name
         self.photo_url = photo_url
@@ -74,6 +75,7 @@ class Puppet(BasePuppet):
         self.custom_mxid = custom_mxid
         self.access_token = access_token
         self._next_batch = next_batch
+        self.base_url = URL(base_url) if base_url else None
 
         self._db_instance = db_instance
 
@@ -104,7 +106,8 @@ class Puppet(BasePuppet):
             self._db_instance = DBPuppet(gid=self.gid, name=self.name, photo_url=self.photo_url,
                                          matrix_registered=self.is_registered,
                                          custom_mxid=self.custom_mxid, next_batch=self.next_batch,
-                                         access_token=self.access_token)
+                                         access_token=self.access_token,
+                                         base_url=str(self.base_url) if self.base_url else None)
         return self._db_instance
 
     @classmethod
@@ -112,12 +115,13 @@ class Puppet(BasePuppet):
         return Puppet(gid=db_puppet.gid, name=db_puppet.name, photo_url=db_puppet.photo_url,
                       is_registered=db_puppet.matrix_registered, custom_mxid=db_puppet.custom_mxid,
                       access_token=db_puppet.access_token, next_batch=db_puppet.next_batch,
-                      db_instance=db_puppet)
+                      base_url=db_puppet.base_url, db_instance=db_puppet)
 
     async def save(self) -> None:
         self.db_instance.edit(name=self.name, photo_url=self.photo_url,
                               matrix_registered=self.is_registered, custom_mxid=self.custom_mxid,
-                              access_token=self.access_token)
+                              access_token=self.access_token,
+                              base_url=str(self.base_url) if self.base_url else None)
 
     # endregion
 
@@ -265,15 +269,18 @@ def init(context: 'Context') -> Iterable[Awaitable[None]]:
     Puppet.az, config, Puppet.loop = context.core
     Puppet.mx = context.mx
     username_template = config["bridge.username_template"].lower()
-    Puppet.sync_with_custom_puppets = config["bridge.sync_with_custom_puppets"]
     index = username_template.index("{userid}")
     length = len("{userid}")
     Puppet.hs_domain = config["homeserver"]["domain"]
     Puppet._mxid_prefix = f"@{username_template[:index]}"
     Puppet._mxid_suffix = f"{username_template[index + length:]}:{Puppet.hs_domain}"
 
-    secret = config["bridge.login_shared_secret"]
-    Puppet.login_shared_secret = secret.encode("utf-8") if secret else None
+    Puppet.sync_with_custom_puppets = config["bridge.sync_with_custom_puppets"]
+    Puppet.homeserver_url_map = {server: URL(url) for server, url
+                                 in config["bridge.double_puppet_server_map"].items()}
+    Puppet.allow_discover_url = config["bridge.double_puppet_allow_discovery"]
+    Puppet.login_shared_secret_map = {server: secret.encode("utf-8") for server, secret
+                                      in config["bridge.login_shared_secret_map"].items()}
     Puppet.login_device_name = "Hangouts Bridge"
 
     return (puppet.start() for puppet in Puppet.get_all_with_custom_mxid())

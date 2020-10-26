@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import (Any, Dict, Iterator, Optional, List, Awaitable, Union, Callable,
                     TYPE_CHECKING)
+from collections import defaultdict
 from concurrent import futures
 import datetime
 import asyncio
@@ -31,7 +32,7 @@ from mautrix.types import UserID, RoomID
 from mautrix.client import Client as MxClient
 from mautrix.bridge import BaseUser
 from mautrix.bridge._community import CommunityHelper, CommunityID
-from mautrix.util.opt_prometheus import Enum, Summary, async_time
+from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 
 from .config import Config
 from .db import User as DBUser, UserPortal, Contact, Message as DBMessage, Portal as DBPortal
@@ -48,10 +49,8 @@ METRIC_SYNC_USERS = Summary('bridge_sync_users', 'calls to sync_users')
 METRIC_TYPING = Summary('bridge_on_typing', 'calls to on_typing')
 METRIC_EVENT = Summary('bridge_on_event', 'calls to on_event')
 METRIC_RECEIPT = Summary('bridge_on_receipt', 'calls to on_receipt')
-METRIC_LOGGED_IN = Enum('bridge_logged_in', 'Bridge Logged in', states=["true", "false"],
-                        labelnames=("gid",))
-METRIC_CONNECTED = Enum('bridge_connected', 'Bridge Connected', states=["true", "false"],
-                        labelnames=("gid",))
+METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the bridge')
+METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Hangouts')
 
 
 class User(BaseUser):
@@ -99,6 +98,7 @@ class User(BaseUser):
         self.users = None
         self._intentional_disconnect = False
         self.dm_update_lock = asyncio.Lock()
+        self._metric_value = defaultdict(lambda: False)
 
         self.log = self.log.getChild(self.mxid)
 
@@ -202,7 +202,7 @@ class User(BaseUser):
         try:
             self._intentional_disconnect = False
             await self.client.connect()
-            METRIC_CONNECTED.labels(gid=self.gid).state("false")
+            self._track_metric(METRIC_CONNECTED, False)
             if self._intentional_disconnect:
                 self.log.info("Client connection finished")
             else:
@@ -218,7 +218,7 @@ class User(BaseUser):
             await self.client.disconnect()
 
     async def logout(self) -> None:
-        METRIC_LOGGED_IN.labels(gid=self.gid).state("false")
+        self._track_metric(METRIC_LOGGED_IN, False)
         await self.stop()
         self.client = None
         self.gid = None
@@ -250,8 +250,8 @@ class User(BaseUser):
             self.log.exception("Failed to get_self_info")
             return
         self.gid = info.self_entity.id.gaia_id
-        METRIC_CONNECTED.labels(gid=self.gid).state("true")
-        METRIC_LOGGED_IN.labels(gid=self.gid).state("true")
+        self._track_metric(METRIC_CONNECTED, True)
+        self._track_metric(METRIC_LOGGED_IN, True)
         self.name = info.self_entity.properties.display_name
         self.name_future.set_result(self.name)
         self.save()

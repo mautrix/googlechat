@@ -15,17 +15,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from mautrix.client import Client
 from mautrix.bridge import custom_puppet as cpu
+from mautrix.bridge.commands import HelpSection, command_handler
 
 from hangups import hangouts_pb2 as hangouts
 
 from .. import puppet as pu
-from . import command_handler, CommandEvent, SECTION_AUTH
+from .typehint import CommandEvent
+
+SECTION_AUTH = HelpSection("Authentication", 10, "")
 
 
 @command_handler(needs_auth=False, management_only=True,
                  help_section=SECTION_AUTH, help_text="Log in to Hangouts")
 async def login(evt: CommandEvent) -> None:
-    token = evt.processor.context.auth_server.make_token(evt.sender.mxid)
+    token = evt.bridge.auth_server.make_token(evt.sender.mxid)
     public_prefix = evt.config["bridge.web.auth.public"]
     url = f"{public_prefix}#{token}"
     await evt.reply(f"Please visit the [login portal]({url}) to log in.")

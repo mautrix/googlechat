@@ -25,6 +25,7 @@ from .matrix import MatrixHandler
 from .context import Context
 from .web import HangoutsAuthServer
 from .version import version, linkified_version
+from . import commands as _
 
 
 class HangoutsBridge(Bridge):
