@@ -16,7 +16,8 @@
 from typing import List, TYPE_CHECKING
 
 from mautrix.types import (EventID, RoomID, UserID, Event, EventType, MessageEvent, StateEvent,
-                           EncryptedEvent, PresenceEventContent, ReceiptEvent, PresenceState)
+                           EncryptedEvent, PresenceEventContent, ReceiptEvent, PresenceState,
+                           TypingEvent, PresenceEvent, SingleReceiptEventContent)
 from mautrix.bridge import BaseMatrixHandler
 
 from . import user as u, puppet as pu, portal as po
@@ -147,26 +148,14 @@ class MatrixHandler(BaseMatrixHandler):
         await portal.handle_matrix_typing({user for user in users
                                            if user is not None})
 
-    @staticmethod
-    async def handle_receipt(evt: ReceiptEvent) -> None:
-        # These events come from custom puppet syncing, so there's always only one user.
-        event_id, receipts = evt.content.popitem()
-        receipt_type, users = receipts.popitem()
-        user_id, data = users.popitem()
-
-        user = u.User.get_by_mxid(user_id, create=False)
-        if not user:
-            return
-
-        portal = po.Portal.get_by_mxid(evt.room_id)
-        if not portal:
-            return
-
+    async def handle_read_receipt(self, user: 'u.User', portal: 'po.Portal', event_id: EventID,
+                                  data: SingleReceiptEventContent) -> None:
         # TODO we could probably get a timestamp from somewhere and use that
         await user.mark_read(portal.gid)
 
     def filter_matrix_event(self, evt: Event) -> bool:
-        if not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent)):
+        if not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent, ReceiptEvent,
+                                TypingEvent, PresenceEvent)):
             return True
         return (evt.sender == self.az.bot_mxid
                 or pu.Puppet.get_id_from_mxid(evt.sender) is not None)
