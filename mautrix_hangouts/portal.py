@@ -150,7 +150,7 @@ class Portal(BasePortal):
         self.db_instance.edit(other_user_id=self.other_user_id, mxid=self.mxid, name=self.name,
                               encrypted=self.encrypted)
 
-    def delete(self) -> None:
+    async def delete(self) -> None:
         if self.mxid:
             DBMessage.delete_all_by_mxid(self.mxid)
         self.by_gid.pop(self.full_gid, None)
