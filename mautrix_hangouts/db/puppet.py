@@ -27,7 +27,9 @@ class Puppet(Base):
 
     gid: str = Column(Text, primary_key=True)
     name: str = Column(Text, nullable=True)
+    name_set: bool = Column(Boolean, nullable=False, server_default=expression.false())
     photo_url: str = Column(Text, nullable=True)
+    avatar_set: bool = Column(Boolean, nullable=False, server_default=expression.false())
     matrix_registered: bool = Column(Boolean, nullable=False, server_default=expression.false())
 
     custom_mxid: UserID = Column(Text, nullable=True)

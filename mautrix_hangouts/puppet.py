@@ -25,6 +25,7 @@ from hangups.user import User as HangoutsUser
 from mautrix.types import RoomID, UserID, ContentURI, SyncToken
 from mautrix.appservice import AppService, IntentAPI
 from mautrix.bridge import BasePuppet
+from mautrix.util.logging import TraceLogger
 
 from .config import Config
 from .db import Puppet as DBPuppet
@@ -37,7 +38,7 @@ config: Config
 
 
 class Puppet(BasePuppet):
-    log: logging.Logger = logging.getLogger("mau.puppet")
+    log: TraceLogger = logging.getLogger("mau.puppet")
     az: AppService
     loop: asyncio.AbstractEventLoop
     mx: m.MatrixHandler
@@ -50,7 +51,9 @@ class Puppet(BasePuppet):
 
     gid: str
     name: str
+    name_set: bool
     photo_url: str
+    avatar_set: bool
 
     is_registered: bool
 
@@ -63,12 +66,15 @@ class Puppet(BasePuppet):
 
     intent: IntentAPI
 
-    def __init__(self, gid: str, name: str = "", photo_url: str = "", is_registered: bool = False,
-                 custom_mxid: UserID = "", access_token: str = "", next_batch: SyncToken = "",
+    def __init__(self, gid: str, name: str = "", name_set: bool = False, photo_url: str = "",
+                 avatar_set: bool = False, is_registered: bool = False, custom_mxid: UserID = "",
+                 access_token: str = "", next_batch: SyncToken = "",
                  base_url: Optional[str] = None, db_instance: Optional[DBPuppet] = None) -> None:
         self.gid = gid
         self.name = name
+        self.name_set = name_set
         self.photo_url = photo_url
+        self.avatar_set = avatar_set
 
         self.is_registered = is_registered
 
@@ -103,7 +109,8 @@ class Puppet(BasePuppet):
     @property
     def db_instance(self) -> DBPuppet:
         if not self._db_instance:
-            self._db_instance = DBPuppet(gid=self.gid, name=self.name, photo_url=self.photo_url,
+            self._db_instance = DBPuppet(gid=self.gid, name=self.name, name_set=self.name_set,
+                                         photo_url=self.photo_url, avatar_set=self.avatar_set,
                                          matrix_registered=self.is_registered,
                                          custom_mxid=self.custom_mxid, next_batch=self.next_batch,
                                          access_token=self.access_token,
@@ -112,15 +119,16 @@ class Puppet(BasePuppet):
 
     @classmethod
     def from_db(cls, db_puppet: DBPuppet) -> 'Puppet':
-        return Puppet(gid=db_puppet.gid, name=db_puppet.name, photo_url=db_puppet.photo_url,
+        return Puppet(gid=db_puppet.gid, name=db_puppet.name, name_set=db_puppet.name_set,
+                      photo_url=db_puppet.photo_url, avatar_set=db_puppet.avatar_set,
                       is_registered=db_puppet.matrix_registered, custom_mxid=db_puppet.custom_mxid,
                       access_token=db_puppet.access_token, next_batch=db_puppet.next_batch,
                       base_url=db_puppet.base_url, db_instance=db_puppet)
 
     async def save(self) -> None:
-        self.db_instance.edit(name=self.name, photo_url=self.photo_url,
-                              matrix_registered=self.is_registered, custom_mxid=self.custom_mxid,
-                              access_token=self.access_token,
+        self.db_instance.edit(name=self.name, name_set=self.name_set, photo_url=self.photo_url,
+                              avatar_set=self.avatar_set, matrix_registered=self.is_registered,
+                              custom_mxid=self.custom_mxid, access_token=self.access_token,
                               base_url=str(self.base_url) if self.base_url else None)
 
     # endregion
@@ -168,21 +176,31 @@ class Puppet(BasePuppet):
 
     async def _update_name(self, info: HangoutsUser) -> bool:
         name = self._get_name_from_info(info)
-        if name != self.name:
+        if name != self.name or not self.name_set:
             self.name = name
-            await self.default_mxid_intent.set_displayname(self.name)
+            try:
+                await self.default_mxid_intent.set_displayname(self.name)
+                self.name_set = True
+            except Exception:
+                self.log.exception("Failed to set displayname")
+                self.name_set = False
             return True
         return False
 
     async def _update_photo(self, photo_url: str) -> bool:
-        if photo_url != self.photo_url:
+        if photo_url != self.photo_url or not self.avatar_set:
             self.photo_url = photo_url
             if photo_url:
                 avatar_uri, _, _ = await self._reupload_hg_photo(photo_url,
                                                                  self.default_mxid_intent)
             else:
                 avatar_uri = ""
-            await self.default_mxid_intent.set_avatar_url(avatar_uri)
+            try:
+                await self.default_mxid_intent.set_avatar_url(avatar_uri)
+                self.avatar_set = True
+            except Exception:
+                self.log.exception("Failed to set avatar")
+                self.avatar_set = False
             return True
         return False
 
