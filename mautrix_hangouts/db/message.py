@@ -16,10 +16,9 @@
 from typing import Optional
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, SmallInteger, UniqueConstraint, and_, types
+from sqlalchemy import Column, Text, SmallInteger, UniqueConstraint, and_, types
 
 from mautrix.types import RoomID, EventID
-
 from mautrix.util.db import Base
 
 
@@ -45,10 +44,10 @@ class UTCDateTime(types.TypeDecorator):
 class Message(Base):
     __tablename__ = "message"
 
-    mxid: EventID = Column(String(255))
-    mx_room: RoomID = Column(String(255))
-    gid: str = Column(String(255), primary_key=True)
-    receiver: str = Column(String(255), primary_key=True)
+    mxid: EventID = Column(Text)
+    mx_room: RoomID = Column(Text)
+    gid: str = Column(Text, primary_key=True)
+    receiver: str = Column(Text, primary_key=True)
     index: int = Column(SmallInteger, primary_key=True)
     date: Optional[datetime] = Column(UTCDateTime(timezone=True), nullable=True)
 

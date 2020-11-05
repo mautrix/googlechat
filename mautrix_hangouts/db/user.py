@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Optional, Iterable
 
-from sqlalchemy import Column, String, ForeignKey, ForeignKeyConstraint, Boolean, and_
+from sqlalchemy import Column, Text, ForeignKey, ForeignKeyConstraint, Boolean
 from sqlalchemy.sql import expression
 
 from mautrix.types import UserID, RoomID
@@ -25,10 +25,10 @@ from mautrix.util.db import Base
 class User(Base):
     __tablename__ = "user"
 
-    mxid: UserID = Column(String(255), primary_key=True)
-    gid: str = Column(String(255), nullable=True)
-    refresh_token: str = Column(String(255), nullable=True)
-    notice_room: RoomID = Column(String(255), nullable=True)
+    mxid: UserID = Column(Text, primary_key=True)
+    gid: str = Column(Text, nullable=True)
+    refresh_token: str = Column(Text, nullable=True)
+    notice_room: RoomID = Column(Text, nullable=True)
 
     @classmethod
     def all(cls) -> Iterable['User']:
@@ -88,9 +88,9 @@ class User(Base):
 class UserPortal(Base):
     __tablename__ = "user_portal"
 
-    user: str = Column(String(255), primary_key=True)
-    portal: str = Column(String(255), primary_key=True)
-    portal_receiver: str = Column(String(255), primary_key=True)
+    user: str = Column(Text, primary_key=True)
+    portal: str = Column(Text, primary_key=True)
+    portal_receiver: str = Column(Text, primary_key=True)
     in_community: bool = Column(Boolean, nullable=False, server_default=expression.false())
 
     __table_args__ = (ForeignKeyConstraint(("portal", "portal_receiver"),
@@ -101,6 +101,6 @@ class UserPortal(Base):
 class Contact(Base):
     __tablename__ = "contact"
 
-    user: str = Column(String(255), primary_key=True)
-    contact: str = Column(String(255), ForeignKey("puppet.gid"), primary_key=True)
+    user: str = Column(Text, primary_key=True)
+    contact: str = Column(Text, ForeignKey("puppet.gid"), primary_key=True)
     in_community: bool = Column(Boolean, nullable=False, server_default=expression.false())

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Optional, Iterator
 
-from sqlalchemy import Column, String, SmallInteger, Boolean, false, and_, or_
+from sqlalchemy import Column, Text, SmallInteger, Boolean, false, or_
 
 from hangups import hangouts_pb2 as hangouts
 
@@ -27,17 +27,17 @@ class Portal(Base):
     __tablename__ = "portal"
 
     # Hangouts chat information
-    gid: str = Column(String(255), primary_key=True)
-    receiver: str = Column(String(255), primary_key=True)
+    gid: str = Column(Text, primary_key=True)
+    receiver: str = Column(Text, primary_key=True)
     conv_type: int = Column(SmallInteger, nullable=False)
-    other_user_id: str = Column(String(255), nullable=True)
+    other_user_id: str = Column(Text, nullable=True)
 
     # Matrix portal information
-    mxid: RoomID = Column(String(255), unique=True, nullable=True)
+    mxid: RoomID = Column(Text, unique=True, nullable=True)
     encrypted: bool = Column(Boolean, nullable=False, server_default=false())
 
     # Hangouts chat metadata
-    name = Column(String, nullable=True)
+    name = Column(Text, nullable=True)
 
     @classmethod
     def get_by_gid(cls, gid: str, receiver: str) -> Optional['Portal']:
