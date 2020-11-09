@@ -25,10 +25,11 @@ from hangups.user import User as HangoutsUser, UserID as HangoutsUserID
 from hangups.conversation import Conversation as HangoutsChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
                            TextMessageEventContent, MediaMessageEventContent, Membership,
-                           PowerLevelStateEventContent, EncryptedFile)
+                           PowerLevelStateEventContent)
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler
 from mautrix.util.simple_lock import SimpleLock
+from mautrix.util.network_retry import call_with_net_retry
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage
@@ -536,14 +537,6 @@ class Portal(BasePortal):
     # endregion
     # region Hangouts event handling
 
-    async def _send_message(self, intent: IntentAPI, content: MessageEventContent,
-                            event_type: EventType = EventType.ROOM_MESSAGE, **kwargs) -> EventID:
-        if self.encrypted and self.matrix.e2ee:
-            if intent.api.is_real_user:
-                content[intent.api.real_user_content_key] = True
-            event_type, content = await self.matrix.e2ee.encrypt(self.mxid, event_type, content)
-        return await intent.send_message_event(self.mxid, event_type, content, **kwargs)
-
     async def _bridge_own_message_pm(self, source: 'u.User', sender: 'p.Puppet', msg_id: str,
                                      invite: bool = True) -> bool:
         if self.is_direct and sender.gid == source.gid and not sender.is_real_user:
@@ -621,7 +614,8 @@ class Portal(BasePortal):
             if self.encrypted and encrypt_attachment:
                 data, decryption_info = encrypt_attachment(data)
                 upload_mime = "application/octet-stream"
-            mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
+            mxc_url = await call_with_net_retry(intent.upload_media, data, mime_type=upload_mime,
+                                                filename=filename, _action="upload media")
             if decryption_info:
                 decryption_info.url = mxc_url
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
