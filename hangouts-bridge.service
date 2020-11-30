@@ -1,0 +1,12 @@
+[Unit]
+Description=Hangouts Bridge Service
+After=syslog.target network.target              
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/bridges/hangouts
+ExecStart=/opt/bridges/hangouts/bin/python -m mautrix_hangouts
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
