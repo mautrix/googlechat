@@ -542,7 +542,8 @@ class Portal(BasePortal):
         if self.is_direct and sender.gid == source.gid and not sender.is_real_user:
             if self.invite_own_puppet_to_pm and invite:
                 await self.main_intent.invite_user(self.mxid, sender.mxid)
-            elif self.az.state_store.get_membership(self.mxid, sender.mxid) != Membership.JOIN:
+            elif (await self.az.state_store.get_membership(self.mxid, sender.mxid)
+                  != Membership.JOIN):
                 self.log.warning(f"Ignoring own {msg_id} in private chat "
                                  "because own puppet is not in room.")
                 return False
@@ -628,9 +629,10 @@ class Portal(BasePortal):
                                      ) -> None:
         if not self.mxid:
             return
-        if ((self.is_direct and sender.gid == source.gid
-             and self.az.state_store.get_membership(self.mxid, sender.mxid) != Membership.JOIN)):
-            return
+        if self.is_direct and sender.gid == source.gid:
+            membership = await self.az.state_store.get_membership(self.mxid, sender.mxid)
+            if membership != Membership.JOIN:
+                return
         await sender.intent_for(self).set_typing(self.mxid, status == hangouts.TYPING_TYPE_STARTED,
                                                  timeout=6000)
 
