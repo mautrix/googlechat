@@ -133,7 +133,7 @@ class Puppet(BasePuppet):
 
     # endregion
 
-    def default_puppet_should_leave_room(self, room_id: RoomID) -> bool:
+    async def default_puppet_should_leave_room(self, room_id: RoomID) -> bool:
         portal = p.Portal.get_by_mxid(room_id)
         return portal and portal.other_user_id != self.gid
 
