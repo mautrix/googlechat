@@ -28,7 +28,7 @@ from hangups import (hangouts_pb2 as hangouts,
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage, WatermarkNotification
 
-from mautrix.types import UserID, RoomID
+from mautrix.types import UserID, RoomID, MessageType
 from mautrix.client import Client as MxClient
 from mautrix.bridge import BaseUser
 from mautrix.bridge._community import CommunityHelper, CommunityID
@@ -160,9 +160,12 @@ class User(BaseUser):
                 self.save()
         return self.notice_room
 
-    async def send_bridge_notice(self, text: str) -> None:
+    async def send_bridge_notice(self, text: str, important: bool = False) -> None:
+        if not important and not config["bridge.unimportant_bridge_notices"]:
+            return
+        msgtype = MessageType.TEXT if important else MessageType.NOTICE
         try:
-            await self.az.intent.send_notice(await self.get_notice_room(), text)
+            await self.az.intent.send_text(await self.get_notice_room(), text, msgtype=msgtype)
         except Exception:
             self.log.warning("Failed to send bridge notice '%s'", text, exc_info=True)
 
@@ -184,7 +187,7 @@ class User(BaseUser):
                 finish.append(user.login_complete(auth_resp.cookies))
             else:
                 await user.send_bridge_notice("Failed to resume session with stored "
-                                              f"refresh token: {auth_resp.error}")
+                                              f"refresh token: {auth_resp.error}", important=True)
                 user.log.exception("Failed to resume session with stored refresh token",
                                    exc_info=auth_resp.error)
         await asyncio.gather(*finish, loop=cls.loop)
@@ -207,10 +210,11 @@ class User(BaseUser):
                 self.log.info("Client connection finished")
             else:
                 self.log.warning("Client connection finished unexpectedly")
-                await self.send_bridge_notice("Client connection finished unexpectedly")
+                await self.send_bridge_notice("Client connection finished unexpectedly",
+                                              important=True)
         except Exception as e:
             self.log.exception("Exception in connection")
-            await self.send_bridge_notice(f"Exception in Hangouts connection: {e}")
+            await self.send_bridge_notice(f"Exception in Hangouts connection: {e}", important=True)
 
     async def stop(self) -> None:
         if self.client:
