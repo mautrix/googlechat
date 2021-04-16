@@ -29,7 +29,6 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler
 from mautrix.util.simple_lock import SimpleLock
-from mautrix.util.network_retry import call_with_net_retry
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage
@@ -615,8 +614,7 @@ class Portal(BasePortal):
             if self.encrypted and encrypt_attachment:
                 data, decryption_info = encrypt_attachment(data)
                 upload_mime = "application/octet-stream"
-            mxc_url = await call_with_net_retry(intent.upload_media, data, mime_type=upload_mime,
-                                                filename=filename, _action="upload media")
+            mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
             if decryption_info:
                 decryption_info.url = mxc_url
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
