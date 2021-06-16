@@ -213,6 +213,7 @@ class User(BaseUser):
                 await self.send_bridge_notice("Client connection finished unexpectedly",
                                               important=True)
         except Exception as e:
+            self._track_metric(METRIC_CONNECTED, False)
             self.log.exception("Exception in connection")
             await self.send_bridge_notice(f"Exception in Hangouts connection: {e}", important=True)
 
