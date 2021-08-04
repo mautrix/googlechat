@@ -30,8 +30,9 @@ from hangups.parsers import TypingStatusMessage, WatermarkNotification
 
 from mautrix.types import UserID, RoomID, MessageType
 from mautrix.client import Client as MxClient
-from mautrix.bridge import BaseUser
+from mautrix.bridge import BaseUser, BridgeState
 from mautrix.bridge._community import CommunityHelper, CommunityID
+from mautrix.util.bridge_state import BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 
 from .config import Config
@@ -147,6 +148,14 @@ class User(BaseUser):
 
     # endregion
 
+    async def fill_bridge_state(self, state: BridgeState) -> None:
+        await super().fill_bridge_state(state)
+        state.remote_id = str(self.gid)
+        state.remote_name = ""
+        if self.gid:
+            puppet = pu.Puppet.get_by_gid(self.gid)
+            state.remote_name = puppet.name
+
     async def get_notice_room(self) -> RoomID:
         if not self.notice_room:
             async with self._notice_room_lock:
@@ -160,7 +169,10 @@ class User(BaseUser):
                 self.save()
         return self.notice_room
 
-    async def send_bridge_notice(self, text: str, important: bool = False) -> None:
+    async def send_bridge_notice(self, text: str, important: bool = False,
+                                 state_event: Optional[BridgeStateEvent] = None) -> None:
+        if state_event:
+            await self.push_bridge_state(state_event, message=text)
         if not important and not config["bridge.unimportant_bridge_notices"]:
             return
         msgtype = MessageType.TEXT if important else MessageType.NOTICE
@@ -186,8 +198,11 @@ class User(BaseUser):
             if auth_resp.success:
                 finish.append(user.login_complete(auth_resp.cookies))
             else:
-                await user.send_bridge_notice("Failed to resume session with stored "
-                                              f"refresh token: {auth_resp.error}", important=True)
+                await user.send_bridge_notice(
+                    f"Failed to resume session with stored refresh token: {auth_resp.error}",
+                    state_event=BridgeStateEvent.BAD_CREDENTIALS,
+                    important=True,
+                )
                 user.log.exception("Failed to resume session with stored refresh token",
                                    exc_info=auth_resp.error)
         await asyncio.gather(*finish, loop=cls.loop)
@@ -211,11 +226,14 @@ class User(BaseUser):
             else:
                 self.log.warning("Client connection finished unexpectedly")
                 await self.send_bridge_notice("Client connection finished unexpectedly",
+                                              state_event=BridgeStateEvent.UNKNOWN_ERROR,
                                               important=True)
         except Exception as e:
             self._track_metric(METRIC_CONNECTED, False)
             self.log.exception("Exception in connection")
-            await self.send_bridge_notice(f"Exception in Hangouts connection: {e}", important=True)
+            await self.send_bridge_notice(f"Exception in Hangouts connection: {e}",
+                                          state_event=BridgeStateEvent.UNKNOWN_ERROR,
+                                          important=True)
 
     async def stop(self) -> None:
         if self.client:
@@ -245,6 +263,7 @@ class User(BaseUser):
         self.connected = True
         asyncio.ensure_future(self.on_connect_later(), loop=self.loop)
         await self.send_bridge_notice("Connected to Hangouts")
+        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def on_connect_later(self) -> None:
         try:
@@ -277,10 +296,12 @@ class User(BaseUser):
     async def on_reconnect(self) -> None:
         self.connected = True
         await self.send_bridge_notice("Reconnected to Hangouts")
+        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def on_disconnect(self) -> None:
         self.connected = False
         await self.send_bridge_notice("Disconnected from Hangouts")
+        await self.push_bridge_state(BridgeStateEvent.UNKNOWN_ERROR, error="hangouts-disconnected")
 
     async def sync(self) -> None:
         users, chats = await hangups.build_user_conversation_list(self.client)
