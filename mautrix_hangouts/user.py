@@ -301,7 +301,7 @@ class User(BaseUser):
     async def on_disconnect(self) -> None:
         self.connected = False
         await self.send_bridge_notice("Disconnected from Hangouts")
-        await self.push_bridge_state(BridgeStateEvent.UNKNOWN_ERROR, error="hangouts-disconnected")
+        await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT, error="hangouts-disconnected")
 
     async def sync(self) -> None:
         users, chats = await hangups.build_user_conversation_list(self.client)
