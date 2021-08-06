@@ -81,12 +81,12 @@ class User(BaseUser):
                  refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None,
                  db_instance: Optional[DBUser] = None) -> None:
         self.mxid = mxid
+        super().__init__()
         self.gid = gid
         self.refresh_token = refresh_token
         self.notice_room = notice_room
         self._notice_room_lock = asyncio.Lock()
         self.by_mxid[mxid] = self
-        self.command_status = None
         self.is_whitelisted, self.is_admin, self.level = config.get_permissions(mxid)
         self._db_instance = db_instance
         self._community_id = None
@@ -98,10 +98,6 @@ class User(BaseUser):
         self.chats_future = asyncio.Future()
         self.users = None
         self._intentional_disconnect = False
-        self.dm_update_lock = asyncio.Lock()
-        self._metric_value = defaultdict(lambda: False)
-
-        self.log = self.log.getChild(self.mxid)
 
     # region Sessions
 
