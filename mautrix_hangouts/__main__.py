@@ -33,7 +33,7 @@ class HangoutsBridge(Bridge):
     module = "mautrix_hangouts"
     command = "python -m mautrix-hangouts"
     description = "A Matrix-Hangouts puppeting bridge."
-    repo_url = "https://github.com/tulir/mautrix-hangouts"
+    repo_url = "https://github.com/mautrix/hangouts"
     real_user_content_key = "net.maunium.hangouts.puppet"
     version = version
     markdown_version = linkified_version

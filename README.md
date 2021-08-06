@@ -11,7 +11,7 @@ Some quick links:
 * Basic usage: [Authentication](https://docs.mau.fi/bridges/python/hangouts/authentication.html)
 
 ### Features & Roadmap
-[ROADMAP.md](https://github.com/tulir/mautrix-hangouts/blob/master/ROADMAP.md)
+[ROADMAP.md](https://github.com/mautrix/hangouts/blob/master/ROADMAP.md)
 contains a general overview of what is supported by the bridge.
 
 ## Discussion
