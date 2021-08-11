@@ -114,7 +114,7 @@ class User(BaseUser):
 
     @classmethod
     def from_db(cls, db_user: DBUser) -> 'User':
-        return User(mxid=db_user.mxid, refresh_token=db_user.refresh_token,
+        return User(mxid=db_user.mxid, gid=db_user.gid, refresh_token=db_user.refresh_token,
                     notice_room=db_user.notice_room, db_instance=db_user)
 
     @classmethod
