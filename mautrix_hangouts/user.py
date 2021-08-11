@@ -259,7 +259,6 @@ class User(BaseUser):
         self.connected = True
         asyncio.ensure_future(self.on_connect_later(), loop=self.loop)
         await self.send_bridge_notice("Connected to Hangouts")
-        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def on_connect_later(self) -> None:
         try:
@@ -297,11 +296,14 @@ class User(BaseUser):
     async def on_disconnect(self) -> None:
         self.connected = False
         await self.send_bridge_notice("Disconnected from Hangouts")
-        await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT, error="hangouts-disconnected")
+        await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT,
+                                     error="hangouts-disconnected")
 
     async def sync(self) -> None:
+        await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
         users, chats = await hangups.build_user_conversation_list(self.client)
         await asyncio.gather(self.sync_users(users), self.sync_chats(chats), loop=self.loop)
+        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     @async_time(METRIC_SYNC_USERS)
     async def sync_users(self, users: UserList) -> None:
