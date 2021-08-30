@@ -463,11 +463,11 @@ class User(BaseUser):
 
     async def send_text(self, conversation_id: str, text: str) -> str:
         resp = await self.chats.get(conversation_id).send_message(text)
-        return resp.topic.topic_id.id
+        return resp.topic.id.topic_id
 
     async def send_image(self, conversation_id: str, id: str) -> str:
         resp = await self.chats.get(conversation_id).send_message(image_id=id)
-        return resp.topic.topic_id.id
+        return resp.topic.id.topic_id
 
     async def mark_read(self, conversation_id: str,
                         timestamp: Optional[Union[datetime.datetime, int]] = None) -> None:

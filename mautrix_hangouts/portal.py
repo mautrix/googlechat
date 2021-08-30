@@ -256,6 +256,7 @@ class Portal(BasePortal):
             chunk_limit = min(limit, 100)
             chunk, token = await self._load_messages(source, chunk_limit, token)
             for message in reversed(chunk):
+                # FIXME id_ field
                 if DBMessage.get_by_gid(message.id_):
                     self.log.debug("Stopping backfilling at %s (ts: %s) "
                                    "as message was already bridged",
@@ -554,19 +555,20 @@ class Portal(BasePortal):
 
     async def handle_hangouts_message(self, source: 'u.User', sender: 'p.Puppet',
                                       event: ChatMessageEvent) -> None:
+        gid = event._message.id.message_id
         async with self.optional_send_lock(sender.gid):
-            if event.id_ in self._dedup:
+            if gid in self._dedup:
                 return
-            self._dedup.appendleft(event.id_)
+            self._dedup.appendleft(gid)
         if not self.mxid:
             mxid = await self.create_matrix_room(source)
             if not mxid:
                 # Failed to create
                 return
-        if not await self._bridge_own_message_pm(source, sender, f"message {event.id_}"):
+        if not await self._bridge_own_message_pm(source, sender, f"message {gid}"):
             return
         intent = sender.intent_for(self)
-        self.log.debug("Handling hangouts message %s", event.id_)
+        self.log.debug("Handling hangouts message %s", gid)
 
         event_id = None
         if event.attachments:
@@ -581,9 +583,9 @@ class Portal(BasePortal):
         if not event_id:
             content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
             event_id = await self._send_message(intent, content, timestamp=event.timestamp)
-        DBMessage(mxid=event_id, mx_room=self.mxid, gid=event.id_, receiver=self.receiver,
+        DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
                   index=0, date=event.timestamp).insert()
-        self.log.debug("Handled Hangouts message %s -> %s", event.id_, event_id)
+        self.log.debug("Handled Hangouts message %s -> %s", gid, event_id)
         await self._send_delivery_receipt(event_id)
 
     async def _get_remote_bytes(self, url):
