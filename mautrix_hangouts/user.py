@@ -15,14 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import (Any, Dict, Iterator, Optional, List, Awaitable, Union, Callable,
                     TYPE_CHECKING)
-from collections import defaultdict
 from concurrent import futures
 import datetime
 import asyncio
 import time
 
 import hangups
-from hangups import (hangouts_pb2 as hangouts,
+from hangups import (hangouts_pb2 as hangouts, googlechat_pb2 as googlechat,
                      Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
                      MembershipChangeEvent)
 from hangups.conversation import ConversationList, Conversation
@@ -262,17 +261,15 @@ class User(BaseUser):
 
     async def on_connect_later(self) -> None:
         try:
-            info = await self.client.get_self_info(hangouts.GetSelfInfoRequest(
-                request_header=self.client.get_request_header()
+            info = await self.client.get_self_user_status(googlechat.GetSelfUserStatusRequest(
+                request_header=self.client.get_gc_request_header()
             ))
         except Exception:
             self.log.exception("Failed to get_self_info")
             return
-        self.gid = info.self_entity.id.gaia_id
+        self.gid = info.user_status.user_id.id
         self._track_metric(METRIC_CONNECTED, True)
         self._track_metric(METRIC_LOGGED_IN, True)
-        self.name = info.self_entity.properties.display_name
-        self.name_future.set_result(self.name)
         self.save()
 
         try:
@@ -311,11 +308,13 @@ class User(BaseUser):
         puppets: Dict[str, pu.Puppet] = {}
         update_avatars = config["bridge.update_avatar_initial_sync"]
         updates = []
+        self.name = users.get_self().full_name
+        self.name_future.set_result(self.name)
         for info in users.get_all():
-            if not info.id_.gaia_id:
+            if not info.id_:
                 self.log.debug(f"Found user without gaia_id: {info}")
                 continue
-            puppet = pu.Puppet.get_by_gid(info.id_.gaia_id, create=True)
+            puppet = pu.Puppet.get_by_gid(info.id_, create=True)
             puppets[puppet.gid] = puppet
             updates.append(puppet.update_info(self, info, update_avatar=update_avatars))
         self.log.debug(f"Syncing info of {len(updates)} puppets "
@@ -354,29 +353,29 @@ class User(BaseUser):
             self._ensure_future_proxy(self.on_receipt))
         self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
         self.chats.on_typing.add_observer(self._ensure_future_proxy(self.on_typing))
-        self.log.debug("Fetching recent conversations to create portals for")
-        res = await self.client.sync_recent_conversations(hangouts.SyncRecentConversationsRequest(
-            request_header=self.client.get_request_header(),
-            max_conversations=config["bridge.initial_chat_sync"],
-            max_events_per_conversation=1,
-            sync_filter=[hangouts.SYNC_FILTER_INBOX],
-        ))
-        self.log.debug("Server returned %d conversations", len(res.conversation_state))
-        convs = sorted(res.conversation_state, reverse=True,
-                       key=lambda state: state.conversation.self_conversation_state.sort_timestamp)
-        for state in convs:
-            self.log.debug("Syncing %s", state.conversation_id.id)
-            chat = chats.get(state.conversation_id.id)
-            portal = po.Portal.get_by_conversation(chat, self.gid)
-            if portal.mxid:
-                await portal.update_matrix_room(self, chat)
-                if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
-                    self.log.debug("Last message %s in chat %s not found in db, backfilling...",
-                                   state.event[0].event_id, state.conversation_id.id)
-                    await portal.backfill(self, is_initial=False)
-            else:
-                await portal.create_matrix_room(self, chat)
-        await self.update_direct_chats()
+        # self.log.debug("Fetching recent conversations to create portals for")
+        # res = await self.client.sync_recent_conversations(hangouts.SyncRecentConversationsRequest(
+        #     request_header=self.client.get_request_header(),
+        #     max_conversations=config["bridge.initial_chat_sync"],
+        #     max_events_per_conversation=1,
+        #     sync_filter=[hangouts.SYNC_FILTER_INBOX],
+        # ))
+        # self.log.debug("Server returned %d conversations", len(res.conversation_state))
+        # convs = sorted(res.conversation_state, reverse=True,
+        #                key=lambda state: state.conversation.self_conversation_state.sort_timestamp)
+        # for state in convs:
+        #     self.log.debug("Syncing %s", state.conversation_id.id)
+        #     chat = chats.get(state.conversation_id.id)
+        #     portal = po.Portal.get_by_conversation(chat, self.gid)
+        #     if portal.mxid:
+        #         await portal.update_matrix_room(self, chat)
+        #         if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
+        #             self.log.debug("Last message %s in chat %s not found in db, backfilling...",
+        #                            state.event[0].event_id, state.conversation_id.id)
+        #             await portal.backfill(self, is_initial=False)
+        #     else:
+        #         await portal.create_matrix_room(self, chat)
+        # await self.update_direct_chats()
 
     # region Hangouts event handling
 
@@ -431,11 +430,11 @@ class User(BaseUser):
 
     async def set_typing(self, conversation_id: str, typing: bool) -> None:
         self.log.debug(f"set_typing({conversation_id}, {typing})")
-        await self.client.set_typing(hangouts.SetTypingRequest(
-            request_header=self.client.get_request_header(),
-            conversation_id=hangouts.ConversationId(id=conversation_id),
-            type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
-        ))
+        # await self.client.set_typing(hangouts.SetTypingRequest(
+        #     request_header=self.client.get_request_header(),
+        #     conversation_id=hangouts.ConversationId(id=conversation_id),
+        #     type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
+        # ))
 
     async def _get_event_request_header(self, conversation_id: str) -> hangouts.EventRequestHeader:
         if not self.chats:
@@ -451,47 +450,37 @@ class User(BaseUser):
         )
 
     async def send_emote(self, conversation_id: str, text: str) -> str:
-        resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
-            request_header=self.client.get_request_header(),
-            annotation=[hangouts.EventAnnotation(type=4)],
-            event_request_header=await self._get_event_request_header(conversation_id),
-            message_content=hangouts.MessageContent(
-                segment=[hangups.ChatMessageSegment(text).serialize()],
-            ),
-        ))
-        return resp.created_event.event_id
+        pass
+        # resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
+        #     request_header=self.client.get_request_header(),
+        #     annotation=[hangouts.EventAnnotation(type=4)],
+        #     event_request_header=await self._get_event_request_header(conversation_id),
+        #     message_content=hangouts.MessageContent(
+        #         segment=[hangups.ChatMessageSegment(text).serialize()],
+        #     ),
+        # ))
+        # return resp.created_event.event_id
 
     async def send_text(self, conversation_id: str, text: str) -> str:
-        resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
-            request_header=self.client.get_request_header(),
-            event_request_header=await self._get_event_request_header(conversation_id),
-            message_content=hangouts.MessageContent(
-                segment=[segment.serialize() for segment in hangups.ChatMessageSegment.from_str(text)],
-            ),
-        ))
-        return resp.created_event.event_id
+        resp = await self.chats.get(conversation_id).send_message(text)
+        return resp.topic.topic_id.id
 
     async def send_image(self, conversation_id: str, id: str) -> str:
-        resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
-            request_header=self.client.get_request_header(),
-            event_request_header=await self._get_event_request_header(conversation_id),
-            existing_media=hangouts.ExistingMedia(
-                photo=hangouts.Photo(photo_id=id),
-            ),
-        ))
-        return resp.created_event.event_id
+        resp = await self.chats.get(conversation_id).send_message(image_id=id)
+        return resp.topic.topic_id.id
 
     async def mark_read(self, conversation_id: str,
                         timestamp: Optional[Union[datetime.datetime, int]] = None) -> None:
-        if isinstance(timestamp, datetime.datetime):
-            timestamp = hangups.parsers.to_timestamp(timestamp)
-        elif not timestamp:
-            timestamp = int(time.time() * 1_000_000)
-        await self.client.update_watermark(hangouts.UpdateWatermarkRequest(
-            request_header=self.client.get_request_header(),
-            conversation_id=hangouts.ConversationId(id=conversation_id),
-            last_read_timestamp=timestamp,
-        ))
+        pass
+        # if isinstance(timestamp, datetime.datetime):
+        #     timestamp = hangups.parsers.to_timestamp(timestamp)
+        # elif not timestamp:
+        #     timestamp = int(time.time() * 1_000_000)
+        # await self.client.update_watermark(hangouts.UpdateWatermarkRequest(
+        #     request_header=self.client.get_request_header(),
+        #     conversation_id=hangouts.ConversationId(id=conversation_id),
+        #     last_read_timestamp=timestamp,
+        # ))
 
     # endregion
     # region Community stuff

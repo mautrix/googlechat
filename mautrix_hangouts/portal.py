@@ -20,7 +20,7 @@ import asyncio
 import io
 import cgi
 
-from hangups import hangouts_pb2 as hangouts, ChatMessageEvent
+from hangups import hangouts_pb2 as hangouts, googlechat_pb2 as googlechat, ChatMessageEvent
 from hangups.user import User as HangoutsUser, UserID as HangoutsUserID
 from hangups.conversation import Conversation as HangoutsChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
@@ -126,7 +126,7 @@ class Portal(BasePortal):
 
     @property
     def gid_log(self) -> str:
-        if self.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE:
+        if self.is_direct:
             return f"{self.gid}-{self.receiver}"
         return self.gid
 
@@ -163,7 +163,8 @@ class Portal(BasePortal):
 
     @property
     def is_direct(self) -> bool:
-        return self.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE
+        return self.conv_type in (googlechat.Group.GroupType.HUMAN_DM,
+                                  googlechat.Group.GroupType.BOT_DM)
 
     @property
     def main_intent(self) -> IntentAPI:
@@ -213,11 +214,11 @@ class Portal(BasePortal):
     async def _update_participants(self, source: 'u.User', info: HangoutsChat) -> None:
         users = info.users
         if self.is_direct:
-            users = [user for user in users if user.id_.gaia_id != source.gid]
-            self.other_user_id = users[0].id_.gaia_id
+            users = [user for user in users if user.id_ != source.gid]
+            self.other_user_id = users[0].id_
         if not self.mxid:
             return
-        puppets: Dict[HangoutsUser, p.Puppet] = {user: p.Puppet.get_by_gid(user.id_.gaia_id)
+        puppets: Dict[HangoutsUser, p.Puppet] = {user: p.Puppet.get_by_gid(user.id_)
                                                  for user in users}
         await asyncio.gather(*[puppet.update_info(source=source, info=user)
                                for user, puppet in puppets.items()])
@@ -267,6 +268,9 @@ class Portal(BasePortal):
         return messages
 
     async def backfill(self, source: 'u.User', is_initial: bool = False) -> None:
+        if not TYPE_CHECKING:
+            self.log.debug("Backfill is not yet implemented")
+            return
         try:
             with self.backfill_lock:
                 await self._backfill(source, is_initial)
@@ -376,8 +380,8 @@ class Portal(BasePortal):
         power_levels = PowerLevelStateEventContent()
         invites = [source.mxid]
         if self.is_direct:
-            users = [user for user in info.users if user.id_.gaia_id != source.gid]
-            self.other_user_id = users[0].id_.gaia_id
+            users = [user for user in info.users if user.id_ != source.gid]
+            self.other_user_id = users[0].id_
             puppet = p.Puppet.get_by_gid(self.other_user_id)
             await puppet.update_info(source=source, info=info.get_user(self.other_user_scoped_id))
             power_levels.users[source.mxid] = 50
@@ -430,7 +434,7 @@ class Portal(BasePortal):
             puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
             if puppet:
                 did_join = await puppet.intent.ensure_joined(self.mxid)
-                if did_join and self.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE:
+                if did_join and self.is_direct:
                     await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
             await source._community_helper.add_room(source._community_id, self.mxid)
 
@@ -631,7 +635,8 @@ class Portal(BasePortal):
             membership = await self.az.state_store.get_membership(self.mxid, sender.mxid)
             if membership != Membership.JOIN:
                 return
-        await sender.intent_for(self).set_typing(self.mxid, status == hangouts.TYPING_TYPE_STARTED,
+        await sender.intent_for(self).set_typing(self.mxid,
+                                                 status == googlechat.TypingState.TYPING,
                                                  timeout=6000)
 
     # endregion
@@ -653,7 +658,7 @@ class Portal(BasePortal):
     @classmethod
     def get_by_gid(cls, gid: str, receiver: Optional[str] = None, conv_type: Optional[int] = None,
                    ) -> Optional['Portal']:
-        if not receiver or (conv_type and conv_type != hangouts.CONVERSATION_TYPE_ONE_TO_ONE):
+        if not receiver or (conv_type and conv_type == googlechat.Group.GroupType.ROOM):
             receiver = gid
         try:
             return cls.by_gid[(gid, receiver)]

@@ -17,7 +17,7 @@ from mautrix.client import Client
 from mautrix.bridge import custom_puppet as cpu
 from mautrix.bridge.commands import HelpSection, command_handler
 
-from hangups import hangouts_pb2 as hangouts
+from hangups import googlechat_pb2 as googlechat
 
 from .. import puppet as pu
 from .typehint import CommandEvent
@@ -64,19 +64,26 @@ async def logout(evt: CommandEvent) -> None:
 @command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
 async def ping(evt: CommandEvent) -> None:
     try:
-        info = await evt.sender.client.get_self_info(hangouts.GetSelfInfoRequest(
-            request_header=evt.sender.client.get_request_header()
+        info = await evt.sender.client.get_self_user_status(googlechat.GetSelfUserStatusRequest(
+            request_header=evt.sender.client.get_gc_request_header()
         ))
+        get_members_response = await evt.sender.client.get_members(
+            googlechat.GetMembersRequest(
+                request_header=evt.sender.client.get_gc_request_header(),
+                member_ids=[googlechat.MemberId(
+                    user_id=googlechat.UserId(id=info.user_status.user_id.id)
+                )]
+            )
+        )
+        self_info = get_members_response.members[0].user
     except Exception as e:
         evt.log.exception("Failed to get user info", exc_info=True)
         await evt.reply(f"Failed to get user info: {e}")
         return
-    name = info.self_entity.properties.display_name
-    email = (f" &lt;{info.self_entity.properties.email[0]}&gt;"
-             if info.self_entity.properties.email else "")
-    id = info.self_entity.id.gaia_id
+    name = self_info.name
+    email = f" &lt;{self_info.email}&gt;" if self_info.email else ""
+    id = self_info.user_id.id
     await evt.reply(f"You're logged in as {name}{email} ({id})", allow_html=False)
-
 
 @command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
 async def logout_matrix(evt: CommandEvent) -> None:

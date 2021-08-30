@@ -17,7 +17,7 @@ from typing import Optional, Iterator
 
 from sqlalchemy import Column, Text, SmallInteger, Boolean, false, or_
 
-from hangups import hangouts_pb2 as hangouts
+from hangups import googlechat_pb2 as googlechat
 
 from mautrix.types import RoomID
 from mautrix.util.db import Base
@@ -51,7 +51,8 @@ class Portal(Base):
     @classmethod
     def get_all_by_receiver(cls, receiver: str) -> Iterator['Portal']:
         return cls._select_all(cls.c.receiver == receiver,
-                               cls.c.conv_type == hangouts.CONVERSATION_TYPE_ONE_TO_ONE)
+                               cls.c.conv_type == googlechat.Group.GroupType.HUMAN_DM
+                               | cls.c.conv_type == googlechat.Group.GroupType.BOT_DM)
 
     @classmethod
     def all(cls) -> Iterator['Portal']:
