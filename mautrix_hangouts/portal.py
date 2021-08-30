@@ -697,7 +697,7 @@ class Portal(BasePortal):
 
     @classmethod
     def get_by_conversation(cls, conversation: HangoutsChat, receiver: str) -> Optional['Portal']:
-        return cls.get_by_gid(conversation.id_, receiver, conversation._conversation.type)
+        return cls.get_by_gid(conversation.id_, receiver, conversation._conversation.group_type)
 
     # endregion
 
