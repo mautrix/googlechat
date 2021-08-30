@@ -51,8 +51,8 @@ class Portal(Base):
     @classmethod
     def get_all_by_receiver(cls, receiver: str) -> Iterator['Portal']:
         return cls._select_all(cls.c.receiver == receiver,
-                               cls.c.conv_type == googlechat.Group.GroupType.HUMAN_DM
-                               | cls.c.conv_type == googlechat.Group.GroupType.BOT_DM)
+                               (cls.c.conv_type == googlechat.Group.GroupType.HUMAN_DM)
+                               | (cls.c.conv_type == googlechat.Group.GroupType.BOT_DM))
 
     @classmethod
     def all(cls) -> Iterator['Portal']:
