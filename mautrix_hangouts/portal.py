@@ -294,7 +294,7 @@ class Portal(BasePortal):
         async with NotificationDisabler(self.mxid, source):
             for message in reversed(messages):
                 if isinstance(message, ChatMessageEvent):
-                    puppet = p.Puppet.get_by_gid(message.user_id.gaia_id)
+                    puppet = p.Puppet.get_by_gid(message.user_id)
                     await self.handle_hangouts_message(source, puppet, message)
                 else:
                     self.log.trace("Unhandled event type %s while backfilling", type(message))

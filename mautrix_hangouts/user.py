@@ -391,7 +391,7 @@ class User(BaseUser):
         message = DBMessage.get_most_recent(portal.mxid, event.read_timestamp)
         if not message:
             return
-        puppet = pu.Puppet.get_by_gid(event.user_id.gaia_id)
+        puppet = pu.Puppet.get_by_gid(event.user_id)
         await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
 
     @async_time(METRIC_EVENT)
@@ -404,7 +404,7 @@ class User(BaseUser):
         if not portal:
             return
 
-        sender = pu.Puppet.get_by_gid(event.user_id.gaia_id)
+        sender = pu.Puppet.get_by_gid(event.user_id)
 
         if isinstance(event, ChatMessageEvent):
             await portal.backfill_lock.wait(event.id_)
@@ -420,7 +420,7 @@ class User(BaseUser):
         portal = po.Portal.get_by_gid(event.conv_id, self.gid)
         if not portal:
             return
-        sender = pu.Puppet.get_by_gid(event.user_id.gaia_id, create=False)
+        sender = pu.Puppet.get_by_gid(event.user_id, create=False)
         if not sender:
             return
         await portal.handle_hangouts_typing(self, sender, event.status)
