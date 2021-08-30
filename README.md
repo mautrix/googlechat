@@ -1,5 +1,5 @@
-# mautrix-hangouts
-A Matrix-Hangouts puppeting bridge.
+# mautrix-googlechat
+A Matrix-Google Chat puppeting bridge.
 
 ## Documentation
 All setup and usage instructions are located on
@@ -15,4 +15,4 @@ Some quick links:
 contains a general overview of what is supported by the bridge.
 
 ## Discussion
-Matrix room: [`#hangouts:maunium.net`](https://matrix.to/#/#hangouts:maunium.net)
+Matrix room: [`#googlechat:maunium.net`](https://matrix.to/#/#googlechat:maunium.net)
