@@ -1,5 +1,5 @@
-# mautrix-hangouts - A Matrix-Hangouts puppeting bridge
-# Copyright (C) 2019 Tulir Asokan
+# mautrix-googlechat - A Matrix-Google Chat puppeting bridge
+# Copyright (C) 2021 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -28,13 +28,13 @@ from .version import version, linkified_version
 from . import commands as _
 
 
-class HangoutsBridge(Bridge):
-    name = "mautrix-hangouts"
-    module = "mautrix_hangouts"
-    command = "python -m mautrix-hangouts"
-    description = "A Matrix-Hangouts puppeting bridge."
+class GoogleChatBridge(Bridge):
+    name = "mautrix-googlechat"
+    module = "mautrix_googlechat"
+    command = "python -m mautrix-googlechat"
+    description = "A Matrix-Google Chat puppeting bridge."
     repo_url = "https://github.com/mautrix/hangouts"
-    real_user_content_key = "net.maunium.hangouts.puppet"
+    real_user_content_key = "net.maunium.googlechat.puppet"
     version = version
     markdown_version = linkified_version
     config_class = Config
@@ -99,4 +99,4 @@ class HangoutsBridge(Bridge):
         return len([user for user in User.by_mxid.values() if user.gid])
 
 
-HangoutsBridge().run()
+GoogleChatBridge().run()

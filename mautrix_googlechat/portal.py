@@ -1,5 +1,5 @@
-# mautrix-hangouts - A Matrix-Hangouts puppeting bridge
-# Copyright (C) 2019 Tulir Asokan
+# mautrix-googlechat - A Matrix-Google Chat puppeting bridge
+# Copyright (C) 2021 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -337,7 +337,7 @@ class Portal(BasePortal):
 
     @property
     def bridge_info_state_key(self) -> str:
-        return f"net.maunium.hangouts://hangouts/{self.gid}"
+        return f"net.maunium.googlechat://googlechat/{self.gid}"
 
     @property
     def bridge_info(self) -> Dict[str, Any]:
@@ -345,8 +345,8 @@ class Portal(BasePortal):
             "bridgebot": self.az.bot_mxid,
             "creator": self.main_intent.mxid,
             "protocol": {
-                "id": "hangouts",
-                "displayname": "Hangouts",
+                "id": "googlechat",
+                "displayname": "Google Chat",
                 "avatar_url": config["appservice.bot_avatar"],
             },
             "channel": {

@@ -52,5 +52,5 @@
     * [ ] At startup
     * [ ] When invited to chat
     * [x] When receiving message
-  * [ ] Private chat creation by inviting Matrix puppet of Hangouts user to new room
-  * [x] Option to use own Matrix account for messages sent from other Hangouts clients
+  * [ ] Private chat creation by inviting Matrix puppet of Google Chat user to new room
+  * [x] Option to use own Matrix account for messages sent from other Google Chat clients

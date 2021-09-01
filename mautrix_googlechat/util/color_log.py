@@ -1,5 +1,5 @@
-# mautrix-hangouts - A Matrix-Hangouts puppeting bridge
-# Copyright (C) 2019 Tulir Asokan
+# mautrix-googlechat - A Matrix-Google Chat puppeting bridge
+# Copyright (C) 2021 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by

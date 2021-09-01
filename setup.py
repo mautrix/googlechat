@@ -1,7 +1,7 @@
 import setuptools
 import glob
 
-from mautrix_hangouts.get_version import git_tag, git_revision, version, linkified_version
+from mautrix_googlechat.get_version import git_tag, git_revision, version, linkified_version
 
 try:
     long_desc = open("README.md").read()
@@ -24,7 +24,7 @@ with open("optional-requirements.txt") as reqs:
 
 extras_require["all"] = list({dep for deps in extras_require.values() for dep in deps})
 
-with open("mautrix_hangouts/version.py", "w") as version_file:
+with open("mautrix_googlechat/version.py", "w") as version_file:
     version_file.write(f"""# Generated in setup.py
 
 git_tag = {git_tag!r}
@@ -34,14 +34,14 @@ linkified_version = {linkified_version!r}
 """)
 
 setuptools.setup(
-    name="mautrix-hangouts",
+    name="mautrix-googlechat",
     version=version,
     url="https://github.com/mautrix/hangouts",
 
     author="Tulir Asokan",
     author_email="tulir@maunium.net",
 
-    description="A Matrix-Hangouts puppeting bridge.",
+    description="A Matrix-Google Chat puppeting bridge.",
     long_description=long_desc,
     long_description_content_type="text/markdown",
 
@@ -62,12 +62,12 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
-    package_data={"mautrix_hangouts": [
+    package_data={"mautrix_googlechat": [
         "web/static/*.png", "web/static/*.css", "web/static/*.html", "web/static/*.js",
         "example-config.yaml"
     ]},
     data_files=[
-        (".", ["alembic.ini", "mautrix_hangouts/example-config.yaml"]),
+        (".", ["alembic.ini", "mautrix_googlechat/example-config.yaml"]),
         ("alembic", ["alembic/env.py"]),
         ("alembic/versions", glob.glob("alembic/versions/*.py"))
     ],

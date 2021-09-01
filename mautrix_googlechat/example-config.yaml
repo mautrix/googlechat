@@ -29,18 +29,18 @@ appservice:
     # Format examples:
     #   SQLite:   sqlite:///filename.db
     #   Postgres: postgres://username:password@hostname/dbname
-    database: sqlite:///mautrix-hangouts.db
+    database: sqlite:///mautrix-googlechat.db
     # Optional extra arguments for SQLAlchemy's create_engine
     database_opts: {}
 
     # The unique ID of this appservice.
-    id: hangouts
+    id: googlechat
     # Username of the appservice bot.
-    bot_username: hangoutsbot
+    bot_username: googlechatbot
     # Display name and avatar for bot. Set to "remove" to remove display name/avatar, leave empty
     # to leave display name/avatar as-is.
-    bot_displayname: Hangouts bridge bot
-    bot_avatar: mxc://maunium.net/FBXZnpfORkBEruORbikmleAy
+    bot_displayname: Google Chat bridge bot
+    bot_avatar: mxc://maunium.net/BDIWAQcbpPGASPUUBuEGWXnQ
 
     # Community ID for bridged users (changes registration file) and rooms.
     # Must be created manually.
@@ -57,7 +57,7 @@ appservice:
 
 hangouts:
     # Device name shown in Google account settings
-    device_name: Mautrix-Hangouts bridge
+    device_name: Mautrix-Google Chat bridge
 
 # Prometheus telemetry config. Requires prometheus-client to be installed.
 metrics:
@@ -66,12 +66,12 @@ metrics:
 
 # Bridge config
 bridge:
-    # Localpart template of MXIDs for Hangouts users.
-    # {userid} is replaced with the user ID of the Hangouts user.
-    username_template: "hangouts_{userid}"
-    # Displayname template for Hangouts users.
+    # Localpart template of MXIDs for Google Chat users.
+    # {userid} is replaced with the user ID of the Google Chat user.
+    username_template: "googlechat_{userid}"
+    # Displayname template for Google Chat users.
     # {full_name} and {first_name} are replaced with names.
-    displayname_template: "{full_name} (Hangouts)"
+    displayname_template: "{full_name} (Google Chat)"
     # Localpart template for per-user room grouping community IDs.
     # The bridge will create these communities and add all of the specific user's portals to the community.
     # {localpart} is the MXID localpart and {server} is the MXID server part of the user.
@@ -80,12 +80,12 @@ bridge:
     community_template: null
 
     # The prefix for commands. Only required in non-management rooms.
-    command_prefix: "!hg"
+    command_prefix: "!gc"
 
     # Number of chats to sync (and create portals for) on startup/login.
     # Set 0 to disable automatic syncing.
     initial_chat_sync: 10
-    # Whether or not the Hangouts users of logged in Matrix users should be
+    # Whether or not the Google Chat users of logged in Matrix users should be
     # invited to private chats when the user sends a message from another client.
     invite_own_puppet_to_pm: false
     # Whether or not to use /sync to get presence, read receipts and typing notifications
@@ -144,12 +144,12 @@ bridge:
             # Verification by the bridge is not yet implemented.
             require_verification: true
     # Whether or not the bridge should send a read receipt from the bridge bot when a message has
-    # been sent to Hangouts.
+    # been sent to Google Chat.
     delivery_receipts: false
-    # Settings for backfilling messages from Hangouts.
+    # Settings for backfilling messages from Google Chat.
     backfill:
-        # Whether or not the Hangouts users of logged in Matrix users should be
-        # invited to private chats when backfilling history from Hangouts. This is
+        # Whether or not the Google Chat users of logged in Matrix users should be
+        # invited to private chats when backfilling history from Google Chat. This is
         # usually needed to prevent rate limits and to allow timestamp massaging.
         invite_own_puppet: true
         # Maximum number of messages to backfill initially.
@@ -211,7 +211,7 @@ logging:
     version: 1
     formatters:
         colored:
-            (): mautrix_hangouts.util.ColorFormatter
+            (): mautrix_googlechat.util.ColorFormatter
             format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
         normal:
             format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
@@ -219,7 +219,7 @@ logging:
         file:
             class: logging.handlers.RotatingFileHandler
             formatter: normal
-            filename: ./mautrix-hangouts.log
+            filename: ./mautrix-googlechat.log
             maxBytes: 10485760
             backupCount: 10
         console:

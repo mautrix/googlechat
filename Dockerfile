@@ -41,20 +41,20 @@ RUN apk add --no-cache \
       yq \
       git
 
-COPY requirements.txt /opt/mautrix-hangouts/requirements.txt
-COPY optional-requirements.txt /opt/mautrix-hangouts/optional-requirements.txt
-WORKDIR /opt/mautrix-hangouts
+COPY requirements.txt /opt/mautrix-googlechat/requirements.txt
+COPY optional-requirements.txt /opt/mautrix-googlechat/optional-requirements.txt
+WORKDIR /opt/mautrix-googlechat
 RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
  && sed -Ei 's/psycopg2-binary.+//' optional-requirements.txt \
  && pip3 install -r requirements.txt -r optional-requirements.txt \
  && apk del .build-deps
 
-COPY . /opt/mautrix-hangouts
+COPY . /opt/mautrix-googlechat
 RUN pip3 install .[e2be] \
   # This doesn't make the image smaller, but it's needed so that the `version` command works properly
-  && cp mautrix_hangouts/example-config.yaml . && rm -rf mautrix_hangouts
+  && cp mautrix_googlechat/example-config.yaml . && rm -rf mautrix_googlechat
 
 ENV UID=1337 GID=1337
 VOLUME /data
 
-CMD ["/opt/mautrix-hangouts/docker-run.sh"]
+CMD ["/opt/mautrix-googlechat/docker-run.sh"]

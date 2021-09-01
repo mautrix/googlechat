@@ -8,15 +8,15 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
 from mautrix.util.db import Base
-from mautrix_hangouts.config import Config
-import mautrix_hangouts.db
+from mautrix_googlechat.config import Config
+import mautrix_googlechat.db
 
 config = context.config
 mxhg_config_path = context.get_x_argument(as_dictionary=True).get("config", "config.yaml")
 mxhg_config = Config(mxhg_config_path, None, None)
 mxhg_config.load()
 config.set_main_option("sqlalchemy.url",
-                       mxhg_config.get("appservice.database", "sqlite:///mautrix-hangouts.db"))
+                       mxhg_config.get("appservice.database", "sqlite:///mautrix-googlechat.db"))
 fileConfig(config.config_file_name)
 target_metadata = Base.metadata
 
