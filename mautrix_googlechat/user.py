@@ -18,12 +18,12 @@ from typing import (Any, Dict, Iterator, Optional, List, Awaitable, Union, Calla
 from concurrent import futures
 import datetime
 import asyncio
-import time
 
 import hangups
 from hangups import (hangouts_pb2 as hangouts, googlechat_pb2 as googlechat,
                      Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
                      MembershipChangeEvent)
+from hangups.auth import TokenManager
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage, WatermarkNotification
 
@@ -160,7 +160,7 @@ class User(BaseUser):
                     return self.notice_room
                 self.notice_room = await self.az.intent.create_room(
                     is_direct=True, invitees=[self.mxid],
-                    topic="Hangouts bridge notices")
+                    topic="Google Chat bridge notices")
                 self.save()
         return self.notice_room
 
@@ -185,13 +185,12 @@ class User(BaseUser):
 
         with futures.ThreadPoolExecutor() as pool:
             auth_resps: List[TryAuthResp] = await asyncio.gather(
-                *[cls.loop.run_in_executor(pool, try_auth, user.refresh_token)
-                  for user in users],
-                loop=cls.loop)
+                *[cls.loop.run_in_executor(pool, try_auth, UserRefreshTokenCache(user))
+                  for user in users])
         finish = []
         for user, auth_resp in zip(users, auth_resps):
             if auth_resp.success:
-                finish.append(user.login_complete(auth_resp.cookies))
+                finish.append(user.login_complete(auth_resp.token_manager))
             else:
                 await user.send_bridge_notice(
                     f"Failed to resume session with stored refresh token: {auth_resp.error}",
@@ -200,13 +199,13 @@ class User(BaseUser):
                 )
                 user.log.exception("Failed to resume session with stored refresh token",
                                    exc_info=auth_resp.error)
-        await asyncio.gather(*finish, loop=cls.loop)
+        await asyncio.gather(*finish)
 
-    async def login_complete(self, cookies: dict) -> None:
-        self.client = Client(cookies, max_retries=config['bridge.reconnect.max_retries'],
-            retry_backoff_base=config['bridge.reconnect.retry_backoff_base'])
+    async def login_complete(self, token_manager: TokenManager) -> None:
+        self.client = Client(token_manager, max_retries=config['bridge.reconnect.max_retries'],
+                             retry_backoff_base=config['bridge.reconnect.retry_backoff_base'])
         await self._create_community()
-        asyncio.ensure_future(self.start(), loop=self.loop)
+        asyncio.create_task(self.start())
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)
@@ -226,7 +225,7 @@ class User(BaseUser):
         except Exception as e:
             self._track_metric(METRIC_CONNECTED, False)
             self.log.exception("Exception in connection")
-            await self.send_bridge_notice(f"Exception in Hangouts connection: {e}",
+            await self.send_bridge_notice(f"Exception in Google Chat connection: {e}",
                                           state_event=BridgeStateEvent.UNKNOWN_ERROR,
                                           important=True)
 
@@ -256,7 +255,7 @@ class User(BaseUser):
 
     async def on_connect(self) -> None:
         self.connected = True
-        asyncio.ensure_future(self.on_connect_later(), loop=self.loop)
+        asyncio.create_task(self.on_connect_later())
         await self.send_bridge_notice("Connected to Hangouts")
 
     async def on_connect_later(self) -> None:
@@ -299,7 +298,7 @@ class User(BaseUser):
     async def sync(self) -> None:
         await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
         users, chats = await hangups.build_user_conversation_list(self.client)
-        await asyncio.gather(self.sync_users(users), self.sync_chats(chats), loop=self.loop)
+        await asyncio.gather(self.sync_users(users), self.sync_chats(chats))
         await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     @async_time(METRIC_SYNC_USERS)
@@ -319,7 +318,7 @@ class User(BaseUser):
             updates.append(puppet.update_info(self, info, update_avatar=update_avatars))
         self.log.debug(f"Syncing info of {len(updates)} puppets "
                        f"(avatars included: {update_avatars})...")
-        await asyncio.gather(*updates, loop=self.loop)
+        await asyncio.gather(*updates)
         await self._sync_community_users(puppets)
 
     def _ensure_future_proxy(self, method: Callable[[Any], Awaitable[None]]
@@ -360,24 +359,25 @@ class User(BaseUser):
         #     max_events_per_conversation=1,
         #     sync_filter=[hangouts.SYNC_FILTER_INBOX],
         # ))
-        # self.log.debug("Server returned %d conversations", len(res.conversation_state))
-        # convs = sorted(res.conversation_state, reverse=True,
-        #                key=lambda state: state.conversation.self_conversation_state.sort_timestamp)
-        # for state in convs:
-        #     self.log.debug("Syncing %s", state.conversation_id.id)
-        #     chat = chats.get(state.conversation_id.id)
-        #     portal = po.Portal.get_by_conversation(chat, self.gid)
-        #     if portal.mxid:
-        #         await portal.update_matrix_room(self, chat)
-        #         if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
-        #             self.log.debug("Last message %s in chat %s not found in db, backfilling...",
-        #                            state.event[0].event_id, state.conversation_id.id)
-        #             await portal.backfill(self, is_initial=False)
-        #     else:
-        #         await portal.create_matrix_room(self, chat)
-        # await self.update_direct_chats()
+        convs = self.chats.get_all()
+        self.log.debug("Found %d conversations in chat list", len(convs))
+        convs = sorted(convs, reverse=True,
+                       key=lambda conv: conv.last_modified)
+        for chat in convs:
+            self.log.debug("Syncing %s", chat.id_)
+            portal = po.Portal.get_by_conversation(chat, self.gid)
+            if portal.mxid:
+                await portal.update_matrix_room(self, chat)
+                # TODO backfill
+                # if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
+                #     self.log.debug("Last message %s in chat %s not found in db, backfilling...",
+                #                    state.event[0].event_id, state.conversation_id.id)
+                #     await portal.backfill(self, is_initial=False)
+            else:
+                await portal.create_matrix_room(self, chat)
+        await self.update_direct_chats()
 
-    # region Hangouts event handling
+    # region Google Chat event handling
 
     @async_time(METRIC_RECEIPT)
     async def on_receipt(self, event: WatermarkNotification) -> None:
@@ -426,7 +426,7 @@ class User(BaseUser):
         await portal.handle_hangouts_typing(self, sender, event.status)
 
     # endregion
-    # region Hangouts API calls
+    # region Google Chat API calls
 
     async def set_typing(self, conversation_id: str, typing: bool) -> None:
         self.log.debug(f"set_typing({conversation_id}, {typing})")

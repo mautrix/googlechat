@@ -15,19 +15,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import Dict, NamedTuple, Optional
 
-from hangups.auth import (requests, _auth_with_refresh_token, _get_session_cookies, USER_AGENT,
+from hangups.auth import (requests, TokenManager, RefreshTokenCache, USER_AGENT,
                           GoogleAuthError)
 
-TryAuthResp = NamedTuple('TryAuthResp', success=bool, cookies=Optional[Dict],
+TryAuthResp = NamedTuple('TryAuthResp', success=bool, token_manager=Optional[TokenManager],
                          error=Optional[GoogleAuthError])
 
 
-def try_auth(refresh_token: str) -> TryAuthResp:
+def try_auth(refresh_token_cache: RefreshTokenCache) -> TryAuthResp:
     with requests.Session() as session:
         session.headers = {'user-agent': USER_AGENT}
         try:
-            access_token = _auth_with_refresh_token(session, refresh_token)
-            return TryAuthResp(success=True, cookies=_get_session_cookies(session, access_token),
-                               error=None)
+            token_mgr = TokenManager.from_refresh_token(refresh_token_cache)
+            return TryAuthResp(success=True, token_manager=token_mgr, error=None)
         except GoogleAuthError as e:
-            return TryAuthResp(success=False, cookies=None, error=e)
+            return TryAuthResp(success=False, token_manager=None, error=e)

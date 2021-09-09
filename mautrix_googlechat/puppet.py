@@ -142,7 +142,7 @@ class Puppet(BasePuppet):
         # Make the user join all private chat portals.
         await asyncio.gather(*[self.intent.ensure_joined(portal.mxid)
                                for portal in p.Portal.get_all_by_receiver(self.gid)
-                               if portal.mxid], loop=self.loop)
+                               if portal.mxid])
 
     def intent_for(self, portal: 'p.Portal') -> IntentAPI:
         if portal.other_user_id == self.gid or (portal.backfill_lock.locked
@@ -299,6 +299,6 @@ def init(context: 'Context') -> Iterable[Awaitable[None]]:
     Puppet.allow_discover_url = config["bridge.double_puppet_allow_discovery"]
     Puppet.login_shared_secret_map = {server: secret.encode("utf-8") for server, secret
                                       in config["bridge.login_shared_secret_map"].items()}
-    Puppet.login_device_name = "Hangouts Bridge"
+    Puppet.login_device_name = "Google Chat Bridge"
 
     return (puppet.start() for puppet in Puppet.get_all_with_custom_mxid())

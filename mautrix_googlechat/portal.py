@@ -536,7 +536,7 @@ class Portal(BasePortal):
         started_typing = [user.set_typing(self.gid, True)
                           for user in users - self._typing]
         self._typing = users
-        await asyncio.gather(*stopped_typing, *started_typing, loop=self.loop)
+        await asyncio.gather(*stopped_typing, *started_typing)
 
     # endregion
     # region Hangouts event handling
@@ -568,7 +568,7 @@ class Portal(BasePortal):
         if not await self._bridge_own_message_pm(source, sender, f"message {gid}"):
             return
         intent = sender.intent_for(self)
-        self.log.debug("Handling hangouts message %s", gid)
+        self.log.debug("Handling Google Chat message %s", gid)
 
         event_id = None
         if event.attachments:
@@ -585,7 +585,7 @@ class Portal(BasePortal):
             event_id = await self._send_message(intent, content, timestamp=event.timestamp)
         DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
                   index=0, date=event.timestamp).insert()
-        self.log.debug("Handled Hangouts message %s -> %s", gid, event_id)
+        self.log.debug("Handled Google Chat message %s -> %s", gid, event_id)
         await self._send_delivery_receipt(event_id)
 
     async def _get_remote_bytes(self, url):

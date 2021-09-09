@@ -34,25 +34,6 @@ async def login(evt: CommandEvent) -> None:
     await evt.reply(f"Please visit the [login portal]({url}) to log in.")
 
 
-@command_handler(needs_auth=True, management_only=True, help_args="<_access token_>",
-                 help_section=SECTION_AUTH, help_text="Replace your Hangouts account's Matrix "
-                                                      "puppet with your Matrix account")
-async def login_matrix(evt: CommandEvent) -> None:
-    puppet = pu.Puppet.get_by_gid(evt.sender.gid)
-    _, homeserver = Client.parse_mxid(evt.sender.mxid)
-    if homeserver != pu.Puppet.hs_domain:
-        await evt.reply("You can't log in with an account on a different homeserver")
-        return
-    try:
-        await puppet.switch_mxid(" ".join(evt.args), evt.sender.mxid)
-        await evt.reply("Successfully replaced your Hangouts account's "
-                        "Matrix puppet with your Matrix account.")
-    except cpu.OnlyLoginSelf:
-        await evt.reply("You may only log in with your own Matrix account")
-    except cpu.InvalidAccessToken:
-        await evt.reply("Invalid access token")
-
-
 @command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
 async def logout(evt: CommandEvent) -> None:
     puppet = pu.Puppet.get_by_gid(evt.sender.gid)
@@ -84,15 +65,6 @@ async def ping(evt: CommandEvent) -> None:
     email = f" &lt;{self_info.email}&gt;" if self_info.email else ""
     id = self_info.user_id.id
     await evt.reply(f"You're logged in as {name}{email} ({id})", allow_html=False)
-
-@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
-async def logout_matrix(evt: CommandEvent) -> None:
-    puppet = pu.Puppet.get_by_gid(evt.sender.gid)
-    if not puppet.is_real_user:
-        await evt.reply("You're not logged in with your Matrix account")
-        return
-    await puppet.switch_mxid(None, None)
-    await evt.reply("Restored the original puppet for your Hangouts account")
 
 
 @command_handler(needs_auth=False, management_only=True, help_section=SECTION_AUTH,

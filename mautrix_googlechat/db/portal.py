@@ -26,7 +26,7 @@ from mautrix.util.db import Base
 class Portal(Base):
     __tablename__ = "portal"
 
-    # Hangouts chat information
+    # Google Chat information
     gid: str = Column(Text, primary_key=True)
     receiver: str = Column(Text, primary_key=True)
     conv_type: int = Column(SmallInteger, nullable=False)
@@ -36,7 +36,7 @@ class Portal(Base):
     mxid: RoomID = Column(Text, unique=True, nullable=True)
     encrypted: bool = Column(Boolean, nullable=False, server_default=false())
 
-    # Hangouts chat metadata
+    # Google Chat metadata
     name = Column(Text, nullable=True)
 
     @classmethod

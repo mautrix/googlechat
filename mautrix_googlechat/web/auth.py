@@ -95,17 +95,17 @@ class HangoutsAuthServer:
         self.app.router.add_get("/api/whoami", self.whoami)
         self.app.router.add_get("", self.redirect_index)
         self.app.router.add_get("/", self.get_index)
-        self.app.router.add_static("/", pkg_resources.resource_filename("mautrix_hangouts",
+        self.app.router.add_static("/", pkg_resources.resource_filename("mautrix_googlechat",
                                                                         "web/static/"))
 
     @staticmethod
     async def redirect_index(_: web.Request) -> web.FileResponse:
-        return web.FileResponse(pkg_resources.resource_filename("mautrix_hangouts",
+        return web.FileResponse(pkg_resources.resource_filename("mautrix_googlechat",
                                                                 "web/static/login-redirect.html"))
 
     @staticmethod
     async def get_index(_: web.Request) -> web.FileResponse:
-        return web.FileResponse(pkg_resources.resource_filename("mautrix_hangouts",
+        return web.FileResponse(pkg_resources.resource_filename("mautrix_googlechat",
                                                                 "web/static/login.html"))
 
     def make_token(self, user_id: UserID) -> str:
@@ -300,15 +300,15 @@ class WebCredentialsPrompt(CredentialsPrompt):
     # region Starting login thread
 
     def _ensure_get_auth(self) -> None:
-        asyncio.ensure_future(self._get_auth(), loop=self.loop)
+        asyncio.create_task(self._get_auth())
 
     async def _get_auth(self) -> None:
         try:
-            cookies = await self.loop.run_in_executor(None, get_auth,
-                                                      self,
-                                                      u.UserRefreshTokenCache(self.user),
-                                                      self.manual)
-            await self.user.login_complete(cookies)
+            token_man = await self.loop.run_in_executor(None, get_auth,
+                                                        self,
+                                                        u.UserRefreshTokenCache(self.user),
+                                                        self.manual)
+            await self.user.login_complete(token_man)
             self.current_status = {
                 "status": "success",
                 "name": await self.user.name_future,

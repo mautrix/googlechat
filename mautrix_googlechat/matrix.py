@@ -97,7 +97,7 @@ class MatrixHandler(BaseMatrixHandler):
             inviter.notice_room = room_id
             inviter.save()
             await self.az.intent.send_notice(room_id, "This room has been marked as your "
-                                                      "Hangouts bridge notice room.")
+                                                      "Google Chat bridge notice room.")
 
 
     async def handle_join(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
@@ -108,12 +108,12 @@ class MatrixHandler(BaseMatrixHandler):
             return
 
         if not user.is_whitelisted:
-            await portal.main_intent.kick_user(room_id, user.mxid,
-                                               "You are not whitelisted on this Hangouts bridge.")
+            await portal.main_intent.kick_user(room_id, user.mxid, "You are not whitelisted on "
+                                                                   "this Google Chat bridge.")
             return
         # elif not await user.is_logged_in():
         #     await portal.main_intent.kick_user(room_id, user.mxid, "You are not logged in to this "
-        #                                                            "Hangouts bridge.")
+        #                                                            "Google Chat bridge.")
         #     return
 
         self.log.debug(f"{user.mxid} joined {room_id}")
