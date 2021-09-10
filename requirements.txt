@@ -5,6 +5,6 @@ alembic>=1,<2
 ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 python-magic>=0.4,<0.5
-hangups @ git+https://gitlab.com/beeper/hangups.git@google-chat#egg=hangups
+hangups @ git+https://gitlab.com/beeper/hangups.git@b2dfd2571fa320a2dc977162c37d429119f1ed64#egg=hangups
 mautrix>=0.10.2,<0.11
 setuptools
