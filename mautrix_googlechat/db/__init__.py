@@ -1,14 +1,15 @@
-from mautrix.client.state_store.sqlalchemy import RoomState, UserProfile
+from mautrix.util.async_db import Database
 
+from .upgrade import upgrade_table
 from .message import Message
 from .portal import Portal
 from .puppet import Puppet
-from .user import User, UserPortal, Contact
+from .user import User
 
 
-def init(db_engine) -> None:
-    for table in Portal, Message, User, Puppet, UserProfile, RoomState, UserPortal, Contact:
-        table.db = db_engine
-        table.t = table.__table__
-        table.c = table.t.c
-        table.column_names = table.c.keys()
+def init(db: Database) -> None:
+    for table in (Portal, Message, User, Puppet):
+        table.db = db
+
+
+__all__ = ["upgrade_table", "init", "Message", "Portal", "User", "Puppet"]

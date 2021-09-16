@@ -17,12 +17,6 @@ if [ ! -f /data/config.yaml ]; then
 	exit
 fi
 
-# Replace database path in config.
-sed -i "s#sqlite:///mautrix-googlechat.db#sqlite:////data/mautrix-googlechat.db#" /data/config.yaml
-
-# Check that database is in the right state
-alembic -x config=/data/config.yaml upgrade head
-
 if [ ! -f /data/registration.yaml ]; then
 	python3 -m mautrix_googlechat -g -c /data/config.yaml -r /data/registration.yaml
 	echo "Didn't find a registration file."

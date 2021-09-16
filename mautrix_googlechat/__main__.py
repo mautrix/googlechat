@@ -15,14 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from mautrix.bridge import Bridge
 from mautrix.types import RoomID, UserID
+from mautrix.bridge.state_store.asyncpg import PgBridgeStateStore
+from mautrix.util.async_db import Database
 
 from .config import Config
-from .db import init as init_db
-from .user import User, init as init_user
-from .portal import Portal, init as init_portal
-from .puppet import Puppet, init as init_puppet
+from .db import init as init_db, upgrade_table
+from .user import User
+from .portal import Portal
+from .puppet import Puppet
 from .matrix import MatrixHandler
-from .context import Context
 from .web import HangoutsAuthServer
 from .version import version, linkified_version
 from . import commands as _
@@ -40,32 +41,31 @@ class GoogleChatBridge(Bridge):
     config_class = Config
     matrix_class = MatrixHandler
 
+    db: Database
     config: Config
+    matrix: MatrixHandler
     auth_server: HangoutsAuthServer
+    state_store: PgBridgeStateStore
+
+    def make_state_store(self) -> None:
+        self.state_store = PgBridgeStateStore(self.db, self.get_puppet, self.get_double_puppet)
 
     def prepare_db(self) -> None:
-        super().prepare_db()
+        self.db = Database(self.config["appservice.database"], upgrade_table=upgrade_table,
+                           loop=self.loop, db_args=self.config["appservice.database_opts"])
         init_db(self.db)
 
     def prepare_bridge(self) -> None:
+        super().prepare_bridge()
         self.auth_server = HangoutsAuthServer(self.config["bridge.web.auth.shared_secret"],
                                               self.config["hangouts.device_name"], self.loop)
         self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
-
-        context = Context(az=self.az, config=self.config, loop=self.loop,
-                          auth_server=self.auth_server, bridge=self)
-        self.matrix = context.mx = MatrixHandler(context)
-        self.add_startup_actions(init_user(context))
-        init_portal(context)
-        self.add_startup_actions(init_puppet(context))
-        if self.config["bridge.resend_bridge_info"]:
-            self.add_startup_actions(self.resend_bridge_info())
 
     async def resend_bridge_info(self) -> None:
         self.config["bridge.resend_bridge_info"] = False
         self.config.save()
         self.log.info("Re-sending bridge info state event to all portals")
-        for portal in Portal.all():
+        async for portal in Portal.all():
             await portal.update_bridge_info()
         self.log.info("Finished re-sending bridge info state events")
 
@@ -75,13 +75,26 @@ class GoogleChatBridge(Bridge):
         for puppet in Puppet.by_custom_mxid.values():
             puppet.stop()
 
-    def prepare_shutdown(self) -> None:
+    async def stop(self) -> None:
+        await super().stop()
         self.log.debug("Saving user sessions")
-        for mxid, user in User.by_mxid.items():
-            user.save()
+        for user in User.by_mxid.values():
+            await user.save()
+
+    async def start(self) -> None:
+        await self.db.start()
+        await self.state_store.upgrade_table.upgrade(self.db.pool)
+        if self.matrix.e2ee:
+            self.matrix.e2ee.crypto_db.override_pool(self.db.pool)
+        self.add_startup_actions(User.init_cls(self))
+        self.add_startup_actions(Puppet.init_cls(self))
+        Portal.init_cls(self)
+        if self.config["bridge.resend_bridge_info"]:
+            self.add_startup_actions(self.resend_bridge_info())
+        await super().start()
 
     async def get_portal(self, room_id: RoomID) -> Portal:
-        return Portal.get_by_mxid(room_id)
+        return await Portal.get_by_mxid(room_id)
 
     async def get_puppet(self, user_id: UserID, create: bool = False) -> Puppet:
         return await Puppet.get_by_mxid(user_id, create=create)
@@ -90,13 +103,13 @@ class GoogleChatBridge(Bridge):
         return await Puppet.get_by_custom_mxid(user_id)
 
     async def get_user(self, user_id: UserID, create: bool = True) -> User:
-        return User.get_by_mxid(user_id, create=create)
+        return await User.get_by_mxid(user_id, create=create)
 
     def is_bridge_ghost(self, user_id: UserID) -> bool:
         return bool(Puppet.get_id_from_mxid(user_id))
 
     async def count_logged_in_users(self) -> int:
-        return len([user for user in User.by_mxid.values() if user.gid])
+        return len([user for user in User.by_mxid.values() if user.gcid])
 
 
 GoogleChatBridge().run()

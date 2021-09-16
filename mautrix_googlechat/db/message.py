@@ -13,63 +13,84 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Optional
-from datetime import datetime, timezone
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
-from sqlalchemy import Column, Text, SmallInteger, UniqueConstraint, and_, types
+from asyncpg import Record
+from attr import dataclass
 
 from mautrix.types import RoomID, EventID
-from mautrix.util.db import Base
+from mautrix.util.async_db import Database
+
+fake_db = Database("") if TYPE_CHECKING else None
 
 
-class UTCDateTime(types.TypeDecorator):
-    impl = types.DateTime
+@dataclass
+class Message:
+    db: ClassVar[Database] = fake_db
 
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
-            elif value.tzinfo != timezone.utc:
-                value = value.astimezone(timezone.utc)
-
-        return value
-
-    def process_result_value(self, value, dialect):
-        if value is not None and value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        else:
-            return value
-
-
-class Message(Base):
-    __tablename__ = "message"
-
-    mxid: EventID = Column(Text)
-    mx_room: RoomID = Column(Text)
-    gid: str = Column(Text, primary_key=True)
-    receiver: str = Column(Text, primary_key=True)
-    index: int = Column(SmallInteger, primary_key=True)
-    date: Optional[datetime] = Column(UTCDateTime(timezone=True), nullable=True)
-
-    __table_args__ = (UniqueConstraint("mxid", "mx_room", name="_mx_id_room"),)
+    mxid: EventID
+    mx_room: RoomID
+    gcid: str
+    gc_chat: str
+    gc_receiver: str
+    index: int
+    timestamp: int
 
     @classmethod
-    def get_by_gid(cls, gid: str) -> Optional['Message']:
-        return cls._select_one_or_none(cls.c.gid == gid)
+    def _from_row(cls, row: Optional[Record]) -> Optional['Message']:
+        if row is None:
+            return None
+        return cls(**row)
+
+    columns = "mxid, mx_room, gcid, gc_chat, gc_receiver, index, timestamp"
 
     @classmethod
-    def get_most_recent(cls, mx_room: RoomID, max_date: Optional[datetime] = None
-                        ) -> Optional['Message']:
-        cond = cls.c.mx_room == mx_room
-        if max_date is not None:
-            cond &= cls.c.date <= max_date
-        return cls._one_or_none(cls.db.execute(cls.t.select().where(cond)
-                                               .order_by(cls.c.date.desc()).limit(1)))
+    async def get_all_by_gcid(cls, gcid: str, gc_receiver: str) -> List['Message']:
+        q = f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_receiver=$2"
+        rows = await cls.db.fetch(q, gcid, gc_receiver)
+        return [cls._from_row(row) for row in rows]
 
     @classmethod
-    def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional['Message']:
-        return cls._select_one_or_none(and_(cls.c.mxid == mxid, cls.c.mx_room == mx_room))
+    async def get_by_gcid(cls, gcid: str, gc_receiver: str, index: int = 0) -> Optional['Message']:
+        q = f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"
+        row = await cls.db.fetchrow(q, gcid, gc_receiver, index)
+        return cls._from_row(row)
 
     @classmethod
-    def delete_all_by_mxid(cls, mx_room: RoomID) -> None:
-        cls.db.execute(cls.t.delete().where(cls.c.mx_room == mx_room))
+    async def delete_all_by_room(cls, room_id: RoomID) -> None:
+        await cls.db.execute("DELETE FROM message WHERE mx_room=$1", room_id)
+
+    @classmethod
+    async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Optional['Message']:
+        q = (f"SELECT {cls.columns} "
+             "FROM message WHERE mxid=$1 AND mx_room=$2")
+        row = await cls.db.fetchrow(q, mxid, mx_room)
+        return cls._from_row(row)
+
+    @classmethod
+    async def get_most_recent(cls, gc_chat: str, gc_receiver: str) -> Optional['Message']:
+        q = (f"SELECT {cls.columns} "
+             "FROM message WHERE gc_chat=$1 AND gc_receiver=$2 "
+             "ORDER BY timestamp DESC LIMIT 1")
+        row = await cls.db.fetchrow(q, gc_chat, gc_receiver)
+        return cls._from_row(row)
+
+    @classmethod
+    async def get_closest_before(cls, gc_chat: str, gc_receiver: str, timestamp: int
+                                 ) -> Optional['Message']:
+        q = (f"SELECT {cls.columns} "
+             "FROM message WHERE gc_chat=$1 AND gc_receiver=$2 AND timestamp<=$3 "
+             "ORDER BY timestamp DESC LIMIT 1")
+        row = await cls.db.fetchrow(q, gc_chat, gc_receiver, timestamp)
+        return cls._from_row(row)
+
+    async def insert(self) -> None:
+        q = ("INSERT INTO message (mxid, mx_room, gcid, gc_chat, gc_receiver, "
+             "                     index, timestamp) "
+             "VALUES ($1, $2, $3, $4, $5, $6, $7)")
+        await self.db.execute(q, self.mxid, self.mx_room, self.gcid, self.gc_chat,
+                              self.gc_receiver, self.index, self.timestamp)
+
+    async def delete(self) -> None:
+        q = "DELETE FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"
+        await self.db.execute(q, self.gcid, self.gc_receiver, self.index)

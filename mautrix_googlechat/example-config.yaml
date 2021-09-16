@@ -24,14 +24,13 @@ appservice:
     # Usually 1 is enough, but on high-traffic bridges you might need to increase this to avoid 413s
     max_body_size: 1
 
-    # The full URI to the database. SQLite and Postgres are fully supported.
-    # Other DBMSes supported by SQLAlchemy may or may not work.
-    # Format examples:
-    #   SQLite:   sqlite:///filename.db
-    #   Postgres: postgres://username:password@hostname/dbname
-    database: sqlite:///mautrix-googlechat.db
-    # Optional extra arguments for SQLAlchemy's create_engine
-    database_opts: {}
+    # The full URI to the database. Only Postgres is currently supported.
+    database: postgres://username:password@hostname/db
+    # Additional arguments for asyncpg.create_pool()
+    # https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.pool.create_pool
+    database_opts:
+        min_size: 5
+        max_size: 10
 
     # The unique ID of this appservice.
     id: googlechat
@@ -41,10 +40,6 @@ appservice:
     # to leave display name/avatar as-is.
     bot_displayname: Google Chat bridge bot
     bot_avatar: mxc://maunium.net/BDIWAQcbpPGASPUUBuEGWXnQ
-
-    # Community ID for bridged users (changes registration file) and rooms.
-    # Must be created manually.
-    community_id: null
 
     # Whether or not to receive ephemeral events via appservice transactions.
     # Requires MSC2409 support (i.e. Synapse 1.22+).
@@ -72,12 +67,6 @@ bridge:
     # Displayname template for Google Chat users.
     # {full_name} and {first_name} are replaced with names.
     displayname_template: "{full_name} (Google Chat)"
-    # Localpart template for per-user room grouping community IDs.
-    # The bridge will create these communities and add all of the specific user's portals to the community.
-    # {localpart} is the MXID localpart and {server} is the MXID server part of the user.
-    #
-    # `hangouts_{localpart}={server}` is a good value.
-    community_template: null
 
     # The prefix for commands. Only required in non-management rooms.
     command_prefix: "!gc"
@@ -122,15 +111,6 @@ bridge:
         # Default to encryption, force-enable encryption in all portals the bridge creates
         # This will cause the bridge bot to be in private chats for the encryption to work properly.
         default: false
-        # Database for the encryption data. Currently only supports Postgres and an in-memory
-        # store that's persisted as a pickle.
-        # If set to `default`, will use the appservice postgres database
-        # or a pickle file if the appservice database is sqlite.
-        #
-        # Format examples:
-        #   Pickle:   pickle://filename.pickle
-        #   Postgres: postgres://username:password@hostname/dbname
-        database: default
         # Options for automatic key sharing.
         key_sharing:
             # Enable key sharing? If enabled, key requests for rooms where users are in will be fulfilled.
@@ -174,6 +154,8 @@ bridge:
     resend_bridge_info: false
     # Whether or not unimportant bridge notices should be sent to the bridge notice room.
     unimportant_bridge_notices: true
+    # Whether or not bridge notices should be disabled entirely.
+    disable_bridge_notices: false
 
     # Public website and API configs
     web:

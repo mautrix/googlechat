@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import (Any, Dict, Iterator, Optional, List, Awaitable, Union, Callable,
+from typing import (Any, Dict, AsyncGenerator, Optional, List, Awaitable, Union, Callable, cast,
                     TYPE_CHECKING)
 from concurrent import futures
 import datetime
@@ -29,20 +29,17 @@ from hangups.parsers import TypingStatusMessage, WatermarkNotification
 
 from mautrix.types import UserID, RoomID, MessageType
 from mautrix.client import Client as MxClient
-from mautrix.bridge import BaseUser, BridgeState
-from mautrix.bridge._community import CommunityHelper, CommunityID
+from mautrix.bridge import BaseUser, BridgeState, async_getter_lock
 from mautrix.util.bridge_state import BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 
 from .config import Config
-from .db import User as DBUser, UserPortal, Contact, Message as DBMessage, Portal as DBPortal
+from .db import User as DBUser, Message as DBMessage, Portal as DBPortal
 from .util.hangups_try_auth import try_auth, TryAuthResp
 from . import puppet as pu, portal as po
 
 if TYPE_CHECKING:
-    from .context import Context
-
-config: Config
+    from .__main__ import GoogleChatBridge
 
 METRIC_SYNC_CHATS = Summary('bridge_sync_chats', 'calls to sync_chats')
 METRIC_SYNC_USERS = Summary('bridge_sync_users', 'calls to sync_users')
@@ -53,16 +50,15 @@ METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the br
 METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Hangouts')
 
 
-class User(BaseUser):
+class User(DBUser, BaseUser):
     by_mxid: Dict[UserID, 'User'] = {}
+    by_gcid: Dict[str, 'User'] = {}
+    config: Config
 
     client: Optional[Client]
     is_admin: bool
     _db_instance: Optional[DBUser]
 
-    gid: Optional[str]
-    refresh_token: Optional[str]
-    notice_room: Optional[RoomID]
     _notice_room_lock: asyncio.Lock
     _intentional_disconnect: bool
     name: Optional[str]
@@ -73,22 +69,14 @@ class User(BaseUser):
     chats_future: asyncio.Future
     users: Optional[UserList]
 
-    _community_helper: CommunityHelper
-    _community_id: Optional[CommunityID]
-
-    def __init__(self, mxid: UserID, gid: Optional[str] = None,
-                 refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None,
-                 db_instance: Optional[DBUser] = None) -> None:
-        self.mxid = mxid
-        super().__init__()
-        self.gid = gid
-        self.refresh_token = refresh_token
-        self.notice_room = notice_room
+    def __init__(self, mxid: UserID, gcid: Optional[str] = None,
+                 refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None
+                 ) -> None:
+        super().__init__(mxid=mxid, gcid=gcid, refresh_token=refresh_token,
+                         notice_room=notice_room)
+        BaseUser.__init__(self)
         self._notice_room_lock = asyncio.Lock()
-        self.by_mxid[mxid] = self
-        self.is_whitelisted, self.is_admin, self.level = config.get_permissions(mxid)
-        self._db_instance = db_instance
-        self._community_id = None
+        self.is_whitelisted, self.is_admin, self.level = self.config.get_permissions(mxid)
         self.client = None
         self.name = None
         self.name_future = asyncio.Future()
@@ -100,43 +88,57 @@ class User(BaseUser):
 
     # region Sessions
 
-    def save(self) -> None:
-        self.db_instance.edit(refresh_token=self.refresh_token, gid=self.gid,
-                              notice_room=self.notice_room)
-
-    @property
-    def db_instance(self) -> DBUser:
-        if not self._db_instance:
-            self._db_instance = DBUser(mxid=self.mxid, gid=self.gid, notice_room=self.notice_room,
-                                       refresh_token=self.refresh_token)
-        return self._db_instance
+    def _add_to_cache(self) -> None:
+        self.by_mxid[self.mxid] = self
+        if self.gcid:
+            self.by_gcid[self.gcid] = self
 
     @classmethod
-    def from_db(cls, db_user: DBUser) -> 'User':
-        return User(mxid=db_user.mxid, gid=db_user.gid, refresh_token=db_user.refresh_token,
-                    notice_room=db_user.notice_room, db_instance=db_user)
+    async def all_logged_in(cls) -> AsyncGenerator['User', None]:
+        users = await super().all_logged_in()
+        user: cls
+        for user in users:
+            try:
+                yield cls.by_mxid[user.mxid]
+            except KeyError:
+                user._add_to_cache()
+                yield user
 
     @classmethod
-    def get_all(cls) -> Iterator['User']:
-        for db_user in DBUser.all():
-            yield cls.from_db(db_user)
-
-    @classmethod
-    def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional['User']:
-        if pu.Puppet.get_id_from_mxid(mxid) is not None or mxid == cls.az.bot_mxid:
+    @async_getter_lock
+    async def get_by_mxid(cls, mxid: UserID, *, create: bool = True) -> Optional['User']:
+        if pu.Puppet.get_id_from_mxid(mxid) or mxid == cls.az.bot_mxid:
             return None
         try:
             return cls.by_mxid[mxid]
         except KeyError:
             pass
 
-        db_user = DBUser.get_by_mxid(mxid)
-        if db_user:
-            return cls.from_db(db_user)
+        user = cast(cls, await super().get_by_mxid(mxid))
+        if user is not None:
+            user._add_to_cache()
+            return user
 
         if create:
+            cls.log.debug(f"Creating user instance for {mxid}")
             user = cls(mxid)
-            user.db_instance.insert()
+            await user.insert()
+            user._add_to_cache()
+            return user
+
+        return None
+
+    @classmethod
+    @async_getter_lock
+    async def get_by_gcid(cls, gcid: str) -> Optional['User']:
+        try:
+            return cls.by_gcid[gcid]
+        except KeyError:
+            pass
+
+        user = cast(cls, await super().get_by_gcid(gcid))
+        if user is not None:
+            user._add_to_cache()
             return user
 
         return None
@@ -145,10 +147,10 @@ class User(BaseUser):
 
     async def fill_bridge_state(self, state: BridgeState) -> None:
         await super().fill_bridge_state(state)
-        state.remote_id = str(self.gid)
+        state.remote_id = str(self.gcid)
         state.remote_name = ""
-        if self.gid:
-            puppet = pu.Puppet.get_by_gid(self.gid)
+        if self.gcid:
+            puppet = await pu.Puppet.get_by_gcid(self.gcid)
             state.remote_name = puppet.name
 
     async def get_notice_room(self) -> RoomID:
@@ -161,14 +163,16 @@ class User(BaseUser):
                 self.notice_room = await self.az.intent.create_room(
                     is_direct=True, invitees=[self.mxid],
                     topic="Google Chat bridge notices")
-                self.save()
+                await self.save()
         return self.notice_room
 
     async def send_bridge_notice(self, text: str, important: bool = False,
                                  state_event: Optional[BridgeStateEvent] = None) -> None:
         if state_event:
             await self.push_bridge_state(state_event, message=text)
-        if not important and not config["bridge.unimportant_bridge_notices"]:
+        if self.config["bridge.disable_bridge_notices"]:
+            return
+        elif not important and not self.config["bridge.unimportant_bridge_notices"]:
             return
         msgtype = MessageType.TEXT if important else MessageType.NOTICE
         try:
@@ -180,8 +184,16 @@ class User(BaseUser):
         return self.client and self.connected
 
     @classmethod
+    def init_cls(cls, bridge: 'GoogleChatBridge') -> Awaitable[None]:
+        cls.bridge = bridge
+        cls.az = bridge.az
+        cls.config = bridge.config
+        cls.loop = bridge.loop
+        return cls.init_all()
+
+    @classmethod
     async def init_all(cls) -> None:
-        users = [user for user in cls.get_all() if user.refresh_token]
+        users = [user async for user in cls.all_logged_in()]
 
         with futures.ThreadPoolExecutor() as pool:
             auth_resps: List[TryAuthResp] = await asyncio.gather(
@@ -202,9 +214,9 @@ class User(BaseUser):
         await asyncio.gather(*finish)
 
     async def login_complete(self, token_manager: TokenManager) -> None:
-        self.client = Client(token_manager, max_retries=config['bridge.reconnect.max_retries'],
-                             retry_backoff_base=config['bridge.reconnect.retry_backoff_base'])
-        await self._create_community()
+        self.client = Client(
+            token_manager, max_retries=self.config['bridge.reconnect.max_retries'],
+                             retry_backoff_base=self.config['bridge.reconnect.retry_backoff_base'])
         asyncio.create_task(self.start())
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
@@ -238,7 +250,8 @@ class User(BaseUser):
         self._track_metric(METRIC_LOGGED_IN, False)
         await self.stop()
         self.client = None
-        self.gid = None
+        self.by_gcid.pop(self.gcid, None)
+        self.gcid = None
         self.refresh_token = None
         self.connected = False
 
@@ -266,13 +279,14 @@ class User(BaseUser):
         except Exception:
             self.log.exception("Failed to get_self_info")
             return
-        self.gid = info.user_status.user_id.id
+        self.gcid = info.user_status.user_id.id
+        self.by_gcid[self.gcid] = self
         self._track_metric(METRIC_CONNECTED, True)
         self._track_metric(METRIC_LOGGED_IN, True)
-        self.save()
+        await self.save()
 
         try:
-            puppet = pu.Puppet.get_by_gid(self.gid)
+            puppet = await pu.Puppet.get_by_gcid(self.gcid)
             if puppet.custom_mxid != self.mxid and puppet.can_auto_login(self.mxid):
                 self.log.info(f"Automatically enabling custom puppet")
                 await puppet.switch_mxid(access_token="auto", mxid=self.mxid)
@@ -305,7 +319,7 @@ class User(BaseUser):
     async def sync_users(self, users: UserList) -> None:
         self.users = users
         puppets: Dict[str, pu.Puppet] = {}
-        update_avatars = config["bridge.update_avatar_initial_sync"]
+        update_avatars = self.config["bridge.update_avatar_initial_sync"]
         updates = []
         self.name = users.get_self().full_name
         self.name_future.set_result(self.name)
@@ -313,13 +327,12 @@ class User(BaseUser):
             if not info.id_:
                 self.log.debug(f"Found user without gaia_id: {info}")
                 continue
-            puppet = pu.Puppet.get_by_gid(info.id_, create=True)
-            puppets[puppet.gid] = puppet
+            puppet = await pu.Puppet.get_by_gcid(info.id_, create=True)
+            puppets[puppet.gcid] = puppet
             updates.append(puppet.update_info(self, info, update_avatar=update_avatars))
         self.log.debug(f"Syncing info of {len(updates)} puppets "
                        f"(avatars included: {update_avatars})...")
         await asyncio.gather(*updates)
-        await self._sync_community_users(puppets)
 
     def _ensure_future_proxy(self, method: Callable[[Any], Awaitable[None]]
                              ) -> Callable[[Any], Awaitable[None]]:
@@ -337,7 +350,7 @@ class User(BaseUser):
     async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
         return {
             pu.Puppet.get_mxid_from_id(portal.other_user_id): [portal.mxid]
-            for portal in DBPortal.get_all_by_receiver(self.gid)
+            async for portal in po.Portal.get_all_by_receiver(self.gcid)
             if portal.mxid
         }
 
@@ -345,9 +358,8 @@ class User(BaseUser):
     async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
         self.chats_future.set_result(None)
-        portals = {conv.id_: po.Portal.get_by_conversation(conv, self.gid)
+        portals = {conv.id_: await po.Portal.get_by_conversation(conv, self.gcid)
                    for conv in chats.get_all()}
-        await self._sync_community_rooms(portals)
         self.chats.on_watermark_notification.add_observer(
             self._ensure_future_proxy(self.on_receipt))
         self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
@@ -365,7 +377,7 @@ class User(BaseUser):
                        key=lambda conv: conv.last_modified)
         for chat in convs:
             self.log.debug("Syncing %s", chat.id_)
-            portal = po.Portal.get_by_conversation(chat, self.gid)
+            portal = await po.Portal.get_by_conversation(chat, self.gcid)
             if portal.mxid:
                 await portal.update_matrix_room(self, chat)
                 # TODO backfill
@@ -385,13 +397,14 @@ class User(BaseUser):
             self.log.debug("Received receipt event before chat list, ignoring")
             return
         conv: Conversation = self.chats.get(event.conv_id)
-        portal = po.Portal.get_by_conversation(conv, self.gid)
+        portal = await po.Portal.get_by_conversation(conv, self.gcid)
         if not portal:
             return
-        message = DBMessage.get_most_recent(portal.mxid, event.read_timestamp)
+        message = await DBMessage.get_closest_before(portal.gcid, portal.gc_receiver,
+                                                     event.read_timestamp)
         if not message:
             return
-        puppet = pu.Puppet.get_by_gid(event.user_id)
+        puppet = await pu.Puppet.get_by_gcid(event.user_id)
         await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
 
     @async_time(METRIC_EVENT)
@@ -400,15 +413,15 @@ class User(BaseUser):
             self.log.debug("Received message event before chat list, waiting for chat list")
             await self.chats_future
         conv: Conversation = self.chats.get(event.conversation_id)
-        portal = po.Portal.get_by_conversation(conv, self.gid)
+        portal = await po.Portal.get_by_conversation(conv, self.gcid)
         if not portal:
             return
 
-        sender = pu.Puppet.get_by_gid(event.user_id)
+        sender = await pu.Puppet.get_by_gcid(event.user_id)
 
         if isinstance(event, ChatMessageEvent):
             await portal.backfill_lock.wait(event.id_)
-            await portal.handle_hangouts_message(self, sender, event)
+            await portal.handle_googlechat_message(self, sender, event)
         elif isinstance(event, MembershipChangeEvent):
             self.log.info(f"{event.id_} by {event.user_id} in {event.conversation_id} "
                           f"({conv._conversation.type}): {event.participant_ids} {event.type_}'d")
@@ -417,10 +430,10 @@ class User(BaseUser):
 
     @async_time(METRIC_TYPING)
     async def on_typing(self, event: TypingStatusMessage):
-        portal = po.Portal.get_by_gid(event.conv_id, self.gid)
+        portal = await po.Portal.get_by_gcid(event.conv_id, self.gcid)
         if not portal:
             return
-        sender = pu.Puppet.get_by_gid(event.user_id, create=False)
+        sender = await pu.Puppet.get_by_gcid(event.user_id, create=False)
         if not sender:
             return
         await portal.handle_hangouts_typing(self, sender, event.status)
@@ -483,56 +496,6 @@ class User(BaseUser):
         # ))
 
     # endregion
-    # region Community stuff
-
-    async def _create_community(self) -> None:
-        template = config["bridge.community_template"]
-        if not template:
-            return
-        localpart, server = MxClient.parse_user_id(self.mxid)
-        community_localpart = template.format(localpart=localpart.lower(), server=server.lower())
-        self.log.debug(f"Creating personal filtering community {community_localpart}...")
-        self._community_id, created = await self._community_helper.create(community_localpart)
-        if created:
-            await self._community_helper.update(self._community_id, name="Hangouts",
-                                                avatar_url=config["appservice.bot_avatar"],
-                                                short_desc="Your Hangouts bridged chats")
-            await self._community_helper.invite(self._community_id, self.mxid)
-
-    async def _sync_community_users(self, puppets: Dict[str, 'pu.Puppet']) -> None:
-        if not self._community_id:
-            return
-        self.log.debug("Syncing personal filtering community users")
-        old_db_contacts = {contact.contact: contact.in_community
-                           for contact in self.db_instance.contacts}
-        db_contacts = []
-        for puppet in puppets.values():
-            in_community = old_db_contacts.get(puppet.gid, None) or False
-            if not in_community:
-                await self._community_helper.join(self._community_id, puppet.default_mxid_intent)
-                in_community = True
-            db_contacts.append(Contact(user=self.gid, contact=puppet.gid,
-                                       in_community=in_community))
-        self.db_instance.contacts = db_contacts
-
-    async def _sync_community_rooms(self, portals: Dict[str, 'po.Portal']) -> None:
-        if not self._community_id:
-            return
-        self.log.debug("Syncing personal filtering community rooms")
-        old_db_portals = {portal.portal: portal.in_community
-                          for portal in self.db_instance.portals}
-        db_portals = []
-        for portal in portals.values():
-            in_community = old_db_portals.get(portal.gid, None) or False
-            if not in_community:
-                await self._community_helper.add_room(self._community_id, portal.mxid)
-                in_community = True
-            db_portals.append(UserPortal(user=self.gid, portal=portal.gid,
-                                         portal_receiver=portal.receiver,
-                                         in_community=in_community))
-        self.db_instance.portals = db_portals
-
-    # endregion
 
 
 class UserRefreshTokenCache(RefreshTokenCache):
@@ -547,12 +510,4 @@ class UserRefreshTokenCache(RefreshTokenCache):
     def set(self, refresh_token: str) -> None:
         self.user.log.trace("New refresh token: %s", refresh_token)
         self.user.refresh_token = refresh_token
-        self.user.save()
-
-
-def init(context: 'Context') -> Awaitable[None]:
-    global config
-    User.az, config, User.loop = context.core
-    User.bridge = context.bridge
-    User._community_helper = CommunityHelper(User.az)
-    return User.init_all()
+        self.user.loop.call_soon_threadsafe(lambda: self.user.loop.create_task(self.user.save()))

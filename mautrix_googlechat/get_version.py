@@ -19,7 +19,7 @@ def run(cmd):
 if os.path.exists(".git") and shutil.which("git"):
     try:
         git_revision = run(["git", "rev-parse", "HEAD"]).strip().decode("ascii")
-        git_revision_url = f"https://github.com/mautrix/hangouts/commit/{git_revision}"
+        git_revision_url = f"https://github.com/mautrix/googlechat/commit/{git_revision}"
         git_revision = git_revision[:8]
     except (subprocess.SubprocessError, OSError):
         git_revision = "unknown"
@@ -31,7 +31,7 @@ if os.path.exists(".git") and shutil.which("git"):
         git_tag = None
 elif os.environ.get("CI_SERVER", "no") == "yes":
     git_revision = os.environ["CI_COMMIT_SHA"]
-    git_revision_url = f"https://github.com/mautrix/hangouts/commit/{git_revision}"
+    git_revision_url = f"https://github.com/mautrix/googlechat/commit/{git_revision}"
     git_revision = git_revision[:8]
     git_tag = os.environ.get("CI_COMMIT_TAG", None)
 else:
@@ -39,7 +39,7 @@ else:
     git_revision_url = None
     git_tag = None
 
-git_tag_url = (f"https://github.com/mautrix/hangouts/releases/tag/{git_tag}"
+git_tag_url = (f"https://github.com/mautrix/googlechat/releases/tag/{git_tag}"
                if git_tag else None)
 
 if git_tag and __version__ == git_tag[1:].replace("-", ""):

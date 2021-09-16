@@ -1,5 +1,4 @@
 import setuptools
-import glob
 
 from mautrix_googlechat.get_version import git_tag, git_revision, version, linkified_version
 
@@ -49,7 +48,7 @@ setuptools.setup(
 
     install_requires=install_requires,
     extras_require=extras_require,
-    python_requires="~=3.7",
+    python_requires="~=3.8",
 
     classifiers=[
         "Development Status :: 2 - Beta",
@@ -58,7 +57,6 @@ setuptools.setup(
         "Framework :: AsyncIO",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
@@ -67,8 +65,6 @@ setuptools.setup(
         "example-config.yaml"
     ]},
     data_files=[
-        (".", ["alembic.ini", "mautrix_googlechat/example-config.yaml"]),
-        ("alembic", ["alembic/env.py"]),
-        ("alembic/versions", glob.glob("alembic/versions/*.py"))
+        (".", ["mautrix_googlechat/example-config.yaml"]),
     ],
 )

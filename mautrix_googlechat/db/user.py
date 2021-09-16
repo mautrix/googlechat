@@ -13,94 +13,58 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Optional, Iterable
+from typing import Optional, List, TYPE_CHECKING, ClassVar
 
-from sqlalchemy import Column, Text, ForeignKey, ForeignKeyConstraint, Boolean
-from sqlalchemy.sql import expression
+from asyncpg import Record
+from attr import dataclass
 
 from mautrix.types import UserID, RoomID
-from mautrix.util.db import Base
+from mautrix.util.async_db import Database
+
+fake_db = Database("") if TYPE_CHECKING else None
 
 
-class User(Base):
-    __tablename__ = "user"
+@dataclass
+class User:
+    db: ClassVar[Database] = fake_db
 
-    mxid: UserID = Column(Text, primary_key=True)
-    gid: str = Column(Text, nullable=True)
-    refresh_token: str = Column(Text, nullable=True)
-    notice_room: RoomID = Column(Text, nullable=True)
-
-    @classmethod
-    def all(cls) -> Iterable['User']:
-        return cls._select_all()
-
-    @classmethod
-    def get_by_gid(cls, gid: str) -> Optional['User']:
-        return cls._select_one_or_none(cls.c.gid == gid)
+    mxid: UserID
+    gcid: Optional[str]
+    refresh_token: Optional[str]
+    notice_room: Optional[RoomID]
 
     @classmethod
-    def get_by_mxid(cls, mxid: UserID) -> Optional['User']:
-        return cls._select_one_or_none(cls.c.mxid == mxid)
+    def _from_row(cls, row: Optional[Record]) -> Optional['User']:
+        if row is None:
+            return None
+        return cls(**row)
 
-    @property
-    def contacts(self) -> Iterable['Contact']:
-        rows = self.db.execute(Contact.t.select().where(Contact.c.user == self.gid))
-        for row in rows:
-            yield Contact.scan(row)
+    @classmethod
+    async def all_logged_in(cls) -> List['User']:
+        rows = await cls.db.fetch('SELECT mxid, gcid, refresh_token, notice_room FROM "user" '
+                                  "WHERE gcid IS NOT NULL AND refresh_token IS NOT NULL")
+        return [cls._from_row(row) for row in rows]
 
-    @contacts.setter
-    def contacts(self, puppets: Iterable['Contact']) -> None:
-        with self.db.begin() as conn:
-            conn.execute(Contact.t.delete().where(Contact.c.user == self.gid))
-            insert_puppets = [{
-                "user": user,
-                "contact": contact,
-                "in_community": in_community,
-            } for user, contact, in_community in puppets]
-            if insert_puppets:
-                conn.execute(Contact.t.insert(), insert_puppets)
+    @classmethod
+    async def get_by_gcid(cls, gcid: str) -> Optional['User']:
+        q = 'SELECT mxid, gcid, refresh_token, notice_room FROM "user" WHERE gcid=$1'
+        row = await cls.db.fetchrow(q, gcid)
+        return cls._from_row(row)
 
-    @property
-    def portals(self) -> Iterable['UserPortal']:
-        rows = self.db.execute(UserPortal.t.select().where(UserPortal.c.user == self.gid))
-        for row in rows:
-            yield UserPortal.scan(row)
+    @classmethod
+    async def get_by_mxid(cls, mxid: UserID) -> Optional['User']:
+        q = 'SELECT mxid, gcid, refresh_token, notice_room FROM "user" WHERE mxid=$1'
+        row = await cls.db.fetchrow(q, mxid)
+        return cls._from_row(row)
 
-    @portals.setter
-    def portals(self, portals: Iterable['UserPortal']) -> None:
-        with self.db.begin() as conn:
-            conn.execute(UserPortal.t.delete().where(UserPortal.c.user == self.gid))
-            insert_portals = [{
-                "user": user,
-                "portal": portal,
-                "portal_receiver": portal_receiver,
-                "in_community": in_community,
-            } for user, portal, portal_receiver, in_community in portals]
-            if insert_portals:
-                conn.execute(UserPortal.t.insert(), insert_portals)
+    async def insert(self) -> None:
+        q = 'INSERT INTO "user" (mxid, gcid, refresh_token, notice_room) VALUES ($1, $2, $3, $4)'
+        await self.db.execute(q, self.mxid, self.gcid, self.refresh_token, self.notice_room)
 
-    def delete(self) -> None:
-        super().delete()
-        self.portals = []
-        self.contacts = []
+    async def delete(self) -> None:
+        await self.db.execute('DELETE FROM "user" WHERE mxid=$1', self.mxid)
 
-
-class UserPortal(Base):
-    __tablename__ = "user_portal"
-
-    user: str = Column(Text, primary_key=True)
-    portal: str = Column(Text, primary_key=True)
-    portal_receiver: str = Column(Text, primary_key=True)
-    in_community: bool = Column(Boolean, nullable=False, server_default=expression.false())
-
-    __table_args__ = (ForeignKeyConstraint(("portal", "portal_receiver"),
-                                           ("portal.gid", "portal.receiver"),
-                                           onupdate="CASCADE", ondelete="CASCADE"),)
-
-
-class Contact(Base):
-    __tablename__ = "contact"
-
-    user: str = Column(Text, primary_key=True)
-    contact: str = Column(Text, ForeignKey("puppet.gid"), primary_key=True)
-    in_community: bool = Column(Boolean, nullable=False, server_default=expression.false())
+    async def save(self) -> None:
+        await self.db.execute('UPDATE "user" SET gcid=$2, refresh_token=$3, notice_room=$4 '
+                              'WHERE mxid=$1',
+                              self.mxid, self.gcid, self.refresh_token, self.notice_room)

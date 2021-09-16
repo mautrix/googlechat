@@ -141,7 +141,7 @@ class HangoutsAuthServer:
 
     async def logout(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
-        user = u.User.get_by_mxid(user_id)
+        user = await u.User.get_by_mxid(user_id)
         if not await user.is_logged_in():
             raise ErrorResponse(400, "You're not logged in", "M_FORBIDDEN")
         await user.logout()
@@ -149,13 +149,13 @@ class HangoutsAuthServer:
 
     async def whoami(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
-        user = u.User.get_by_mxid(user_id)
+        user = await u.User.get_by_mxid(user_id)
         return web.json_response({
             "permissions": user.level,
             "mxid": user.mxid,
             "hangouts": {
                 "name": user.name,
-                "gid": user.gid,
+                "gid": user.gcid,
                 "connected": user.connected,
             } if user.client else None,
         })
@@ -167,7 +167,7 @@ class HangoutsAuthServer:
             manual = True
         else:
             manual = False
-        user = u.User.get_by_mxid(user_id)
+        user = await u.User.get_by_mxid(user_id)
         if user.client:
             return web.json_response({
                 "status": "success",

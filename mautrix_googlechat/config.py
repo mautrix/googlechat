@@ -27,8 +27,6 @@ class Config(BaseBridgeConfig):
 
         copy("homeserver.asmux")
 
-        copy("appservice.community_id")
-
         copy("hangouts.device_name")
 
         copy("metrics.enabled")
@@ -36,7 +34,6 @@ class Config(BaseBridgeConfig):
 
         copy("bridge.username_template")
         copy("bridge.displayname_template")
-        copy("bridge.community_template")
         copy("bridge.command_prefix")
 
         copy("bridge.initial_chat_sync")
@@ -54,7 +51,6 @@ class Config(BaseBridgeConfig):
         copy("bridge.update_avatar_initial_sync")
         copy("bridge.encryption.allow")
         copy("bridge.encryption.default")
-        copy("bridge.encryption.database")
         copy("bridge.encryption.key_sharing.allow")
         copy("bridge.encryption.key_sharing.require_cross_signing")
         copy("bridge.encryption.key_sharing.require_verification")
@@ -65,6 +61,7 @@ class Config(BaseBridgeConfig):
         copy("bridge.backfill.disable_notifications")
         copy("bridge.resend_bridge_info")
         copy("bridge.unimportant_bridge_notices")
+        copy("bridge.disable_bridge_notices")
         copy("bridge.reconnect.max_retries")
         copy("bridge.reconnect.retry_backoff_base")
 

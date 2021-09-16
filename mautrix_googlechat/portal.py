@@ -13,37 +13,37 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Deque, Optional, Tuple, Union, Set, List, Iterator, Any, TYPE_CHECKING
-from datetime import datetime
+from typing import (Dict, Deque, Optional, Tuple, Union, Set, List, Any, AsyncIterable,
+                    Awaitable, cast, TYPE_CHECKING)
 from collections import deque
 import asyncio
-import io
+import time
 import cgi
+import io
 
 from hangups import hangouts_pb2 as hangouts, googlechat_pb2 as googlechat, ChatMessageEvent
-from hangups.user import User as HangoutsUser, UserID as HangoutsUserID
+from hangups.user import User as HangoutsUser
 from hangups.conversation import Conversation as HangoutsChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
-                           TextMessageEventContent, MediaMessageEventContent, Membership,
-                           PowerLevelStateEventContent)
+                           TextMessageEventContent, MediaMessageEventContent, Membership, UserID,
+                           PowerLevelStateEventContent, ContentURI, EncryptionAlgorithm)
 from mautrix.appservice import IntentAPI
-from mautrix.bridge import BasePortal, NotificationDisabler
+from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.util.simple_lock import SimpleLock
+from mautrix.errors import MatrixError
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage
 from . import puppet as p, user as u
 
 if TYPE_CHECKING:
-    from .context import Context
+    from .__main__ import GoogleChatBridge
     from .matrix import MatrixHandler
 
 try:
     from mautrix.crypto.attachments import decrypt_attachment, encrypt_attachment
 except ImportError:
     decrypt_attachment = encrypt_attachment = None
-
-config: Config
 
 
 class FakeLock:
@@ -58,47 +58,30 @@ StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 
 
-class Portal(BasePortal):
+class Portal(DBPortal, BasePortal):
     invite_own_puppet_to_pm: bool = False
     by_mxid: Dict[RoomID, 'Portal'] = {}
-    by_gid: Dict[Tuple[str, str], 'Portal'] = {}
+    by_gcid: Dict[Tuple[str, str], 'Portal'] = {}
     matrix: 'MatrixHandler'
-
-    gid: str
-    receiver: Optional[str]
-    conv_type: int
-    other_user_id: Optional[str]
-    mxid: Optional[RoomID]
-    encrypted: bool
-
-    name: str
-
-    _db_instance: DBPortal
+    config: Config
 
     _main_intent: Optional[IntentAPI]
     _create_room_lock: asyncio.Lock
     _last_bridged_mxid: Optional[EventID]
-    _dedup: Deque[Tuple[str, str]]
+    _dedup: Deque[str]
     _send_locks: Dict[str, asyncio.Lock]
     _noop_lock: FakeLock = FakeLock()
-    _typing: Set['u.User']
+    _typing: Set[UserID]
     backfill_lock: SimpleLock
 
-    def __init__(self, gid: str, receiver: str, conv_type: int, other_user_id: Optional[str] = None,
-                 mxid: Optional[RoomID] = None, encrypted: bool = False, name: str = "",
-                 db_instance: Optional[DBPortal] = None) -> None:
-        self.gid = gid
-        self.receiver = receiver
-        if not receiver:
-            raise ValueError("Receiver not given")
-        self.conv_type = conv_type
-        self.other_user_id = other_user_id
-        self.mxid = mxid
-        self.encrypted = encrypted
-
-        self.name = name
-
-        self._db_instance = db_instance
+    def __init__(self, gcid: str, gc_receiver: str, other_user_id: Optional[str] = None,
+                 mxid: Optional[RoomID] = None, name: Optional[str] = None,
+                 avatar_mxc: Optional[ContentURI] = None, name_set: bool = False,
+                 avatar_set: bool = False, encrypted: bool = False) -> None:
+        super().__init__(gcid=gcid, gc_receiver=gc_receiver, other_user_id=other_user_id,
+                         mxid=mxid, name=name, avatar_mxc=avatar_mxc, name_set=name_set,
+                         avatar_set=avatar_set, encrypted=encrypted)
+        self.log = self.log.getChild(self.gcid_log)
 
         self._main_intent = None
         self._create_room_lock = asyncio.Lock()
@@ -107,74 +90,54 @@ class Portal(BasePortal):
         self._send_locks = {}
         self._typing = set()
 
-        self.log = self.log.getChild(self.gid_log)
         self.backfill_lock = SimpleLock("Waiting for backfilling to finish before handling %s",
                                         log=self.log)
 
-        self.by_gid[self.full_gid] = self
+        self.by_gcid[self.gcid_full] = self
         if self.mxid:
             self.by_mxid[self.mxid] = self
 
-    @property
-    def full_gid(self) -> Tuple[str, str]:
-        return self.gid, self.receiver
+    @classmethod
+    def init_cls(cls, bridge: 'GoogleChatBridge') -> None:
+        BasePortal.bridge = bridge
+        cls.az = bridge.az
+        cls.config = bridge.config
+        cls.loop = bridge.loop
+        cls.matrix = bridge.matrix
+        cls.invite_own_puppet_to_pm = cls.config["bridge.invite_own_puppet_to_pm"]
+        NotificationDisabler.puppet_cls = p.Puppet
+        NotificationDisabler.config_enabled = cls.config["bridge.backfill.disable_notifications"]
 
     @property
-    def other_user_scoped_id(self) -> HangoutsUserID:
-        # TODO is chat_id ever different from gaia_id?
-        return HangoutsUserID(chat_id=self.other_user_id, gaia_id=self.other_user_id)
+    def gcid_full(self) -> Tuple[str, str]:
+        return self.gcid, self.gc_receiver
 
     @property
-    def gid_log(self) -> str:
+    def gcid_log(self) -> str:
         if self.is_direct:
-            return f"{self.gid}-{self.receiver}"
-        return self.gid
+            return f"{self.gcid}-{self.gc_receiver}"
+        return self.gcid
 
     # region DB conversion
 
-    @property
-    def db_instance(self) -> DBPortal:
-        if not self._db_instance:
-            self._db_instance = DBPortal(gid=self.gid, receiver=self.receiver,
-                                         conv_type=self.conv_type, other_user_id=self.other_user_id,
-                                         mxid=self.mxid, encrypted=self.encrypted, name=self.name)
-        return self._db_instance
-
-    @classmethod
-    def from_db(cls, db_portal: DBPortal) -> 'Portal':
-        return Portal(gid=db_portal.gid, receiver=db_portal.receiver, conv_type=db_portal.conv_type,
-                      other_user_id=db_portal.other_user_id, mxid=db_portal.mxid,
-                      encrypted=db_portal.encrypted, name=db_portal.name, db_instance=db_portal)
-
-    async def save(self) -> None:
-        self.db_instance.edit(other_user_id=self.other_user_id, mxid=self.mxid, name=self.name,
-                              encrypted=self.encrypted)
-
     async def delete(self) -> None:
         if self.mxid:
-            DBMessage.delete_all_by_mxid(self.mxid)
-        self.by_gid.pop(self.full_gid, None)
+            await DBMessage.delete_all_by_room(self.mxid)
+        self.by_gcid.pop(self.gcid_full, None)
         self.by_mxid.pop(self.mxid, None)
-        if self._db_instance:
-            self._db_instance.delete()
+        await super().delete()
 
     # endregion
     # region Properties
 
     @property
     def is_direct(self) -> bool:
-        return self.conv_type in (googlechat.Group.GroupType.HUMAN_DM,
-                                  googlechat.Group.GroupType.BOT_DM)
+        return self.gcid.startswith("dm:")
 
     @property
     def main_intent(self) -> IntentAPI:
         if not self._main_intent:
-            if self.is_direct:
-                if not self.other_user_id:
-                    raise ValueError("Portal.other_user_id not set for private chat")
-                self._main_intent = p.Puppet.get_by_gid(self.other_user_id).default_mxid_intent
-            else:
-                self._main_intent = self.az.intent
+            raise ValueError("Portal must be postinit()ed before main_intent can be used")
         return self._main_intent
 
     # endregion
@@ -183,7 +146,7 @@ class Portal(BasePortal):
     async def update_info(self, source: Optional['u.User'] = None,
                           info: Optional[HangoutsChat] = None) -> HangoutsChat:
         if not info:
-            info = source.chats.get(self.gid)
+            info = source.chats.get(self.gcid)
             # info = await source.client.get_conversation(hangouts.GetConversationRequest(
             #     request_header=source.client.get_request_header(),
             #     conversation_spec=hangouts.ConversationSpec(
@@ -200,8 +163,8 @@ class Portal(BasePortal):
 
     async def _update_name(self, info: HangoutsChat) -> bool:
         if self.is_direct:
-            other_user = info.get_user(self.other_user_scoped_id)
-            name = p.Puppet._get_name_from_info(other_user)
+            other_user = info.get_user(self.other_user_id)
+            name = p.Puppet.get_name_from_info(other_user)
         else:
             name = info.name
         if self.name != name:
@@ -211,14 +174,26 @@ class Portal(BasePortal):
             return True
         return False
 
+    def _get_invite_content(self, double_puppet: Optional['p.Puppet']) -> Dict[str, Any]:
+        invite_content = {}
+        if double_puppet:
+            invite_content["fi.mau.will_auto_accept"] = True
+        if self.is_direct:
+            invite_content["is_direct"] = True
+        return invite_content
+
     async def _update_participants(self, source: 'u.User', info: HangoutsChat) -> None:
         users = info.users
         if self.is_direct:
-            users = [user for user in users if user.id_ != source.gid]
-            self.other_user_id = users[0].id_
+            users = [user for user in users if user.id_ != source.gcid]
+            if not self.other_user_id:
+                self.other_user_id = users[0].id_
+                self._main_intent = (await p.Puppet.get_by_gcid(self.other_user_id)
+                                     ).default_mxid_intent
+                await self.save()
         if not self.mxid:
             return
-        puppets: Dict[HangoutsUser, p.Puppet] = {user: p.Puppet.get_by_gid(user.id_)
+        puppets: Dict[HangoutsUser, p.Puppet] = {user: await p.Puppet.get_by_gcid(user.id_)
                                                  for user in users}
         await asyncio.gather(*[puppet.update_info(source=source, info=user)
                                for user, puppet in puppets.items()])
@@ -230,37 +205,37 @@ class Portal(BasePortal):
     async def _load_messages(self, source: 'u.User', limit: int = 100,
                              token: Optional[hangouts.EventContinuationToken] = None
                              ) -> Tuple[List[ChatMessageEvent], hangouts.EventContinuationToken]:
-        resp = await source.client.get_conversation(hangouts.GetConversationRequest(
-            request_header=source.client.get_request_header(),
-            conversation_spec=hangouts.ConversationSpec(
-                conversation_id=hangouts.ConversationId(id=self.gid),
-            ),
-            include_conversation_metadata=False,
-            include_event=True,
-            max_events_per_conversation=limit,
-            event_continuation_token=token
-        ))
-        return ([HangoutsChat._wrap_event(evt) for evt in resp.conversation_state.event],
-                resp.conversation_state.event_continuation_token)
+        # resp = await source.client.get_conversation(hangouts.GetConversationRequest(
+        #     request_header=source.client.get_request_header(),
+        #     conversation_spec=hangouts.ConversationSpec(
+        #         conversation_id=hangouts.ConversationId(id=self.gid),
+        #     ),
+        #     include_conversation_metadata=False,
+        #     include_event=True,
+        #     max_events_per_conversation=limit,
+        #     event_continuation_token=token
+        # ))
+        # return ([HangoutsChat._wrap_event(evt) for evt in resp.conversation_state.event],
+        #         resp.conversation_state.event_continuation_token)
+        return [], None
 
     async def _load_many_messages(self, source: 'u.User', is_initial: bool
                                   ) -> List[ChatMessageEvent]:
-        limit = (config["bridge.backfill.initial_limit"] if is_initial
-                 else config["bridge.backfill.missed_limit"])
+        limit = (self.config["bridge.backfill.initial_limit"] if is_initial
+                 else self.config["bridge.backfill.missed_limit"])
         if limit <= 0:
             return []
         messages = []
-        self.log.debug("Fetching up to %d messages through %s", limit, source.gid)
+        self.log.debug("Fetching up to %d messages through %s", limit, source.gcid)
         token = None
         while limit > 0:
             chunk_limit = min(limit, 100)
             chunk, token = await self._load_messages(source, chunk_limit, token)
             for message in reversed(chunk):
-                # FIXME id_ field
-                if DBMessage.get_by_gid(message.id_):
+                if await DBMessage.get_by_gcid(message.msg_id, self.gc_receiver):
                     self.log.debug("Stopping backfilling at %s (ts: %s) "
                                    "as message was already bridged",
-                                   message.id_, message.timestamp)
+                                   message.msg_id, message.timestamp)
                     break
                 messages.append(message)
             if len(chunk) < chunk_limit:
@@ -286,17 +261,17 @@ class Portal(BasePortal):
             return
         self.log.debug("Got %d messages from server", len(messages))
         backfill_leave = set()
-        if config["bridge.backfill.invite_own_puppet"]:
+        if self.config["bridge.backfill.invite_own_puppet"]:
             self.log.debug("Adding %s's default puppet to room for backfilling", source.mxid)
-            sender = p.Puppet.get_by_gid(source.gid)
+            sender = await p.Puppet.get_by_gcid(source.gcid)
             await self.main_intent.invite_user(self.mxid, sender.default_mxid)
             await sender.default_mxid_intent.join_room_by_id(self.mxid)
             backfill_leave.add(sender.default_mxid_intent)
         async with NotificationDisabler(self.mxid, source):
             for message in reversed(messages):
                 if isinstance(message, ChatMessageEvent):
-                    puppet = p.Puppet.get_by_gid(message.user_id)
-                    await self.handle_hangouts_message(source, puppet, message)
+                    puppet = await p.Puppet.get_by_gcid(message.user_id)
+                    await self.handle_googlechat_message(source, puppet, message)
                 else:
                     self.log.trace("Unhandled event type %s while backfilling", type(message))
         for intent in backfill_leave:
@@ -337,7 +312,7 @@ class Portal(BasePortal):
 
     @property
     def bridge_info_state_key(self) -> str:
-        return f"net.maunium.googlechat://googlechat/{self.gid}"
+        return f"net.maunium.googlechat://googlechat/{self.gcid}"
 
     @property
     def bridge_info(self) -> Dict[str, Any]:
@@ -347,10 +322,10 @@ class Portal(BasePortal):
             "protocol": {
                 "id": "googlechat",
                 "displayname": "Google Chat",
-                "avatar_url": config["appservice.bot_avatar"],
+                "avatar_url": self.config["appservice.bot_avatar"],
             },
             "channel": {
-                "id": self.gid,
+                "id": self.gcid,
                 "displayname": self.name,
             }
         }
@@ -379,16 +354,20 @@ class Portal(BasePortal):
         self.log.debug("Creating Matrix room")
         name: Optional[str] = None
         power_levels = PowerLevelStateEventContent()
-        invites = [source.mxid]
+        invites = []
         if self.is_direct:
-            users = [user for user in info.users if user.id_ != source.gid]
-            self.other_user_id = users[0].id_
-            puppet = p.Puppet.get_by_gid(self.other_user_id)
-            await puppet.update_info(source=source, info=info.get_user(self.other_user_scoped_id))
+            users = [user for user in info.users if user.id_ != source.gcid]
+            if not self.other_user_id:
+                self.other_user_id = users[0].id_
+                self._main_intent = (await p.Puppet.get_by_gcid(self.other_user_id)
+                                     ).default_mxid_intent
+                await self.save()
+            puppet = await p.Puppet.get_by_gcid(self.other_user_id)
+            await puppet.update_info(source=source, info=info.get_user(self.other_user_id))
             power_levels.users[source.mxid] = 50
         power_levels.users[self.main_intent.mxid] = 100
         initial_state = [{
-            "type": EventType.ROOM_POWER_LEVELS.serialize(),
+            "type": str(EventType.ROOM_POWER_LEVELS),
             "content": power_levels.serialize(),
         }, {
             "type": str(StateBridge),
@@ -400,16 +379,11 @@ class Portal(BasePortal):
             "state_key": self.bridge_info_state_key,
             "content": self.bridge_info,
         }]
-        if config["appservice.community_id"]:
-            initial_state.append({
-                "type": "m.room.related_groups",
-                "content": {"groups": [config["appservice.community_id"]]},
-            })
-        if config["bridge.encryption.default"] and self.matrix.e2ee:
+        if self.config["bridge.encryption.default"] and self.matrix.e2ee:
             self.encrypted = True
             initial_state.append({
-                "type": "m.room.encryption",
-                "content": {"algorithm": "m.megolm.v1.aes-sha2"},
+                "type": str(EventType.ROOM_ENCRYPTION),
+                "content": {"algorithm": str(EncryptionAlgorithm.MEGOLM_V1)},
             })
             if self.is_direct:
                 invites.append(self.az.bot_mxid)
@@ -432,12 +406,18 @@ class Portal(BasePortal):
             self.log.debug(f"Matrix room created: {self.mxid}")
             self.by_mxid[self.mxid] = self
             await self._update_participants(source, info)
+
             puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
+            await self.main_intent.invite_user(self.mxid, source.mxid,
+                                               extra_content=self._get_invite_content(puppet))
             if puppet:
-                did_join = await puppet.intent.ensure_joined(self.mxid)
-                if did_join and self.is_direct:
-                    await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
-            await source._community_helper.add_room(source._community_id, self.mxid)
+                try:
+                    if self.is_direct:
+                        await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
+                    await puppet.intent.join_room_by_id(self.mxid)
+                except MatrixError:
+                    self.log.debug("Failed to join custom puppet into newly created portal",
+                                   exc_info=True)
 
             await self.backfill(source, is_initial=True)
 
@@ -462,7 +442,7 @@ class Portal(BasePortal):
         return self._noop_lock
 
     async def _send_delivery_receipt(self, event_id: EventID) -> None:
-        if event_id and config["bridge.delivery_receipts"]:
+        if event_id and self.config["bridge.delivery_receipts"]:
             try:
                 await self.az.intent.mark_read(self.mxid, event_id)
             except Exception:
@@ -476,33 +456,34 @@ class Portal(BasePortal):
             return
         # TODO this probably isn't nice for bridging images, it really only needs to lock the
         #      actual message send call and dedup queue append.
-        async with self.require_send_lock(sender.gid):
+        async with self.require_send_lock(sender.gcid):
             if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
-                gid = await self._handle_matrix_text(sender, message)
+                gcid = await self._handle_matrix_text(sender, message)
             elif message.msgtype == MessageType.EMOTE:
-                gid = await self._handle_matrix_emote(sender, message)
+                gcid = await self._handle_matrix_emote(sender, message)
             elif message.msgtype == MessageType.IMAGE:
-                gid = await self._handle_matrix_image(sender, message)
+                gcid = await self._handle_matrix_image(sender, message)
             # elif message.msgtype == MessageType.LOCATION:
             #     gid = await self._handle_matrix_location(sender, message)
             else:
                 self.log.warning(f"Unsupported msgtype in {message}")
                 return
-            if not gid:
+            if not gcid:
                 return
-            self._dedup.appendleft(gid)
-            # TODO pass through actual timestamp instead of using datetime.now()
-            DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
-                      index=0, date=datetime.utcnow()).insert()
+            self._dedup.appendleft(gcid)
+            # TODO pass through actual timestamp instead of using time.time()
+            ts = int(time.time() * 1000)
+            await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=gcid, gc_chat=self.gcid,
+                            gc_receiver=self.gc_receiver, index=0, timestamp=ts).insert()
             self._last_bridged_mxid = event_id
         await self._send_delivery_receipt(event_id)
 
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent) -> str:
-        return await sender.send_text(self.gid, message.body)
+        return await sender.send_text(self.gcid, message.body)
 
     async def _handle_matrix_emote(self, sender: 'u.User', message: TextMessageEventContent
                                    ) -> str:
-        return await sender.send_emote(self.gid, message.body)
+        return await sender.send_emote(self.gcid, message.body)
 
     async def _handle_matrix_image(self, sender: 'u.User',
                                    message: MediaMessageEventContent) -> Optional[str]:
@@ -515,7 +496,7 @@ class Portal(BasePortal):
         else:
             return None
         image = await sender.client.upload_image(io.BytesIO(data), filename=message.body)
-        return await sender.send_image(self.gid, image)
+        return await sender.send_image(self.gcid, image)
 
     #
     # async def _handle_matrix_location(self, sender: 'u.User',
@@ -524,17 +505,20 @@ class Portal(BasePortal):
 
     async def handle_matrix_leave(self, user: 'u.User') -> None:
         if self.is_direct:
-            self.log.info(f"{user.mxid} left private chat portal with {self.gid},"
+            self.log.info(f"{user.mxid} left private chat portal with {self.gcid},"
                           " cleaning up and deleting...")
             await self.cleanup_and_delete()
         else:
-            self.log.debug(f"{user.mxid} left portal to {self.gid}")
+            self.log.debug(f"{user.mxid} left portal to {self.gcid}")
 
-    async def handle_matrix_typing(self, users: Set['u.User']) -> None:
-        stopped_typing = [user.set_typing(self.gid, False)
-                          for user in self._typing - users]
-        started_typing = [user.set_typing(self.gid, True)
-                          for user in users - self._typing]
+    async def handle_matrix_typing(self, users: Set[UserID]) -> None:
+        user_map = {mxid: await u.User.get_by_mxid(mxid, create=False) for mxid in users}
+        stopped_typing = [user_map[mxid].set_typing(self.gcid, False)
+                          for mxid in self._typing - users
+                          if mxid in user_map]
+        started_typing = [user_map[mxid].set_typing(self.gcid, True)
+                          for mxid in users - self._typing
+                          if mxid in user_map]
         self._typing = users
         await asyncio.gather(*stopped_typing, *started_typing)
 
@@ -543,7 +527,7 @@ class Portal(BasePortal):
 
     async def _bridge_own_message_pm(self, source: 'u.User', sender: 'p.Puppet', msg_id: str,
                                      invite: bool = True) -> bool:
-        if self.is_direct and sender.gid == source.gid and not sender.is_real_user:
+        if self.is_direct and sender.gcid == source.gcid and not sender.is_real_user:
             if self.invite_own_puppet_to_pm and invite:
                 await self.main_intent.invite_user(self.mxid, sender.mxid)
             elif (await self.az.state_store.get_membership(self.mxid, sender.mxid)
@@ -553,68 +537,59 @@ class Portal(BasePortal):
                 return False
         return True
 
-    async def handle_hangouts_message(self, source: 'u.User', sender: 'p.Puppet',
-                                      event: ChatMessageEvent) -> None:
-        gid = event._message.id.message_id
-        async with self.optional_send_lock(sender.gid):
-            if gid in self._dedup:
+    async def handle_googlechat_message(self, source: 'u.User', sender: 'p.Puppet',
+                                        event: ChatMessageEvent) -> None:
+        async with self.optional_send_lock(sender.gcid):
+            if event.msg_id in self._dedup:
                 return
-            self._dedup.appendleft(gid)
+            self._dedup.appendleft(event.msg_id)
         if not self.mxid:
             mxid = await self.create_matrix_room(source)
             if not mxid:
                 # Failed to create
                 return
-        if not await self._bridge_own_message_pm(source, sender, f"message {gid}"):
+        if not await self._bridge_own_message_pm(source, sender, f"message {event.msg_id}"):
             return
         intent = sender.intent_for(self)
-        self.log.debug("Handling Google Chat message %s", gid)
+        self.log.debug("Handling Google Chat message %s", event.msg_id)
 
-        event_id = None
+        event_ids = []
         if event.attachments:
             self.log.debug("Processing attachments.")
             self.log.trace("Attachments: %s", event.attachments)
             try:
-                event_id = await self.process_hangouts_attachments(event, intent)
+                async for event_id in self.process_googlechat_attachments(event, intent):
+                    event_ids.append(event_id)
             except Exception:
-                self.log.warning("Failed to process attachment", exc_info=True)
-                event_id = None
-        # Just to fallback to text if something else hasn't worked.
-        if not event_id:
+                self.log.exception("Failed to process attachments")
+        if event.text:
             content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
-            event_id = await self._send_message(intent, content, timestamp=event.timestamp)
-        DBMessage(mxid=event_id, mx_room=self.mxid, gid=gid, receiver=self.receiver,
-                  index=0, date=event.timestamp).insert()
-        self.log.debug("Handled Google Chat message %s -> %s", gid, event_id)
-        await self._send_delivery_receipt(event_id)
+            event_ids.append(await self._send_message(intent, content, timestamp=event.timestamp))
+        if not event_ids:
+            # TODO send notification
+            self.log.debug("Unhandled Google Chat message %s", event.msg_id)
+            return
+        ts = int(event.timestamp.timestamp() * 1000)
+        for index, event_id in enumerate(event_ids):
+            await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=event.msg_id, gc_chat=self.gcid,
+                            gc_receiver=self.gc_receiver, index=index, timestamp=ts).insert()
+        self.log.debug("Handled Google Chat message %s -> %s", event.msg_id, event_ids)
+        await self._send_delivery_receipt(event_ids[-1])
 
-    async def _get_remote_bytes(self, url):
-        async with self.az.http_session.request("GET", url) as resp:
-            return await resp.read()
+    async def process_googlechat_attachments(self, event: ChatMessageEvent, intent: IntentAPI
+                                             ) -> AsyncIterable[EventID]:
+        for url in event.attachments:
+            # Get the filename from the headers
+            async with self.az.http_session.get(url) as resp:
+                value, params = cgi.parse_header(resp.headers["Content-Disposition"])
+                mime = resp.headers["Content-Type"]
+                filename = params.get("filename", url.split("/")[-1])
+                if int(resp.headers["Content-Length"]) > self.matrix.media_config.upload_size:
+                    # TODO send error message
+                    self.log.warning("Can't upload too large attachment")
+                    continue
+                data = await resp.read()
 
-    async def process_hangouts_attachments(self, event: ChatMessageEvent, intent: IntentAPI
-                                           ) -> Optional[EventID]:
-        attachments_pb = event._event.chat_message.message_content.attachment
-
-        if len(event.attachments) > 1:
-            self.log.warning("Can't handle more that one attachment")
-            return None
-
-        attachment = event.attachments[0]
-        attachment_pb = attachments_pb[0]
-
-        embed_item = attachment_pb.embed_item
-
-        # Get the filename from the headers
-        async with self.az.http_session.request("GET", attachment) as resp:
-            value, params = cgi.parse_header(resp.headers["Content-Disposition"])
-            mime = resp.headers["Content-Type"]
-            filename = params.get('filename', attachment.split("/")[-1])
-
-        # TODO: This also catches movies, but I can't work out how they present
-        #       differently to images
-        if embed_item.type[0] == hangouts.ITEM_TYPE_PLUS_PHOTO:
-            data = await self._get_remote_bytes(attachment)
             upload_mime = mime
             decryption_info = None
             if self.encrypted and encrypt_attachment:
@@ -623,17 +598,17 @@ class Portal(BasePortal):
             mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
             if decryption_info:
                 decryption_info.url = mxc_url
+                mxc_url = None
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
-                                               info=ImageInfo(size=len(data), mimetype=mime),
-                                               msgtype=MessageType.IMAGE)
-            return await self._send_message(intent, content, timestamp=event.timestamp)
-        return None
+                                               info=ImageInfo(size=len(data), mimetype=mime))
+            content.msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
+            yield await self._send_message(intent, content, timestamp=event.timestamp)
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
                                      ) -> None:
         if not self.mxid:
             return
-        if self.is_direct and sender.gid == source.gid:
+        if self.is_direct and sender.gcid == source.gcid:
             membership = await self.az.state_store.get_membership(self.mxid, sender.mxid)
             if membership != Membership.JOIN:
                 return
@@ -644,71 +619,73 @@ class Portal(BasePortal):
     # endregion
     # region Getters
 
+    async def postinit(self) -> None:
+        self.by_gcid[self.gcid_full] = self
+        if self.mxid:
+            self.by_mxid[self.mxid] = self
+        if self.other_user_id or not self.is_direct:
+            self._main_intent = (
+                (await p.Puppet.get_by_gcid(self.other_user_id)).default_mxid_intent
+                if self.is_direct else self.az.intent
+            )
+
     @classmethod
-    def get_by_mxid(cls, mxid: RoomID) -> Optional['Portal']:
+    @async_getter_lock
+    async def get_by_mxid(cls, mxid: RoomID) -> Optional['Portal']:
         try:
             return cls.by_mxid[mxid]
         except KeyError:
             pass
 
-        db_portal = DBPortal.get_by_mxid(mxid)
-        if db_portal:
-            return cls.from_db(db_portal)
-
-        return None
-
-    @classmethod
-    def get_by_gid(cls, gid: str, receiver: Optional[str] = None, conv_type: Optional[int] = None,
-                   ) -> Optional['Portal']:
-        if not receiver or (conv_type and conv_type == googlechat.Group.GroupType.ROOM):
-            receiver = gid
-        try:
-            return cls.by_gid[(gid, receiver)]
-        except KeyError:
-            pass
-
-        db_portal = DBPortal.get_by_gid(gid, receiver)
-        if db_portal:
-            if not db_portal.receiver:
-                cls.log.warning(f"Found DBPortal {gid} without receiver, setting to {receiver}")
-                db_portal.edit(receiver=receiver)
-            return cls.from_db(db_portal)
-
-        if conv_type is not None:
-            portal = cls(gid=gid, receiver=receiver, conv_type=conv_type)
-            portal.db_instance.insert()
+        portal = cast(cls, await super().get_by_mxid(mxid))
+        if portal:
+            await portal.postinit()
             return portal
 
         return None
 
     @classmethod
-    def get_all_by_receiver(cls, receiver: str) -> Iterator['Portal']:
-        for db_portal in DBPortal.get_all_by_receiver(receiver):
-            try:
-                yield cls.by_gid[(db_portal.gid, db_portal.receiver)]
-            except KeyError:
-                yield cls.from_db(db_portal)
+    @async_getter_lock
+    async def get_by_gcid(cls, gcid: str, receiver: Optional[str] = None) -> Optional['Portal']:
+        receiver = "" if gcid.startswith("space:") else receiver
+        try:
+            return cls.by_gcid[(gcid, receiver)]
+        except KeyError:
+            pass
+
+        portal = cast(cls, await super().get_by_gcid(gcid, receiver))
+        if portal:
+            await portal.postinit()
+            return portal
+
+        portal = cls(gcid=gcid, gc_receiver=receiver)
+        await portal.insert()
+        await portal.postinit()
+        return portal
 
     @classmethod
-    def all(cls) -> Iterator['Portal']:
-        for db_portal in DBPortal.all():
+    async def get_all_by_receiver(cls, receiver: str) -> AsyncIterable['Portal']:
+        portal: Portal
+        for portal in await super().get_all_by_receiver(receiver):
             try:
-                yield cls.by_gid[(db_portal.gid, db_portal.receiver)]
+                yield cls.by_gcid[(portal.gcid, portal.gc_receiver)]
             except KeyError:
-                yield cls.from_db(db_portal)
+                await portal.postinit()
+                yield portal
 
     @classmethod
-    def get_by_conversation(cls, conversation: HangoutsChat, receiver: str) -> Optional['Portal']:
-        return cls.get_by_gid(conversation.id_, receiver, conversation._conversation.group_type)
+    async def all(cls) -> AsyncIterable['Portal']:
+        portal: Portal
+        for portal in await super().all():
+            try:
+                yield cls.by_gcid[(portal.gcid, portal.gc_receiver)]
+            except KeyError:
+                await portal.postinit()
+                yield portal
+
+    @classmethod
+    def get_by_conversation(cls, conversation: HangoutsChat, receiver: str
+                            ) -> Awaitable[Optional['Portal']]:
+        return cls.get_by_gcid(conversation.id_, receiver)
 
     # endregion
-
-
-def init(context: 'Context') -> None:
-    global config
-    Portal.az, config, Portal.loop = context.core
-    Portal.bridge = context.bridge
-    Portal.matrix = context.mx
-    Portal.invite_own_puppet_to_pm = config["bridge.invite_own_puppet_to_pm"]
-    NotificationDisabler.puppet_cls = p.Puppet
-    NotificationDisabler.config_enabled = config["bridge.backfill.disable_notifications"]

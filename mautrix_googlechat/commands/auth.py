@@ -36,7 +36,7 @@ async def login(evt: CommandEvent) -> None:
 
 @command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
 async def logout(evt: CommandEvent) -> None:
-    puppet = pu.Puppet.get_by_gid(evt.sender.gid)
+    puppet = await pu.Puppet.get_by_gcid(evt.sender.gcid)
     await evt.sender.logout()
     if puppet and puppet.is_real_user:
         await puppet.switch_mxid(None, None)
@@ -71,5 +71,5 @@ async def ping(evt: CommandEvent) -> None:
                  help_text="Mark this room as your bridge notice room")
 async def set_notice_room(evt: CommandEvent) -> None:
     evt.sender.notice_room = evt.room_id
-    evt.sender.save()
+    await evt.sender.save()
     await evt.reply("This room has been marked as your bridge notice room")

@@ -23,87 +23,30 @@ from mautrix.bridge import BaseMatrixHandler
 from . import user as u, puppet as pu, portal as po
 
 if TYPE_CHECKING:
-    from .context import Context
+    from .__main__ import GoogleChatBridge
 
 
 class MatrixHandler(BaseMatrixHandler):
-    def __init__(self, context: 'Context') -> None:
-        prefix, suffix = context.config["bridge.username_template"].format(userid=":").split(":")
-        homeserver = context.config["homeserver.domain"]
+    def __init__(self, bridge: 'GoogleChatBridge') -> None:
+        prefix, suffix = bridge.config["bridge.username_template"].format(userid=":").split(":")
+        homeserver = bridge.config["homeserver.domain"]
         self.user_id_prefix = f"@{prefix}"
         self.user_id_suffix = f"{suffix}:{homeserver}"
 
-        super().__init__(bridge=context.bridge)
-
-    # async def handle_puppet_invite(self, room_id: RoomID, puppet: 'pu.Puppet', invited_by: 'u.User'
-    #                                ) -> None:
-    #     intent = puppet.default_mxid_intent
-    #     self.log.debug(f"{invited_by.mxid} invited puppet for {puppet.gid} to {room_id}")
-    #     if not await invited_by.is_logged_in():
-    #         await intent.error_and_leave(room_id, text="Please log in before inviting Facebook "
-    #                                                    "Messenger puppets to private chats.")
-    #         return
-    #
-    #     portal = po.Portal.get_by_mxid(room_id)
-    #     if portal:
-    #         if portal.is_direct:
-    #             await intent.error_and_leave(room_id, text="You can not invite additional users "
-    #                                                        "to private chats.")
-    #             return
-    #         # TODO add facebook inviting
-    #         # await portal.invite_facebook(inviter, puppet)
-    #         # await intent.join_room(room_id)
-    #         return
-    #     await intent.join_room(room_id)
-    #     try:
-    #         members = await intent.get_room_members(room_id)
-    #     except MatrixError:
-    #         self.log.exception(f"Failed to get member list after joining {room_id}")
-    #         await intent.leave_room(room_id)
-    #         members = []
-    #     if len(members) > 2:
-    #         # TODO add facebook group creating
-    #         await intent.send_notice(room_id, "You can not invite Facebook Messenger puppets to "
-    #                                           "multi-user rooms.")
-    #         await intent.leave_room(room_id)
-    #         return
-    #     portal = po.Portal.get_by_gid(puppet.gid, invited_by.uid, ThreadType.USER)
-    #     if portal.mxid:
-    #         try:
-    #             await intent.invite_user(portal.mxid, invited_by.mxid, check_cache=False)
-    #             await intent.send_notice(room_id,
-    #                                      text=("You already have a private chat with me "
-    #                                            f"in room {portal.mxid}"),
-    #                                      html=("You already have a private chat with me: "
-    #                                            f"<a href='https://matrix.to/#/{portal.mxid}'>"
-    #                                            "Link to room"
-    #                                            "</a>"))
-    #             await intent.leave_room(room_id)
-    #             return
-    #         except MatrixError:
-    #             pass
-    #     portal.mxid = room_id
-    #     portal.save()
-    #     await intent.send_notice(room_id, "Portal to private chat created.")
-    #
-    # async def handle_invite(self, room_id: RoomID, user_id: UserID, invited_by: 'u.User') -> None:
-    #     # TODO handle puppet and user invites for group chats
-    #     # The rest can probably be ignored
-    #     pass
+        super().__init__(bridge=bridge)
 
     async def send_welcome_message(self, room_id: RoomID, inviter: 'u.User') -> None:
         await super().send_welcome_message(room_id, inviter)
         if not inviter.notice_room:
             inviter.notice_room = room_id
-            inviter.save()
+            await inviter.save()
             await self.az.intent.send_notice(room_id, "This room has been marked as your "
                                                       "Google Chat bridge notice room.")
 
-
     async def handle_join(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
-        user = u.User.get_by_mxid(user_id)
+        user = await u.User.get_by_mxid(user_id)
 
-        portal = po.Portal.get_by_mxid(room_id)
+        portal = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
 
@@ -120,11 +63,11 @@ class MatrixHandler(BaseMatrixHandler):
         # await portal.join_matrix(user, event_id)
 
     async def handle_leave(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
-        portal = po.Portal.get_by_mxid(room_id)
+        portal = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
 
-        user = u.User.get_by_mxid(user_id, create=False)
+        user = await u.User.get_by_mxid(user_id, create=False)
         if not user:
             return
 
@@ -133,25 +76,23 @@ class MatrixHandler(BaseMatrixHandler):
     async def handle_presence(self, user_id: UserID, info: PresenceEventContent) -> None:
         if not self.config["bridge.presence"]:
             return
-        user = u.User.get_by_mxid(user_id, create=False)
+        user = await u.User.get_by_mxid(user_id, create=False)
         if user:
             if info.presence == PresenceState.ONLINE:
                 await user.client.set_active()
 
     @staticmethod
     async def handle_typing(room_id: RoomID, typing: List[UserID]) -> None:
-        portal = po.Portal.get_by_mxid(room_id)
+        portal = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
 
-        users = (u.User.get_by_mxid(mxid, create=False) for mxid in typing)
-        await portal.handle_matrix_typing({user for user in users
-                                           if user is not None})
+        await portal.handle_matrix_typing(set(typing))
 
     async def handle_read_receipt(self, user: 'u.User', portal: 'po.Portal', event_id: EventID,
                                   data: SingleReceiptEventContent) -> None:
         # TODO we could probably get a timestamp from somewhere and use that
-        await user.mark_read(portal.gid)
+        await user.mark_read(portal.gcid)
 
     def filter_matrix_event(self, evt: Event) -> bool:
         if not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent, ReceiptEvent,
@@ -165,5 +106,5 @@ class MatrixHandler(BaseMatrixHandler):
             await self.handle_presence(evt.sender, evt.content)
         elif evt.type == EventType.TYPING:
             await self.handle_typing(evt.room_id, evt.content.user_ids)
-        elif evt.type == EventType.RECEIPT:
-            await self.handle_receipt(evt)
+        else:
+            await super().handle_ephemeral_event(evt)

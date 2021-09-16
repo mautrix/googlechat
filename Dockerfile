@@ -1,17 +1,12 @@
 FROM docker.io/alpine:3.14
 
-ARG TARGETARCH=amd64
-
 RUN apk add --no-cache \
       python3 py3-pip py3-setuptools py3-wheel \
       py3-pillow \
       py3-aiohttp \
       py3-magic \
-      py3-sqlalchemy \
-      py3-psycopg2 \
       py3-ruamel.yaml \
       py3-commonmark \
-      py3-alembic \
       py3-prometheus-client \
       #hangups
         py3-async-timeout \
@@ -45,7 +40,6 @@ COPY requirements.txt /opt/mautrix-googlechat/requirements.txt
 COPY optional-requirements.txt /opt/mautrix-googlechat/optional-requirements.txt
 WORKDIR /opt/mautrix-googlechat
 RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
- && sed -Ei 's/psycopg2-binary.+//' optional-requirements.txt \
  && pip3 install -r requirements.txt -r optional-requirements.txt \
  && apk del .build-deps
 
