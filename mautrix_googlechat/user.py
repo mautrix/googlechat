@@ -462,7 +462,8 @@ class User(DBUser, BaseUser):
             client_generated_id=self.client.get_client_generated_id(),
         )
 
-    async def send_emote(self, conversation_id: str, text: str) -> str:
+    async def send_emote(self, conversation_id: str, text: str, thread_id: Optional[str] = None,
+                        local_id: Optional[str] = None) -> str:
         pass
         # resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
         #     request_header=self.client.get_request_header(),
@@ -474,12 +475,16 @@ class User(DBUser, BaseUser):
         # ))
         # return resp.created_event.event_id
 
-    async def send_text(self, conversation_id: str, text: str) -> str:
-        resp = await self.chats.get(conversation_id).send_message(text)
+    async def send_text(self, conversation_id: str, text: str, thread_id: Optional[str] = None,
+                        local_id: Optional[str] = None) -> str:
+        resp = await self.chats.get(conversation_id).send_message(text, thread_id=thread_id,
+                                                                  local_id=local_id)
         return resp.topic.id.topic_id
 
-    async def send_image(self, conversation_id: str, id: str) -> str:
-        resp = await self.chats.get(conversation_id).send_message(image_id=id)
+    async def send_image(self, conversation_id: str, id: str, thread_id: Optional[str] = None,
+                        local_id: Optional[str] = None) -> str:
+        resp = await self.chats.get(conversation_id).send_message(image_id=id, thread_id=thread_id,
+                                                                  local_id=local_id)
         return resp.topic.id.topic_id
 
     async def mark_read(self, conversation_id: str,

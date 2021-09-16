@@ -8,7 +8,7 @@
       * [ ] Files
       * [ ] Voice messages
       * [ ] Videos
-      * [x] Images
+      * [ ] Images
       * [ ] Locations
     * [ ] Formatting
   * [ ] Presence

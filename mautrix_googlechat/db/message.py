@@ -33,6 +33,7 @@ class Message:
     gcid: str
     gc_chat: str
     gc_receiver: str
+    gc_parent_id: Optional[str]
     index: int
     timestamp: int
 
@@ -42,7 +43,7 @@ class Message:
             return None
         return cls(**row)
 
-    columns = "mxid, mx_room, gcid, gc_chat, gc_receiver, index, timestamp"
+    columns = "mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, index, timestamp"
 
     @classmethod
     async def get_all_by_gcid(cls, gcid: str, gc_receiver: str) -> List['Message']:
@@ -54,6 +55,14 @@ class Message:
     async def get_by_gcid(cls, gcid: str, gc_receiver: str, index: int = 0) -> Optional['Message']:
         q = f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"
         row = await cls.db.fetchrow(q, gcid, gc_receiver, index)
+        return cls._from_row(row)
+
+    @classmethod
+    async def get_last_in_thread(cls, gc_parent_id: str, gc_receiver: str) -> Optional['Message']:
+        q = (f"SELECT {cls.columns} FROM message"
+             " WHERE (gc_parent_id=$1 OR gcid=$1) AND gc_receiver=$2"
+             " ORDER BY timestamp DESC LIMIT 1")
+        row = await cls.db.fetchrow(q, gc_parent_id, gc_receiver)
         return cls._from_row(row)
 
     @classmethod
@@ -85,11 +94,11 @@ class Message:
         return cls._from_row(row)
 
     async def insert(self) -> None:
-        q = ("INSERT INTO message (mxid, mx_room, gcid, gc_chat, gc_receiver, "
+        q = ("INSERT INTO message (mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, "
              "                     index, timestamp) "
-             "VALUES ($1, $2, $3, $4, $5, $6, $7)")
+             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
         await self.db.execute(q, self.mxid, self.mx_room, self.gcid, self.gc_chat,
-                              self.gc_receiver, self.index, self.timestamp)
+                              self.gc_receiver, self.gc_parent_id, self.index, self.timestamp)
 
     async def delete(self) -> None:
         q = "DELETE FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"

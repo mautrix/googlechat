@@ -17,6 +17,7 @@ from typing import (Dict, Deque, Optional, Tuple, Union, Set, List, Any, AsyncIt
                     Awaitable, cast, TYPE_CHECKING)
 from collections import deque
 import asyncio
+import random
 import time
 import cgi
 import io
@@ -69,6 +70,7 @@ class Portal(DBPortal, BasePortal):
     _create_room_lock: asyncio.Lock
     _last_bridged_mxid: Optional[EventID]
     _dedup: Deque[str]
+    _local_dedup: Set[str]
     _send_locks: Dict[str, asyncio.Lock]
     _noop_lock: FakeLock = FakeLock()
     _typing: Set[UserID]
@@ -87,6 +89,7 @@ class Portal(DBPortal, BasePortal):
         self._create_room_lock = asyncio.Lock()
         self._last_bridged_mxid = None
         self._dedup = deque(maxlen=100)
+        self._local_dedup = set()
         self._send_locks = {}
         self._typing = set()
 
@@ -454,39 +457,50 @@ class Portal(DBPortal, BasePortal):
         if puppet and message.get(self.az.real_user_content_key, False):
             self.log.debug(f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}")
             return
+        reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
+        thread_id = (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
+        local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
+        self._local_dedup.add(local_id)
+
         # TODO this probably isn't nice for bridging images, it really only needs to lock the
         #      actual message send call and dedup queue append.
         async with self.require_send_lock(sender.gcid):
             if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
-                gcid = await self._handle_matrix_text(sender, message)
+                gcid = await self._handle_matrix_text(sender, message, thread_id, local_id)
             elif message.msgtype == MessageType.EMOTE:
-                gcid = await self._handle_matrix_emote(sender, message)
+                gcid = await self._handle_matrix_emote(sender, message, thread_id, local_id)
             elif message.msgtype == MessageType.IMAGE:
-                gcid = await self._handle_matrix_image(sender, message)
+                gcid = await self._handle_matrix_image(sender, message, thread_id, local_id)
             # elif message.msgtype == MessageType.LOCATION:
-            #     gid = await self._handle_matrix_location(sender, message)
+            #     gid = await self._handle_matrix_location(sender, message, thread_id, local_id)
             else:
                 self.log.warning(f"Unsupported msgtype in {message}")
                 return
             if not gcid:
                 return
             self._dedup.appendleft(gcid)
+            self._local_dedup.remove(local_id)
             # TODO pass through actual timestamp instead of using time.time()
             ts = int(time.time() * 1000)
             await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=gcid, gc_chat=self.gcid,
-                            gc_receiver=self.gc_receiver, index=0, timestamp=ts).insert()
+                            gc_receiver=self.gc_receiver, gc_parent_id=thread_id, index=0,
+                            timestamp=ts).insert()
             self._last_bridged_mxid = event_id
+            self.log.debug(f"Handled Matrix message {event_id} -> {local_id} -> {gcid}")
         await self._send_delivery_receipt(event_id)
 
-    async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent) -> str:
-        return await sender.send_text(self.gcid, message.body)
+    async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent,
+                                  thread_id: str, local_id: str) -> str:
+        return await sender.send_text(self.gcid, message.body, thread_id=thread_id,
+                                      local_id=local_id)
 
-    async def _handle_matrix_emote(self, sender: 'u.User', message: TextMessageEventContent
-                                   ) -> str:
-        return await sender.send_emote(self.gcid, message.body)
+    async def _handle_matrix_emote(self, sender: 'u.User', message: TextMessageEventContent,
+                                   thread_id: str, local_id: str) -> str:
+        return await sender.send_emote(self.gcid, message.body, thread_id=thread_id,
+                                       local_id=local_id)
 
-    async def _handle_matrix_image(self, sender: 'u.User',
-                                   message: MediaMessageEventContent) -> Optional[str]:
+    async def _handle_matrix_image(self, sender: 'u.User', message: MediaMessageEventContent,
+                                   thread_id: str, local_id: str) -> Optional[str]:
         if message.file and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
             data = decrypt_attachment(data, message.file.key.key,
@@ -496,7 +510,7 @@ class Portal(DBPortal, BasePortal):
         else:
             return None
         image = await sender.client.upload_image(io.BytesIO(data), filename=message.body)
-        return await sender.send_image(self.gcid, image)
+        return await sender.send_image(self.gcid, image, thread_id=thread_id, local_id=local_id)
 
     #
     # async def _handle_matrix_location(self, sender: 'u.User',
@@ -540,7 +554,11 @@ class Portal(DBPortal, BasePortal):
     async def handle_googlechat_message(self, source: 'u.User', sender: 'p.Puppet',
                                         event: ChatMessageEvent) -> None:
         async with self.optional_send_lock(sender.gcid):
-            if event.msg_id in self._dedup:
+            if event.local_id in self._local_dedup:
+                self.log.debug(f"Dropping message {event.msg_id} (found in local dedup set)")
+                return
+            elif event.msg_id in self._dedup:
+                self.log.debug(f"Dropping message {event.msg_id} (found in dedup queue)")
                 return
             self._dedup.appendleft(event.msg_id)
         if not self.mxid:
@@ -556,6 +574,11 @@ class Portal(DBPortal, BasePortal):
         event_ids = []
         if event.text:
             content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
+            if event.parent_msg_id:
+                reply_to = await DBMessage.get_last_in_thread(event.parent_msg_id,
+                                                              self.gc_receiver)
+                if reply_to:
+                    content.set_reply(reply_to.mxid)
             event_ids.append(await self._send_message(intent, content, timestamp=event.timestamp))
         if event.attachments:
             self.log.debug("Processing attachments.")
@@ -572,7 +595,8 @@ class Portal(DBPortal, BasePortal):
         ts = int(event.timestamp.timestamp() * 1000)
         for index, event_id in enumerate(event_ids):
             await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=event.msg_id, gc_chat=self.gcid,
-                            gc_receiver=self.gc_receiver, index=index, timestamp=ts).insert()
+                            gc_receiver=self.gc_receiver, gc_parent_id=event.parent_msg_id,
+                            index=index, timestamp=ts).insert()
         self.log.debug("Handled Google Chat message %s -> %s", event.msg_id, event_ids)
         await self._send_delivery_receipt(event_ids[-1])
 

@@ -4,6 +4,6 @@ asyncpg>=0.20,<0.25
 ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 python-magic>=0.4,<0.5
-hangups @ git+https://gitlab.com/beeper/hangups.git@130f8547dcb0a0f4925b612e45326a67b8a826b7#egg=hangups
+hangups @ git+https://gitlab.com/beeper/hangups.git@a6e48d8eb6fa07ecf10d4d2ab8563d6bc680789c#egg=hangups
 mautrix>=0.10.2,<0.11
 setuptools

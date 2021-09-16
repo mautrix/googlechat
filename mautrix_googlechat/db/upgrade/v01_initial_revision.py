@@ -53,13 +53,14 @@ async def upgrade_v1(conn: Connection) -> None:
         base_url     TEXT
     )""")
     await conn.execute("""CREATE TABLE "message" (
-        mxid        TEXT,
-        mx_room     TEXT,
-        gcid        TEXT,
-        gc_chat     TEXT,
-        gc_receiver TEXT,
-        index       SMALLINT,
-        timestamp   BIGINT,
+        mxid         TEXT NOT NULL,
+        mx_room      TEXT NOT NULL,
+        gcid         TEXT,
+        gc_chat      TEXT NOT NULL,
+        gc_receiver  TEXT,
+        gc_parent_id TEXT,
+        index        SMALLINT NOT NULL,
+        timestamp    BIGINT   NOT NULL,
         PRIMARY KEY (gcid, gc_receiver, index),
         FOREIGN KEY (gc_chat, gc_receiver) REFERENCES portal(gcid, gc_receiver)
             ON UPDATE CASCADE ON DELETE CASCADE,
