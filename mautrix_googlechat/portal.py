@@ -554,17 +554,17 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handling Google Chat message %s", event.msg_id)
 
         event_ids = []
+        if event.text:
+            content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
+            event_ids.append(await self._send_message(intent, content, timestamp=event.timestamp))
         if event.attachments:
             self.log.debug("Processing attachments.")
             self.log.trace("Attachments: %s", event.attachments)
             try:
-                async for event_id in self.process_googlechat_attachments(event, intent):
+                async for event_id in self.process_googlechat_attachments(source, event, intent):
                     event_ids.append(event_id)
             except Exception:
                 self.log.exception("Failed to process attachments")
-        if event.text:
-            content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
-            event_ids.append(await self._send_message(intent, content, timestamp=event.timestamp))
         if not event_ids:
             # TODO send notification
             self.log.debug("Unhandled Google Chat message %s", event.msg_id)
@@ -576,11 +576,11 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handled Google Chat message %s -> %s", event.msg_id, event_ids)
         await self._send_delivery_receipt(event_ids[-1])
 
-    async def process_googlechat_attachments(self, event: ChatMessageEvent, intent: IntentAPI
-                                             ) -> AsyncIterable[EventID]:
+    async def process_googlechat_attachments(self, source: 'u.User', event: ChatMessageEvent,
+                                             intent: IntentAPI) -> AsyncIterable[EventID]:
         for url in event.attachments:
-            # Get the filename from the headers
-            async with self.az.http_session.get(url) as resp:
+            sess = source.client._session
+            async with sess.fetch_raw("GET", url) as resp:
                 value, params = cgi.parse_header(resp.headers["Content-Disposition"])
                 mime = resp.headers["Content-Type"]
                 filename = params.get("filename", url.split("/")[-1])
