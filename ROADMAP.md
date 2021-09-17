@@ -1,6 +1,6 @@
 # Features & roadmap
 
-* Matrix → Hangouts
+* Matrix → Google Chat
   * [ ] Message content
     * [x] Text
     * [ ] Media
@@ -8,12 +8,12 @@
       * [ ] Files
       * [ ] Voice messages
       * [ ] Videos
-      * [x] Images
+      * [ ] Images
       * [ ] Locations
     * [ ] Formatting
   * [ ] Presence
-  * [x] Typing notifications
-  * [x] Read receipts
+  * [ ] Typing notifications
+  * [ ] Read receipts
   * [ ] Membership actions
     * [ ] Invite
     * [ ] Join (accept invite)
@@ -21,7 +21,7 @@
     * [ ] Leave
   * [ ] Room metadata changes
     * [ ] Name
-* Hangouts → Matrix
+* Google Chat → Matrix
   * [ ] Message content
     * [x] Text
     * [ ] Media
@@ -30,10 +30,10 @@
       * [x] Images
       * [ ] Locations
     * [ ] Formatting
-  * [x] Message history
+  * [ ] Message history
   * [ ] Presence
-  * [x] Typing notifications
-  * [x] Read receipts
+  * [ ] Typing notifications
+  * [ ] Read receipts
   * [ ] Membership actions
     * [ ] Invite
     * [ ] Accept invite
@@ -52,5 +52,5 @@
     * [ ] At startup
     * [ ] When invited to chat
     * [x] When receiving message
-  * [ ] Private chat creation by inviting Matrix puppet of Hangouts user to new room
-  * [x] Option to use own Matrix account for messages sent from other Hangouts clients
+  * [ ] Private chat creation by inviting Matrix puppet of Google Chat user to new room
+  * [x] Option to use own Matrix account for messages sent from other Google Chat clients

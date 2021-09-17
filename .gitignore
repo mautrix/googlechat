@@ -5,7 +5,7 @@
 /dist
 
 *.yaml
-!mautrix_hangouts/example-config.yaml
+!mautrix_googlechat/example-config.yaml
 
 *.log
 *.log.*

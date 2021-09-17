@@ -1,0 +1,185 @@
+<!--
+mautrix-googlechat - A Matrix-Google Chat puppeting bridge
+Copyright (C) 2021 Tulir Asokan
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Login - Mautrix-Google Chat bridge</title>
+	<link rel="icon" type="image/png" href="favicon.png"/>
+	<meta property="og:title" content="Login - Mautrix-Google Chat bridge">
+	<meta property="og:description" content="A puppeting Matrix-Google Chat bridge">
+	<meta property="og:image" content="favicon.png">
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,700">
+	<link rel="stylesheet"
+		  href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+	<link rel="stylesheet"
+		  href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.3.0/milligram.min.css">
+	<link rel="stylesheet" href="login.css"/>
+	<link rel="stylesheet" href="loader.css"/>
+</head>
+<body>
+<main class="container">
+	<div id="view-loader" class="view">
+		<div class="loader">Loading...</div>
+	</div>
+	<div id="view-token-expired" class="view hidden">
+		<h1>Login link expired</h1>
+		<p>Please ask the bridge bot for a new login link.</p>
+	</div>
+	<div id="view-token-invalid" class="view hidden">
+		<h1>Login link invalid</h1>
+		<p>Please ask the bridge bot for a new login link.</p>
+	</div>
+	<div id="view-start" class="view hidden">
+		<h1>Log in to Hangouts</h1>
+
+		<form>
+			<p>
+				There are two login modes:
+			</p>
+			<ul>
+				<li>
+					Automatic (the default) will ask for your email, password and optionally a
+					2-factor verification code, and handle the login process internally.
+					Your password will not be stored anywhere. Automatic login may not always work.
+				</li>
+				<li>
+					Manual mode will tell you how to log in and extract the OAuth token from browser
+					cookies manually. If you do not feel comfortable entering your Google password
+					here, use the manual login.
+				</li>
+			</ul>
+
+			<div>
+				<label for="start-mxid">Matrix User ID</label>
+				<input type="text" id="start-mxid" disabled/>
+			</div>
+
+			<div>
+				<button class="button" type="submit">Start</button>
+			</div>
+
+			<div>
+				<input type="checkbox" id="manual-login"/>
+				<label class="label-inline" for="manual-login">Manual login</label>
+			</div>
+		</form>
+	</div>
+	<div id="view-login" class="view hidden">
+		<h1>Log in to Hangouts</h1>
+
+		<form>
+			<div class="authorization container hidden">
+				<h4>Instructions to get authorization cookie value</h4>
+				<ol>
+					<li>
+						Open
+						<a id="manual-login-link" target="_blank"
+						   href="javascript:alert('Fatal error: Login link not set')">
+							this link
+						</a>
+						in your browser.
+					</li>
+					<li>
+						Log into your Google account normally.
+					</li>
+					<li>
+						When you reach the loading screen after logging in that says
+						<em>"One moment please..."</em>, press <kbd>F12</kbd> to open developer
+						tools.
+					</li>
+					<li>
+						Select the "Application" (Chrome) or "Storage" (Firefox) tab.
+					</li>
+					<li>
+						In the sidebar, expand "Cookies" and select <code>https://accounts.google.com</code>.
+					</li>
+					<li>
+						In the cookie list, find the <code>oauth_code</code> row and double
+						click on the value, then copy the value and enter it below.
+					</li>
+				</ol>
+
+				<label for="authorization">Authorization cookie value</label>
+				<input type="text" id="authorization"/>
+			</div>
+			<div class="email container">
+				<label for="email">Email</label>
+				<input type="text" id="email"/>
+			</div>
+			<div class="password container hidden">
+				<p>
+					Your password will only be used to log in once, it will not be stored on the
+					server.
+				</p>
+				<label for="password">Password</label>
+				<input type="password" id="password"/>
+			</div>
+			<div class="verification container hidden">
+				<p>
+					You have two-factor authentication enabled. Please enter your verification code.
+				</p>
+				<label for="verification">Verification code</label>
+				<input type="text" id="verification"/>
+			</div>
+			<div>
+				<button class="button float-right" type="submit">Log in</button>
+				<button class="button button-outline cancel" disabled type="button">Cancel</button>
+			</div>
+		</form>
+	</div>
+	<div id="view-success" class="view hidden">
+		<h1>Logged in successfully</h1>
+		<p>
+			Successfully logged in as <span id="login-success-name"></span>.
+			You may now return to your Matrix client, chats should sync momentarily.
+		</p>
+	</div>
+	<div id="view-fail" class="view hidden">
+		<h1>Login failed</h1>
+		<p>
+			Reload the page to try again.
+			Manual login may work better.
+		</p>
+	</div>
+	<div id="view-cancelled" class="view hidden">
+		<h1>Login cancelled</h1>
+		<p>
+			You can start a new login after reloading the page.
+		</p>
+	</div>
+	<div id="view-timeout" class="view hidden">
+		<h1>Login cancelled or timed out</h1>
+		<p>
+			You can start a new login after reloading the page.
+		</p>
+	</div>
+	<div id="view-no-ongoing-login" class="view hidden">
+		<h1>No ongoing login</h1>
+		<p>
+			You can start a new login after reloading the page.
+		</p>
+	</div>
+	<div id="view-unknown-error" class="view hidden">
+		<h1>Unknown error</h1>
+		<p></p>
+	</div>
+</main>
+<script src="login.js"></script>
+</body>
+</html>

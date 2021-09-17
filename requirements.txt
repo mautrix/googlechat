@@ -1,10 +1,9 @@
 aiohttp>=3,<4
 yarl>=1,<2
-SQLAlchemy>=1.2,<1.4
-alembic>=1,<2
+asyncpg>=0.20,<0.25
 ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 python-magic>=0.4,<0.5
-hangups>=0.4.12,<0.5
+hangups @ git+https://gitlab.com/beeper/hangups.git@a6e48d8eb6fa07ecf10d4d2ab8563d6bc680789c#egg=hangups
 mautrix>=0.10.2,<0.11
 setuptools
