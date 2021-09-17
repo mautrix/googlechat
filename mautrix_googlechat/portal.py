@@ -604,7 +604,7 @@ class Portal(DBPortal, BasePortal):
                                              intent: IntentAPI) -> AsyncIterable[EventID]:
         for url in event.attachments:
             sess = source.client._session
-            async with sess.fetch_raw("GET", url) as resp:
+            async with sess.fetch_raw_ctx("GET", url) as resp:
                 value, params = cgi.parse_header(resp.headers["Content-Disposition"])
                 mime = resp.headers["Content-Type"]
                 filename = params.get("filename", url.split("/")[-1])

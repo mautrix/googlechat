@@ -13,9 +13,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import (Any, Dict, AsyncGenerator, Optional, List, Awaitable, Union, Callable, cast,
+from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, AsyncIterable, cast,
                     TYPE_CHECKING)
-from concurrent import futures
 import datetime
 import asyncio
 
@@ -23,19 +22,17 @@ import hangups
 from hangups import (hangouts_pb2 as hangouts, googlechat_pb2 as googlechat,
                      Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
                      MembershipChangeEvent)
-from hangups.auth import TokenManager
+from hangups.auth import TokenManager, GoogleAuthError
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage, WatermarkNotification
 
 from mautrix.types import UserID, RoomID, MessageType
-from mautrix.client import Client as MxClient
 from mautrix.bridge import BaseUser, BridgeState, async_getter_lock
 from mautrix.util.bridge_state import BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 
 from .config import Config
-from .db import User as DBUser, Message as DBMessage, Portal as DBPortal
-from .util.hangups_try_auth import try_auth, TryAuthResp
+from .db import User as DBUser, Message as DBMessage
 from . import puppet as pu, portal as po
 
 if TYPE_CHECKING:
@@ -94,7 +91,7 @@ class User(DBUser, BaseUser):
             self.by_gcid[self.gcid] = self
 
     @classmethod
-    async def all_logged_in(cls) -> AsyncGenerator['User', None]:
+    async def all_logged_in(cls) -> AsyncIterable['User']:
         users = await super().all_logged_in()
         user: cls
         for user in users:
@@ -184,34 +181,25 @@ class User(DBUser, BaseUser):
         return self.client and self.connected
 
     @classmethod
-    def init_cls(cls, bridge: 'GoogleChatBridge') -> Awaitable[None]:
+    def init_cls(cls, bridge: 'GoogleChatBridge') -> AsyncIterable[Awaitable[None]]:
         cls.bridge = bridge
         cls.az = bridge.az
         cls.config = bridge.config
         cls.loop = bridge.loop
-        return cls.init_all()
+        return (user._try_init() async for user in cls.all_logged_in())
 
-    @classmethod
-    async def init_all(cls) -> None:
-        users = [user async for user in cls.all_logged_in()]
-
-        with futures.ThreadPoolExecutor() as pool:
-            auth_resps: List[TryAuthResp] = await asyncio.gather(
-                *[cls.loop.run_in_executor(pool, try_auth, UserRefreshTokenCache(user))
-                  for user in users])
-        finish = []
-        for user, auth_resp in zip(users, auth_resps):
-            if auth_resp.success:
-                finish.append(user.login_complete(auth_resp.token_manager))
-            else:
-                await user.send_bridge_notice(
-                    f"Failed to resume session with stored refresh token: {auth_resp.error}",
-                    state_event=BridgeStateEvent.BAD_CREDENTIALS,
-                    important=True,
-                )
-                user.log.exception("Failed to resume session with stored refresh token",
-                                   exc_info=auth_resp.error)
-        await asyncio.gather(*finish)
+    async def _try_init(self) -> None:
+        try:
+            token_mgr = await TokenManager.from_refresh_token(UserRefreshTokenCache(self))
+        except GoogleAuthError as e:
+            await self.send_bridge_notice(
+                f"Failed to resume session with stored refresh token: {e}",
+                state_event=BridgeStateEvent.BAD_CREDENTIALS,
+                important=True,
+            )
+            self.log.exception("Failed to resume session with stored refresh token")
+        else:
+            await self.login_complete(token_mgr)
 
     async def login_complete(self, token_manager: TokenManager) -> None:
         self.client = Client(
@@ -305,9 +293,9 @@ class User(DBUser, BaseUser):
 
     async def on_disconnect(self) -> None:
         self.connected = False
-        await self.send_bridge_notice("Disconnected from Hangouts")
+        await self.send_bridge_notice("Disconnected from Google Chat")
         await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT,
-                                     error="hangouts-disconnected")
+                                     error="googlechat-disconnected")
 
     async def sync(self) -> None:
         await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
@@ -509,10 +497,10 @@ class UserRefreshTokenCache(RefreshTokenCache):
     def __init__(self, user: User) -> None:
         self.user = user
 
-    def get(self) -> str:
+    async def get(self) -> str:
         return self.user.refresh_token
 
-    def set(self, refresh_token: str) -> None:
+    async def set(self, refresh_token: str) -> None:
         self.user.log.trace("New refresh token: %s", refresh_token)
         self.user.refresh_token = refresh_token
-        self.user.loop.call_soon_threadsafe(lambda: self.user.loop.create_task(self.user.save()))
+        await self.user.save()

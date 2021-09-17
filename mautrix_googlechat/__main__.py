@@ -24,7 +24,7 @@ from .user import User
 from .portal import Portal
 from .puppet import Puppet
 from .matrix import MatrixHandler
-from .web import HangoutsAuthServer
+from .web import GoogleChatAuthServer
 from .version import version, linkified_version
 from . import commands as _
 
@@ -34,7 +34,7 @@ class GoogleChatBridge(Bridge):
     module = "mautrix_googlechat"
     command = "python -m mautrix-googlechat"
     description = "A Matrix-Google Chat puppeting bridge."
-    repo_url = "https://github.com/mautrix/hangouts"
+    repo_url = "https://github.com/mautrix/googlechat"
     real_user_content_key = "net.maunium.googlechat.puppet"
     version = version
     markdown_version = linkified_version
@@ -44,7 +44,7 @@ class GoogleChatBridge(Bridge):
     db: Database
     config: Config
     matrix: MatrixHandler
-    auth_server: HangoutsAuthServer
+    auth_server: GoogleChatAuthServer
     state_store: PgBridgeStateStore
 
     def make_state_store(self) -> None:
@@ -57,8 +57,8 @@ class GoogleChatBridge(Bridge):
 
     def prepare_bridge(self) -> None:
         super().prepare_bridge()
-        self.auth_server = HangoutsAuthServer(self.config["bridge.web.auth.shared_secret"],
-                                              self.config["hangouts.device_name"], self.loop)
+        self.auth_server = GoogleChatAuthServer(self.config["bridge.web.auth.shared_secret"],
+                                                self.config["hangouts.device_name"], self.loop)
         self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
 
     async def resend_bridge_info(self) -> None:

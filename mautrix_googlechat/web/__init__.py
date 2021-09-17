@@ -1,1 +1,1 @@
-from .auth import HangoutsAuthServer
+from .auth import GoogleChatAuthServer

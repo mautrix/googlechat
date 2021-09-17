@@ -35,7 +35,7 @@ linkified_version = {linkified_version!r}
 setuptools.setup(
     name="mautrix-googlechat",
     version=version,
-    url="https://github.com/mautrix/hangouts",
+    url="https://github.com/mautrix/googlechat",
 
     author="Tulir Asokan",
     author_email="tulir@maunium.net",

@@ -10,14 +10,8 @@ RUN apk add --no-cache \
       py3-prometheus-client \
       #hangups
         py3-async-timeout \
-        py3-requests \
         py3-appdirs \
-        py3-configargparse \
         py3-protobuf \
-        py3-urwid \
-        py3-lxml \
-        #mechanicalsoup
-          py3-beautifulsoup4 \
       py3-idna \
       # encryption
       py3-olm \
@@ -27,6 +21,7 @@ RUN apk add --no-cache \
       py3-future \
       # proxy support
       py3-pysocks \
+      py3-aiohttp-socks \
       # Other dependencies
       ca-certificates \
       su-exec \

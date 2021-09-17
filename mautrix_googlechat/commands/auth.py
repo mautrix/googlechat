@@ -26,7 +26,7 @@ SECTION_AUTH = HelpSection("Authentication", 10, "")
 
 
 @command_handler(needs_auth=False, management_only=True,
-                 help_section=SECTION_AUTH, help_text="Log in to Hangouts")
+                 help_section=SECTION_AUTH, help_text="Log in to Google Chat")
 async def login(evt: CommandEvent) -> None:
     token = evt.bridge.auth_server.make_token(evt.sender.mxid)
     public_prefix = evt.config["bridge.web.auth.public"]
@@ -34,15 +34,18 @@ async def login(evt: CommandEvent) -> None:
     await evt.reply(f"Please visit the [login portal]({url}) to log in.")
 
 
-@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
+@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH,
+                 help_text="Log out from Google Chat")
 async def logout(evt: CommandEvent) -> None:
     puppet = await pu.Puppet.get_by_gcid(evt.sender.gcid)
     await evt.sender.logout()
     if puppet and puppet.is_real_user:
         await puppet.switch_mxid(None, None)
+    await evt.reply("Successfully logged out")
 
 
-@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH)
+@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH,
+                 help_text="Check if you're logged into Google Chat")
 async def ping(evt: CommandEvent) -> None:
     try:
         info = await evt.sender.client.get_self_user_status(googlechat.GetSelfUserStatusRequest(

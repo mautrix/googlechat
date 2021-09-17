@@ -29,14 +29,16 @@ async function main() {
 		}
 	} else {
 		document.getElementById("start-mxid").value = data.user_id
-		views.start.querySelector("form").onsubmit = () => startLogin().catch(console.error)
+		views.start.querySelector("form").onsubmit = evt => {
+			evt.preventDefault()
+			startLogin().catch(console.error)
+		}
 		setView(views.start)
 	}
 }
 
 async function startLogin() {
-	const manual = document.getElementById("manual-login").checked
-	const resp = await fetch(`api/start?manual=${manual}`, {
+	const resp = await fetch(`api/start`, {
 		method: "POST",
 		headers: {
 			Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -60,24 +62,10 @@ async function submitStep(stepName) {
 	await handleResponse(resp)
 }
 
-async function cancel() {
-	const resp = await fetch("api/cancel", {
-		method: "POST",
-		headers: {
-			"Authorization": `Bearer ${AUTH_TOKEN}`,
-		},
-	})
-	await handleResponse(resp)
-}
-
 async function handleError(resp) {
 	console.error("Error response:", resp)
 	const data = await resp.json()
-	if (data.errcode === "HANGOUTS_LOGIN_CANCELLED") {
-		setView(views.timeout)
-	} else if (data.errcode === "HANGOUTS_NO_ONGOING_LOGIN") {
-		setView(views.noOngoingLogin)
-	} else if (data.errcode === "M_EXPIRED_TOKEN") {
+	if (data.errcode === "M_EXPIRED_TOKEN") {
 		setView(views.tokenExpired)
 	} else if (data.errcode === "M_UNKNOWN_TOKEN" || data.errcode === "M_MISSING_TOKEN") {
 		setView(views.tokenInvalid)
@@ -108,9 +96,11 @@ async function handleResponse(resp) {
 		if (data.next_step === "authorization") {
 			document.getElementById("manual-login-link").href = data.manual_auth_url
 		}
-		form.querySelector("button.cancel").onclick = () => cancel().catch(console.error)
-		form.onsubmit = () => submitStep(data.next_step).catch(console.error)
-		form.querySelector("div.container:not(.hidden)").classList.add("hidden")
+		form.onsubmit = evt => {
+			evt.preventDefault()
+			submitStep(data.next_step).catch(console.error)
+		}
+		form.querySelector("div.container:not(.hidden)")?.classList.add("hidden")
 		form.querySelector(`div.${data.next_step}.container`).classList.remove("hidden")
 		setView(views.login)
 	}
