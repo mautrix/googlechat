@@ -11,6 +11,7 @@
       * [ ] Images
       * [ ] Locations
     * [ ] Formatting
+    * [ ] Replies (into threads)
   * [ ] Presence
   * [ ] Typing notifications
   * [ ] Read receipts
@@ -30,6 +31,7 @@
       * [x] Images
       * [ ] Locations
     * [ ] Formatting
+    * [x] Threads (as replies)
   * [ ] Message history
   * [ ] Presence
   * [ ] Typing notifications
@@ -48,8 +50,8 @@
 * Misc
   * [x] Multi-user support
   * [x] Shared group chat portals
-  * [ ] Automatic portal creation
-    * [ ] At startup
+  * [x] Automatic portal creation
+    * [x] At startup
     * [ ] When invited to chat
     * [x] When receiving message
   * [ ] Private chat creation by inviting Matrix puppet of Google Chat user to new room
