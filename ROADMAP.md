@@ -11,7 +11,7 @@
       * [ ] Images
       * [ ] Locations
     * [ ] Formatting
-    * [ ] Replies (into threads)
+    * [x] Replies (into threads)
   * [ ] Presence
   * [ ] Typing notifications
   * [ ] Read receipts
