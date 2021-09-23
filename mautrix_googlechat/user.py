@@ -363,6 +363,7 @@ class User(DBUser, BaseUser):
         self.log.debug("Found %d conversations in chat list", len(convs))
         convs = sorted(convs, reverse=True,
                        key=lambda conv: conv.last_modified)
+        convs = convs[:self.config["bridge.initial_chat_sync"]]
         for chat in convs:
             self.log.debug("Syncing %s", chat.id_)
             portal = await po.Portal.get_by_conversation(chat, self.gcid)
