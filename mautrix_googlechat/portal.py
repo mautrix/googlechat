@@ -19,10 +19,9 @@ from collections import deque
 import asyncio
 import random
 import time
-import cgi
 import io
 
-from hangups import hangouts_pb2 as hangouts, googlechat_pb2 as googlechat, ChatMessageEvent
+from hangups import googlechat_pb2 as googlechat, ChatMessageEvent, FileTooLargeError
 from hangups.user import User as HangoutsUser
 from hangups.conversation import Conversation as HangoutsChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
@@ -211,8 +210,8 @@ class Portal(DBPortal, BasePortal):
     # endregion
 
     async def _load_messages(self, source: 'u.User', limit: int = 100,
-                             token: Optional[hangouts.EventContinuationToken] = None
-                             ) -> Tuple[List[ChatMessageEvent], hangouts.EventContinuationToken]:
+                             token: Any = None
+                             ) -> Tuple[List[ChatMessageEvent], Any]:
         # resp = await source.client.get_conversation(hangouts.GetConversationRequest(
         #     request_header=source.client.get_request_header(),
         #     conversation_spec=hangouts.ConversationSpec(
@@ -594,7 +593,7 @@ class Portal(DBPortal, BasePortal):
             self.log.trace("Attachments: %s", event.attachments)
             try:
                 async for event_id in self.process_googlechat_attachments(source, event, intent,
-                                                                          reply_to=reply_to.mxid):
+                                                                          reply_to=reply_to):
                     event_ids.append(event_id)
             except Exception:
                 self.log.exception("Failed to process attachments")
@@ -611,19 +610,16 @@ class Portal(DBPortal, BasePortal):
         await self._send_delivery_receipt(event_ids[-1])
 
     async def process_googlechat_attachments(self, source: 'u.User', event: ChatMessageEvent,
-                                             intent: IntentAPI, reply_to: EventID
+                                             intent: IntentAPI, reply_to: DBMessage
                                              ) -> AsyncIterable[EventID]:
+        max_size = self.matrix.media_config.upload_size
         for url in event.attachments:
-            sess = source.client._session
-            async with sess.fetch_raw_ctx("GET", url) as resp:
-                value, params = cgi.parse_header(resp.headers["Content-Disposition"])
-                mime = resp.headers["Content-Type"]
-                filename = params.get("filename", url.split("/")[-1])
-                if int(resp.headers["Content-Length"]) > self.matrix.media_config.upload_size:
-                    # TODO send error message
-                    self.log.warning("Can't upload too large attachment")
-                    continue
-                data = await resp.read()
+            try:
+                data, mime, filename = await source.client.download_attachment(url, max_size)
+            except FileTooLargeError:
+                # TODO send error message
+                self.log.warning("Can't upload too large attachment")
+                continue
 
             upload_mime = mime
             decryption_info = None
@@ -638,7 +634,7 @@ class Portal(DBPortal, BasePortal):
                                                info=ImageInfo(size=len(data), mimetype=mime))
             content.msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
             if reply_to:
-                content.set_reply(reply_to)
+                content.set_reply(reply_to.mxid)
             yield await self._send_message(intent, content, timestamp=event.timestamp)
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
