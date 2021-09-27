@@ -476,7 +476,7 @@ class User(DBUser, BaseUser):
     async def send_image(self, conversation_id: str, id: str, thread_id: Optional[str] = None,
                         local_id: Optional[str] = None) -> str:
         resp = await self.chats.get(conversation_id).send_message(image_id=id, thread_id=thread_id,
-                                                                  local_id=local_id)
+                                                                  local_id=local_id, text_body="")
         if thread_id:
             return resp.message.id.message_id
         else:

@@ -116,6 +116,11 @@ class Portal(DBPortal, BasePortal):
         return self.gcid, self.gc_receiver
 
     @property
+    def gcid_plain(self) -> str:
+        gc_type, gcid = self.gcid.split(":")
+        return gcid
+
+    @property
     def gcid_log(self) -> str:
         if self.is_direct:
             return f"{self.gcid}-{self.gc_receiver}"
@@ -509,7 +514,9 @@ class Portal(DBPortal, BasePortal):
             data = await self.main_intent.download_media(message.url)
         else:
             return None
-        image = await sender.client.upload_image(io.BytesIO(data), filename=message.body)
+        image = await sender.client.upload_image(image_file=io.BytesIO(data),
+                                                 group_id=self.gcid_plain,
+                                                 filename=message.body)
         return await sender.send_image(self.gcid, image, thread_id=thread_id, local_id=local_id)
 
     #
@@ -571,20 +578,23 @@ class Portal(DBPortal, BasePortal):
         intent = sender.intent_for(self)
         self.log.debug("Handling Google Chat message %s", event.msg_id)
 
+        reply_to = None
+        if event.parent_msg_id:
+            reply_to = await DBMessage.get_last_in_thread(event.parent_msg_id,
+                                                          self.gc_receiver)
+
         event_ids = []
         if event.text:
             content = TextMessageEventContent(msgtype=MessageType.TEXT, body=event.text)
-            if event.parent_msg_id:
-                reply_to = await DBMessage.get_last_in_thread(event.parent_msg_id,
-                                                              self.gc_receiver)
-                if reply_to:
-                    content.set_reply(reply_to.mxid)
+            if reply_to:
+                content.set_reply(reply_to.mxid)
             event_ids.append(await self._send_message(intent, content, timestamp=event.timestamp))
         if event.attachments:
             self.log.debug("Processing attachments.")
             self.log.trace("Attachments: %s", event.attachments)
             try:
-                async for event_id in self.process_googlechat_attachments(source, event, intent):
+                async for event_id in self.process_googlechat_attachments(source, event, intent,
+                                                                          reply_to=reply_to.mxid):
                     event_ids.append(event_id)
             except Exception:
                 self.log.exception("Failed to process attachments")
@@ -601,7 +611,8 @@ class Portal(DBPortal, BasePortal):
         await self._send_delivery_receipt(event_ids[-1])
 
     async def process_googlechat_attachments(self, source: 'u.User', event: ChatMessageEvent,
-                                             intent: IntentAPI) -> AsyncIterable[EventID]:
+                                             intent: IntentAPI, reply_to: EventID
+                                             ) -> AsyncIterable[EventID]:
         for url in event.attachments:
             sess = source.client._session
             async with sess.fetch_raw_ctx("GET", url) as resp:
@@ -626,6 +637,8 @@ class Portal(DBPortal, BasePortal):
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
                                                info=ImageInfo(size=len(data), mimetype=mime))
             content.msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
+            if reply_to:
+                content.set_reply(reply_to)
             yield await self._send_message(intent, content, timestamp=event.timestamp)
 
     async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
