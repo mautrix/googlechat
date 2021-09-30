@@ -17,6 +17,7 @@ from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, Async
                     TYPE_CHECKING)
 import datetime
 import asyncio
+import time
 
 import hangups
 from hangups import (hangouts_pb2 as hangouts, googlechat_pb2 as googlechat,
@@ -204,30 +205,44 @@ class User(DBUser, BaseUser):
     async def login_complete(self, token_manager: TokenManager) -> None:
         self.client = Client(
             token_manager, max_retries=self.config['bridge.reconnect.max_retries'],
-                             retry_backoff_base=self.config['bridge.reconnect.retry_backoff_base'])
+            retry_backoff_base=self.config['bridge.reconnect.retry_backoff_base'])
         asyncio.create_task(self.start())
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)
 
     async def start(self) -> None:
-        try:
-            self._intentional_disconnect = False
-            await self.client.connect()
-            self._track_metric(METRIC_CONNECTED, False)
-            if self._intentional_disconnect:
-                self.log.info("Client connection finished")
+        last_disconnection = 0
+        backoff = 4
+        backoff_reset_in_seconds = 60
+        state_event = BridgeStateEvent.TRANSIENT_DISCONNECT
+        self._intentional_disconnect = False
+        while True:
+            try:
+                await self.client.connect()
+                self._track_metric(METRIC_CONNECTED, False)
+                if self._intentional_disconnect:
+                    self.log.info("Client connection finished")
+                    return
+                else:
+                    self.log.warning("Client connection finished unexpectedly")
+                    error_msg = "Client connection finished unexpectedly"
+            except Exception as e:
+                self._track_metric(METRIC_CONNECTED, False)
+                self.log.exception("Exception in connection")
+                error_msg = f"Exception in Google Chat connection: {e}"
+
+            if last_disconnection + backoff_reset_in_seconds < time.time():
+                backoff = 4
+                state_event = BridgeStateEvent.TRANSIENT_DISCONNECT
             else:
-                self.log.warning("Client connection finished unexpectedly")
-                await self.send_bridge_notice("Client connection finished unexpectedly",
-                                              state_event=BridgeStateEvent.UNKNOWN_ERROR,
-                                              important=True)
-        except Exception as e:
-            self._track_metric(METRIC_CONNECTED, False)
-            self.log.exception("Exception in connection")
-            await self.send_bridge_notice(f"Exception in Google Chat connection: {e}",
-                                          state_event=BridgeStateEvent.UNKNOWN_ERROR,
-                                          important=True)
+                backoff = int(backoff * 1.5)
+                if backoff > 60:
+                    state_event = BridgeStateEvent.UNKNOWN_ERROR
+            await self.send_bridge_notice(error_msg, important=True, state_event=state_event)
+            last_disconnection = time.time()
+            self.log.debug(f"Reconnecting in {backoff} seconds")
+            await asyncio.sleep(backoff)
 
     async def stop(self) -> None:
         if self.client:
@@ -310,7 +325,9 @@ class User(DBUser, BaseUser):
         update_avatars = self.config["bridge.update_avatar_initial_sync"]
         updates = []
         self.name = users.get_self().full_name
-        self.name_future.set_result(self.name)
+        self.log.debug(f"Found own name: {self.name}")
+        if not self.name_future.done():
+            self.name_future.set_result(self.name)
         for info in users.get_all():
             if not info.id_:
                 self.log.debug(f"Found user without gaia_id: {info}")
@@ -322,8 +339,8 @@ class User(DBUser, BaseUser):
                        f"(avatars included: {update_avatars})...")
         await asyncio.gather(*updates)
 
-    def _ensure_future_proxy(self, method: Callable[[Any], Awaitable[None]]
-                             ) -> Callable[[Any], Awaitable[None]]:
+    def _in_background(self, method: Callable[[Any], Awaitable[None]]
+                       ) -> Callable[[Any], Awaitable[None]]:
         async def try_proxy(*args, **kwargs) -> None:
             try:
                 await method(*args, **kwargs)
@@ -331,7 +348,7 @@ class User(DBUser, BaseUser):
                 self.log.exception("Exception in event handler")
 
         async def proxy(*args, **kwargs) -> None:
-            asyncio.ensure_future(try_proxy(*args, **kwargs))
+            asyncio.create_task(try_proxy(*args, **kwargs))
 
         return proxy
 
@@ -348,10 +365,9 @@ class User(DBUser, BaseUser):
         self.chats_future.set_result(None)
         portals = {conv.id_: await po.Portal.get_by_conversation(conv, self.gcid)
                    for conv in chats.get_all()}
-        self.chats.on_watermark_notification.add_observer(
-            self._ensure_future_proxy(self.on_receipt))
-        self.chats.on_event.add_observer(self._ensure_future_proxy(self.on_event))
-        self.chats.on_typing.add_observer(self._ensure_future_proxy(self.on_typing))
+        self.chats.on_watermark_notification.add_observer(self._in_background(self.on_receipt))
+        self.chats.on_event.add_observer(self._in_background(self.on_event))
+        self.chats.on_typing.add_observer(self._in_background(self.on_typing))
         # self.log.debug("Fetching recent conversations to create portals for")
         # res = await self.client.sync_recent_conversations(hangouts.SyncRecentConversationsRequest(
         #     request_header=self.client.get_request_header(),
@@ -474,7 +490,7 @@ class User(DBUser, BaseUser):
             return resp.topic.id.topic_id
 
     async def send_image(self, conversation_id: str, id: str, thread_id: Optional[str] = None,
-                        local_id: Optional[str] = None) -> str:
+                         local_id: Optional[str] = None) -> str:
         resp = await self.chats.get(conversation_id).send_message(image_id=id, thread_id=thread_id,
                                                                   local_id=local_id, text_body="")
         if thread_id:
