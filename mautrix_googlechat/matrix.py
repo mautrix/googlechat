@@ -95,8 +95,10 @@ class MatrixHandler(BaseMatrixHandler):
         await user.mark_read(portal.gcid)
 
     def filter_matrix_event(self, evt: Event) -> bool:
-        if not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent, ReceiptEvent,
-                                TypingEvent, PresenceEvent)):
+        if isinstance(evt, (ReceiptEvent, TypingEvent, PresenceEvent)):
+            return False
+        elif not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent, ReceiptEvent,
+                                  TypingEvent, PresenceEvent)):
             return True
         return (evt.sender == self.az.bot_mxid
                 or pu.Puppet.get_id_from_mxid(evt.sender) is not None)
