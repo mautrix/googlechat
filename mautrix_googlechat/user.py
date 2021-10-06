@@ -239,7 +239,8 @@ class User(DBUser, BaseUser):
                 backoff = int(backoff * 1.5)
                 if backoff > 60:
                     state_event = BridgeStateEvent.UNKNOWN_ERROR
-            await self.send_bridge_notice(error_msg, important=True, state_event=state_event)
+            await self.send_bridge_notice(error_msg, state_event=state_event,
+                                          important=state_event == BridgeStateEvent.UNKNOWN_ERROR)
             last_disconnection = time.time()
             self.log.debug(f"Reconnecting in {backoff} seconds")
             await asyncio.sleep(backoff)

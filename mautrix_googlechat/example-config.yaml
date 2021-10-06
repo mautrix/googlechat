@@ -145,7 +145,7 @@ bridge:
 
     # Reconnect options for hangups
     reconnect:
-      max_retries: 30
+      max_retries: 4
       retry_backoff_base: 1.5
 
     # Set this to true to tell the bridge to re-send m.bridge events to all rooms on the next run.
