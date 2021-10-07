@@ -363,7 +363,8 @@ class User(DBUser, BaseUser):
     @async_time(METRIC_SYNC_CHATS)
     async def sync_chats(self, chats: ConversationList) -> None:
         self.chats = chats
-        self.chats_future.set_result(None)
+        if not self.chats_future.done():
+            self.chats_future.set_result(None)
         portals = {conv.id_: await po.Portal.get_by_conversation(conv, self.gcid)
                    for conv in chats.get_all()}
         self.chats.on_watermark_notification.add_observer(self._in_background(self.on_receipt))
@@ -380,8 +381,8 @@ class User(DBUser, BaseUser):
         self.log.debug("Found %d conversations in chat list", len(convs))
         convs = sorted(convs, reverse=True,
                        key=lambda conv: conv.last_modified)
-        convs = convs[:self.config["bridge.initial_chat_sync"]]
-        for chat in convs:
+        max_sync = self.config["bridge.initial_chat_sync"]
+        for i, chat in enumerate(convs):
             self.log.debug("Syncing %s", chat.id_)
             portal = await po.Portal.get_by_conversation(chat, self.gcid)
             if portal.mxid:
@@ -391,7 +392,7 @@ class User(DBUser, BaseUser):
                 #     self.log.debug("Last message %s in chat %s not found in db, backfilling...",
                 #                    state.event[0].event_id, state.conversation_id.id)
                 #     await portal.backfill(self, is_initial=False)
-            else:
+            elif i < max_sync:
                 await portal.create_matrix_room(self, chat)
         await self.update_direct_chats()
 
