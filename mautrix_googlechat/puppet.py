@@ -141,13 +141,13 @@ class Puppet(DBPuppet, BasePuppet):
         if photo_url != self.photo_id or not self.avatar_set:
             if photo_url != self.photo_id:
                 if photo_url:
-                    self.avatar_mxc = await self._reupload_gc_photo(
+                    self.photo_mxc = await self._reupload_gc_photo(
                         photo_url, self.default_mxid_intent)
                 else:
-                    self.avatar_mxc = ""
+                    self.photo_mxc = ContentURI("")
                 self.photo_id = photo_url
             try:
-                await self.default_mxid_intent.set_avatar_url(self.avatar_mxc)
+                await self.default_mxid_intent.set_avatar_url(self.photo_mxc)
                 self.avatar_set = True
             except Exception:
                 self.log.exception("Failed to set avatar")

@@ -95,10 +95,6 @@ class Portal(DBPortal, BasePortal):
         self.backfill_lock = SimpleLock("Waiting for backfilling to finish before handling %s",
                                         log=self.log)
 
-        self.by_gcid[self.gcid_full] = self
-        if self.mxid:
-            self.by_mxid[self.mxid] = self
-
     @classmethod
     def init_cls(cls, bridge: 'GoogleChatBridge') -> None:
         BasePortal.bridge = bridge
