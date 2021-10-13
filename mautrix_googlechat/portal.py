@@ -21,6 +21,10 @@ import random
 import time
 import io
 
+import magic
+from yarl import URL
+import aiohttp
+
 from hangups import googlechat_pb2 as googlechat, ChatMessageEvent, FileTooLargeError
 from hangups.user import User as HangoutsUser
 from hangups.conversation import Conversation as HangoutsChat
@@ -605,13 +609,26 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handled Google Chat message %s -> %s", event.msg_id, event_ids)
         await self._send_delivery_receipt(event_ids[-1])
 
+    @staticmethod
+    async def _download_external_attachment(url: str, max_size: int) -> Tuple[bytes, str, str]:
+        async with aiohttp.ClientSession() as sess, sess.get(url) as resp:
+            filename = url.split("/")[-1]
+            if 0 < max_size < int(resp.headers["Content-Length"]):
+                raise FileTooLargeError("Image size larger than maximum")
+            data = await resp.read()
+            mime = resp.headers.get("Content-Type") or magic.from_buffer(data, mime=True)
+            return data, mime, filename
+
     async def process_googlechat_attachments(self, source: 'u.User', event: ChatMessageEvent,
                                              intent: IntentAPI, reply_to: DBMessage
                                              ) -> AsyncIterable[EventID]:
         max_size = self.matrix.media_config.upload_size
         for url in event.attachments:
             try:
-                data, mime, filename = await source.client.download_attachment(url, max_size)
+                if URL(url).host.endswith(".google.com"):
+                    data, mime, filename = await source.client.download_attachment(url, max_size)
+                else:
+                    data, mime, filename = await self._download_external_attachment(url, max_size)
             except FileTooLargeError:
                 # TODO send error message
                 self.log.warning("Can't upload too large attachment")
