@@ -26,7 +26,7 @@ from yarl import URL
 import aiohttp
 
 from hangups import googlechat_pb2 as googlechat, ChatMessageEvent, FileTooLargeError
-from hangups.user import User as HangoutsUser
+from hangups.user import User as HangoutsUser, NameType
 from hangups.conversation import Conversation as HangoutsChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
                            TextMessageEventContent, MediaMessageEventContent, Membership, UserID,
@@ -200,12 +200,15 @@ class Portal(DBPortal, BasePortal):
                 await self.save()
         if not self.mxid:
             return
-        puppets: Dict[HangoutsUser, p.Puppet] = {user: await p.Puppet.get_by_gcid(user.id_)
-                                                 for user in users}
-        await asyncio.gather(*[puppet.update_info(source=source, info=user)
-                               for user, puppet in puppets.items()])
-        await asyncio.gather(*[puppet.intent_for(self).ensure_joined(self.mxid)
-                               for puppet in puppets.values()])
+        await asyncio.gather(*[self._update_participant(source, user) for user in users])
+
+    async def _update_participant(self, source: 'u.User', info: HangoutsUser) -> None:
+        if info.name_type == NameType.DEFAULT:
+            self.log.warning("info.users in update_participants() contained user "
+                             f"with unknown name: {info}")
+        puppet = await p.Puppet.get_by_gcid(info.id_)
+        await puppet.update_info(source=source, info=info)
+        await puppet.intent_for(self).ensure_joined(self.mxid)
 
     # endregion
 
@@ -370,7 +373,11 @@ class Portal(DBPortal, BasePortal):
                                      ).default_mxid_intent
                 await self.save()
             puppet = await p.Puppet.get_by_gcid(self.other_user_id)
-            await puppet.update_info(source=source, info=info.get_user(self.other_user_id))
+            user_info = info.get_user(self.other_user_id)
+            if user_info.name_type == NameType.DEFAULT:
+                self.log.warning("info.get_user() in create_matrix_room() returned user "
+                                 f"with unknown name: {user_info}")
+            await puppet.update_info(source=source, info=user_info)
             power_levels.users[source.mxid] = 50
         power_levels.users[self.main_intent.mxid] = 100
         initial_state = [{

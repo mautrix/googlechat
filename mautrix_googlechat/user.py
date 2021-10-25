@@ -23,6 +23,7 @@ import hangups
 from hangups import (hangouts_pb2 as hangouts, googlechat_pb2 as googlechat,
                      Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
                      MembershipChangeEvent)
+from hangups.user import NameType
 from hangups.auth import TokenManager, GoogleAuthError
 from hangups.conversation import ConversationList, Conversation
 from hangups.parsers import TypingStatusMessage, WatermarkNotification
@@ -335,6 +336,8 @@ class User(DBUser, BaseUser):
                 continue
             puppet = await pu.Puppet.get_by_gcid(info.id_, create=True)
             puppets[puppet.gcid] = puppet
+            if info.name_type == NameType.DEFAULT:
+                self.log.warning(f"users.get_all() returned user with unknown name: {info}")
             updates.append(puppet.update_info(self, info, update_avatar=update_avatars))
         self.log.debug(f"Syncing info of {len(updates)} puppets "
                        f"(avatars included: {update_avatars})...")

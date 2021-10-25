@@ -20,7 +20,7 @@ from yarl import URL
 import aiohttp
 import magic
 
-from hangups.user import User as HangoutsUser
+from hangups.user import User as HangoutsUser, NameType, DEFAULT_NAME
 from mautrix.types import RoomID, UserID, ContentURI, SyncToken
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePuppet, async_getter_lock
@@ -106,6 +106,9 @@ class Puppet(DBPuppet, BasePuppet):
                           ) -> None:
         if not info:
             info = source.users.get_user(self.gcid)
+            if info.name_type == NameType.DEFAULT:
+                self.log.warning("users.get_user() returned user with unknown name "
+                                 f"in update_info(): {info}")
             # info = await source.client.get_entity_by_id(hangouts.GetEntityByIdRequest(
             #     request_header=source.client.get_request_header(),
             #     batch_lookup_spec=hangouts.EntityLookupSpec(
@@ -122,10 +125,14 @@ class Puppet(DBPuppet, BasePuppet):
     def get_name_from_info(cls, info: HangoutsUser) -> str:
         first = info.first_name or info.full_name
         full = info.full_name or info.first_name
+        if first == DEFAULT_NAME and full == DEFAULT_NAME:
+            return ""
         return cls.config["bridge.displayname_template"].format(first_name=first, full_name=full)
 
     async def _update_name(self, info: HangoutsUser) -> bool:
         name = self.get_name_from_info(info)
+        if not name:
+            return False
         if name != self.name or not self.name_set:
             self.name = name
             try:
