@@ -46,7 +46,7 @@ METRIC_TYPING = Summary('bridge_on_typing', 'calls to on_typing')
 METRIC_EVENT = Summary('bridge_on_event', 'calls to on_event')
 METRIC_RECEIPT = Summary('bridge_on_receipt', 'calls to on_receipt')
 METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the bridge')
-METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Hangouts')
+METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Google Chat')
 
 
 class User(DBUser, BaseUser):
@@ -274,7 +274,7 @@ class User(DBUser, BaseUser):
     async def on_connect(self) -> None:
         self.connected = True
         asyncio.create_task(self.on_connect_later())
-        await self.send_bridge_notice("Connected to Hangouts")
+        await self.send_bridge_notice("Connected to Google Chat")
 
     async def on_connect_later(self) -> None:
         try:
@@ -305,7 +305,7 @@ class User(DBUser, BaseUser):
 
     async def on_reconnect(self) -> None:
         self.connected = True
-        await self.send_bridge_notice("Reconnected to Hangouts")
+        await self.send_bridge_notice("Reconnected to Google Chat")
         await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def on_disconnect(self) -> None:
