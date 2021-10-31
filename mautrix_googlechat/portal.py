@@ -26,8 +26,8 @@ from yarl import URL
 import aiohttp
 
 from hangups import googlechat_pb2 as googlechat, ChatMessageEvent, FileTooLargeError
-from hangups.user import User as HangoutsUser, NameType
-from hangups.conversation import Conversation as HangoutsChat
+from hangups.user import User as GoogleChatUser, NameType
+from hangups.conversation import Conversation as GoogleChatChat
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
                            TextMessageEventContent, MediaMessageEventContent, Membership, UserID,
                            PowerLevelStateEventContent, ContentURI, EncryptionAlgorithm)
@@ -151,13 +151,13 @@ class Portal(DBPortal, BasePortal):
     # region Chat info updating
 
     async def update_info(self, source: Optional['u.User'] = None,
-                          info: Optional[HangoutsChat] = None) -> HangoutsChat:
+                          info: Optional[GoogleChatChat] = None) -> GoogleChatChat:
         if not info:
             info = source.chats.get(self.gcid)
-            # info = await source.client.get_conversation(hangouts.GetConversationRequest(
+            # info = await source.client.get_conversation(googlechat.GetConversationRequest(
             #     request_header=source.client.get_request_header(),
-            #     conversation_spec=hangouts.ConversationSpec(
-            #         conversation_id=hangouts.ConversationId(id=self.gid),
+            #     conversation_spec=googlechat.ConversationSpec(
+            #         conversation_id=googlechat.ConversationId(id=self.gid),
             #     ),
             #     include_event=False,
             # ))
@@ -168,7 +168,7 @@ class Portal(DBPortal, BasePortal):
             await self.update_bridge_info()
         return info
 
-    async def _update_name(self, info: HangoutsChat) -> bool:
+    async def _update_name(self, info: GoogleChatChat) -> bool:
         if self.is_direct:
             other_user = info.get_user(self.other_user_id)
             name = p.Puppet.get_name_from_info(other_user)
@@ -189,7 +189,7 @@ class Portal(DBPortal, BasePortal):
             invite_content["is_direct"] = True
         return invite_content
 
-    async def _update_participants(self, source: 'u.User', info: HangoutsChat) -> None:
+    async def _update_participants(self, source: 'u.User', info: GoogleChatChat) -> None:
         users = info.users
         if self.is_direct:
             users = [user for user in users if user.id_ != source.gcid]
@@ -202,7 +202,7 @@ class Portal(DBPortal, BasePortal):
             return
         await asyncio.gather(*[self._update_participant(source, user) for user in users])
 
-    async def _update_participant(self, source: 'u.User', info: HangoutsUser) -> None:
+    async def _update_participant(self, source: 'u.User', info: GoogleChatUser) -> None:
         if info.name_type == NameType.DEFAULT:
             self.log.warning("info.users in update_participants() contained user "
                              f"with unknown name: {info}")
@@ -215,17 +215,17 @@ class Portal(DBPortal, BasePortal):
     async def _load_messages(self, source: 'u.User', limit: int = 100,
                              token: Any = None
                              ) -> Tuple[List[ChatMessageEvent], Any]:
-        # resp = await source.client.get_conversation(hangouts.GetConversationRequest(
+        # resp = await source.client.get_conversation(googlechat.GetConversationRequest(
         #     request_header=source.client.get_request_header(),
-        #     conversation_spec=hangouts.ConversationSpec(
-        #         conversation_id=hangouts.ConversationId(id=self.gid),
+        #     conversation_spec=googlechat.ConversationSpec(
+        #         conversation_id=googlechat.ConversationId(id=self.gid),
         #     ),
         #     include_conversation_metadata=False,
         #     include_event=True,
         #     max_events_per_conversation=limit,
         #     event_continuation_token=token
         # ))
-        # return ([HangoutsChat._wrap_event(evt) for evt in resp.conversation_state.event],
+        # return ([GoogleChatChat._wrap_event(evt) for evt in resp.conversation_state.event],
         #         resp.conversation_state.event_continuation_token)
         return [], None
 
@@ -292,21 +292,21 @@ class Portal(DBPortal, BasePortal):
     # region Matrix room creation
 
     async def _update_matrix_room(self, source: 'u.User',
-                                  info: Optional[HangoutsChat] = None) -> None:
+                                  info: Optional[GoogleChatChat] = None) -> None:
         await self.main_intent.invite_user(self.mxid, source.mxid, check_cache=True)
         puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
         if puppet:
             await puppet.intent.ensure_joined(self.mxid)
         await self.update_info(source, info)
 
-    async def update_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
+    async def update_matrix_room(self, source: 'u.User', info: Optional[GoogleChatChat] = None
                                  ) -> None:
         try:
             await self._update_matrix_room(source, info)
         except Exception:
             self.log.exception("Failed to update portal")
 
-    async def create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
+    async def create_matrix_room(self, source: 'u.User', info: Optional[GoogleChatChat] = None
                                  ) -> RoomID:
         if self.mxid:
             try:
@@ -354,7 +354,7 @@ class Portal(DBPortal, BasePortal):
         except Exception:
             self.log.warning("Failed to update bridge info", exc_info=True)
 
-    async def _create_matrix_room(self, source: 'u.User', info: Optional[HangoutsChat] = None
+    async def _create_matrix_room(self, source: 'u.User', info: Optional[GoogleChatChat] = None
                                   ) -> RoomID:
         if self.mxid:
             await self._update_matrix_room(source, info)
@@ -550,7 +550,7 @@ class Portal(DBPortal, BasePortal):
         await asyncio.gather(*stopped_typing, *started_typing)
 
     # endregion
-    # region Hangouts event handling
+    # region GoogleChat event handling
 
     async def _bridge_own_message_pm(self, source: 'u.User', sender: 'p.Puppet', msg_id: str,
                                      invite: bool = True) -> bool:
@@ -657,7 +657,7 @@ class Portal(DBPortal, BasePortal):
                 content.set_reply(reply_to.mxid)
             yield await self._send_message(intent, content, timestamp=event.timestamp)
 
-    async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
+    async def handle_googlechat_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
                                      ) -> None:
         if not self.mxid:
             return
@@ -737,7 +737,7 @@ class Portal(DBPortal, BasePortal):
                 yield portal
 
     @classmethod
-    def get_by_conversation(cls, conversation: HangoutsChat, receiver: str
+    def get_by_conversation(cls, conversation: GoogleChatChat, receiver: str
                             ) -> Awaitable[Optional['Portal']]:
         return cls.get_by_gcid(conversation.id_, receiver)
 
