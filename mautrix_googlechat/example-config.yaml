@@ -126,6 +126,9 @@ bridge:
     # Whether or not the bridge should send a read receipt from the bridge bot when a message has
     # been sent to Google Chat.
     delivery_receipts: false
+    # Whether or not created rooms should have federation enabled.
+    # If false, created portal rooms will never be federated.
+    federate_rooms: true
     # Settings for backfilling messages from Google Chat.
     backfill:
         # Whether or not the Google Chat users of logged in Matrix users should be
