@@ -15,12 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import List, TYPE_CHECKING
 
-from mautrix.types import (EventID, RoomID, UserID, Event, EventType, MessageEvent, StateEvent,
-                           EncryptedEvent, PresenceEventContent, ReceiptEvent, PresenceState,
-                           TypingEvent, PresenceEvent, SingleReceiptEventContent)
+from mautrix.types import (EventID, RoomID, UserID, Event, EventType, PresenceEventContent,
+                           PresenceState, SingleReceiptEventContent)
 from mautrix.bridge import BaseMatrixHandler
 
-from . import user as u, puppet as pu, portal as po
+from . import user as u, portal as po
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
@@ -93,15 +92,6 @@ class MatrixHandler(BaseMatrixHandler):
                                   data: SingleReceiptEventContent) -> None:
         # TODO we could probably get a timestamp from somewhere and use that
         await user.mark_read(portal.gcid)
-
-    def filter_matrix_event(self, evt: Event) -> bool:
-        if isinstance(evt, (ReceiptEvent, TypingEvent, PresenceEvent)):
-            return False
-        elif not isinstance(evt, (MessageEvent, StateEvent, EncryptedEvent, ReceiptEvent,
-                                  TypingEvent, PresenceEvent)):
-            return True
-        return (evt.sender == self.az.bot_mxid
-                or pu.Puppet.get_id_from_mxid(evt.sender) is not None)
 
     async def handle_ephemeral_event(self, evt: Event) -> None:
         if evt.type == EventType.PRESENCE:

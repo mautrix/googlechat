@@ -472,10 +472,6 @@ class Portal(DBPortal, BasePortal):
 
     async def handle_matrix_message(self, sender: 'u.User', message: MessageEventContent,
                                     event_id: EventID) -> None:
-        puppet = await p.Puppet.get_by_custom_mxid(sender.mxid)
-        if puppet and message.get(self.az.real_user_content_key, False):
-            self.log.debug(f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}")
-            return
         reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
         thread_id = (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
