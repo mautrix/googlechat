@@ -13,6 +13,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from typing import Dict, Any
+
 from mautrix.bridge import Bridge
 from mautrix.types import RoomID, UserID
 from mautrix.bridge.state_store.asyncpg import PgBridgeStateStore
@@ -111,6 +113,14 @@ class GoogleChatBridge(Bridge):
 
     async def count_logged_in_users(self) -> int:
         return len([user for user in User.by_mxid.values() if user.gcid])
+
+    async def manhole_global_namespace(self, user_id: UserID) -> Dict[str, Any]:
+        return {
+            **await super().manhole_global_namespace(user_id),
+            "User": User,
+            "Portal": Portal,
+            "Puppet": Puppet,
+        }
 
 
 GoogleChatBridge().run()
