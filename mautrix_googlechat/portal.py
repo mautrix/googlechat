@@ -33,6 +33,7 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
                            PowerLevelStateEventContent, ContentURI, EncryptionAlgorithm)
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
+from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
 from mautrix.util.simple_lock import SimpleLock
 from mautrix.errors import MatrixError
 
@@ -406,9 +407,16 @@ class Portal(DBPortal, BasePortal):
         # We lock backfill lock here so any messages that come between the room being created
         # and the initial backfill finishing wouldn't be bridged before the backfill messages.
         with self.backfill_lock:
-            self.mxid = await self.main_intent.create_room(name=name, is_direct=self.is_direct,
-                                                           invitees=invites,
-                                                           initial_state=initial_state)
+            creation_content = {}
+            if not self.config["bridge.federate_rooms"]:
+                creation_content["m.federate"] = False
+            self.mxid = await self.main_intent.create_room(
+                name=name,
+                is_direct=self.is_direct,
+                initial_state=initial_state,
+                invitees=invites,
+                creation_content=creation_content,
+            )
             if not self.mxid:
                 raise Exception("Failed to create room: no mxid returned")
             if self.encrypted and self.matrix.e2ee and self.is_direct:
@@ -464,10 +472,6 @@ class Portal(DBPortal, BasePortal):
 
     async def handle_matrix_message(self, sender: 'u.User', message: MessageEventContent,
                                     event_id: EventID) -> None:
-        puppet = await p.Puppet.get_by_custom_mxid(sender.mxid)
-        if puppet and message.get(self.az.real_user_content_key, False):
-            self.log.debug(f"Ignoring puppet-sent message by confirmed puppet user {sender.mxid}")
-            return
         reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
         thread_id = (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
@@ -476,29 +480,45 @@ class Portal(DBPortal, BasePortal):
         # TODO this probably isn't nice for bridging images, it really only needs to lock the
         #      actual message send call and dedup queue append.
         async with self.require_send_lock(sender.gcid):
-            if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
-                gcid = await self._handle_matrix_text(sender, message, thread_id, local_id)
-            elif message.msgtype == MessageType.EMOTE:
-                gcid = await self._handle_matrix_emote(sender, message, thread_id, local_id)
-            elif message.msgtype == MessageType.IMAGE:
-                gcid = await self._handle_matrix_image(sender, message, thread_id, local_id)
-            # elif message.msgtype == MessageType.LOCATION:
-            #     gid = await self._handle_matrix_location(sender, message, thread_id, local_id)
+            try:
+                if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
+                    gcid = await self._handle_matrix_text(sender, message, thread_id, local_id)
+                elif message.msgtype == MessageType.EMOTE:
+                    gcid = await self._handle_matrix_emote(sender, message, thread_id, local_id)
+                elif message.msgtype == MessageType.IMAGE:
+                    gcid = await self._handle_matrix_image(sender, message, thread_id, local_id)
+                # elif message.msgtype == MessageType.LOCATION:
+                #     gid = await self._handle_matrix_location(sender, message, thread_id, local_id)
+                else:
+                    raise ValueError(f"Unsupported msgtype in {message}")
+            except Exception as e:
+                self.log.exception(f"Failed handling matrix message {event_id}")
+                sender.send_remote_checkpoint(
+                    status=MessageSendCheckpointStatus.PERM_FAILURE,
+                    event_id=event_id,
+                    room_id=self.mxid,
+                    event_type=EventType.ROOM_MESSAGE,
+                    message_type=message.msgtype,
+                    error=e,
+                )
             else:
-                self.log.warning(f"Unsupported msgtype in {message}")
-                return
-            if not gcid:
-                return
-            self._dedup.appendleft(gcid)
-            self._local_dedup.remove(local_id)
-            # TODO pass through actual timestamp instead of using time.time()
-            ts = int(time.time() * 1000)
-            await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=gcid, gc_chat=self.gcid,
-                            gc_receiver=self.gc_receiver, gc_parent_id=thread_id, index=0,
-                            timestamp=ts).insert()
-            self._last_bridged_mxid = event_id
-            self.log.debug(f"Handled Matrix message {event_id} -> {local_id} -> {gcid}")
-        await self._send_delivery_receipt(event_id)
+                self.log.debug(f"Handled Matrix message {event_id} -> {local_id} -> {gcid}")
+                await self._send_delivery_receipt(event_id)
+                sender.send_remote_checkpoint(
+                    status=MessageSendCheckpointStatus.SUCCESS,
+                    event_id=event_id,
+                    room_id=self.mxid,
+                    event_type=EventType.ROOM_MESSAGE,
+                    message_type=message.msgtype,
+                )
+                self._dedup.appendleft(gcid)
+                self._local_dedup.remove(local_id)
+                # TODO pass through actual timestamp instead of using time.time()
+                ts = int(time.time() * 1000)
+                await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=gcid, gc_chat=self.gcid,
+                                gc_receiver=self.gc_receiver, gc_parent_id=thread_id, index=0,
+                                timestamp=ts).insert()
+                self._last_bridged_mxid = event_id
 
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent,
                                   thread_id: str, local_id: str) -> str:
@@ -511,7 +531,7 @@ class Portal(DBPortal, BasePortal):
                                        local_id=local_id)
 
     async def _handle_matrix_image(self, sender: 'u.User', message: MediaMessageEventContent,
-                                   thread_id: str, local_id: str) -> Optional[str]:
+                                   thread_id: str, local_id: str) -> str:
         if message.file and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
             data = decrypt_attachment(data, message.file.key.key,
@@ -519,7 +539,7 @@ class Portal(DBPortal, BasePortal):
         elif message.url:
             data = await self.main_intent.download_media(message.url)
         else:
-            return None
+            raise Exception("Failed to download media from matrix")
         image = await sender.client.upload_image(image_file=io.BytesIO(data),
                                                  group_id=self.gcid_plain,
                                                  filename=message.body)
