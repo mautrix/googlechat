@@ -109,8 +109,8 @@ class MatrixHandler(BaseMatrixHandler):
             return
 
         if evt.type in (EventType.ROOM_REDACTION, EventType.REACTION):
-            friendly_event_type = "Reaction" if evt.type == EventType.REACTION else "Redaction"
-            error = f"{friendly_event_type} events are not supported by Google Chat"
+            friendly_action = "Reacting to" if evt.type == EventType.REACTION else "Deleting"
+            error = f"{friendly_action} messages is not yet supported by the bridge"
             evt.sender.send_remote_checkpoint(
                 MessageSendCheckpointStatus.PERM_FAILURE,
                 evt.event_id,
