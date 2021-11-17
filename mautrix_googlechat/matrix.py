@@ -18,6 +18,8 @@ from typing import List, TYPE_CHECKING
 from mautrix.types import (EventID, RoomID, UserID, Event, EventType, PresenceEventContent,
                            PresenceState, SingleReceiptEventContent)
 from mautrix.bridge import BaseMatrixHandler
+from mautrix.types.event.message import MessageType, TextMessageEventContent
+from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
 
 from . import user as u, portal as po
 
@@ -100,3 +102,23 @@ class MatrixHandler(BaseMatrixHandler):
             await self.handle_typing(evt.room_id, evt.content.user_ids)
         else:
             await super().handle_ephemeral_event(evt)
+
+    async def handle_event(self, evt: Event) -> None:
+        portal = await po.Portal.get_by_mxid(evt.room_id)
+        if not portal:
+            return
+
+        if evt.type in (EventType.ROOM_REDACTION, EventType.REACTION):
+            friendly_event_type = "Reaction" if evt.type == EventType.REACTION else "Redaction"
+            error = f"{friendly_event_type} events are not supported by Google Chat"
+            evt.sender.send_remote_checkpoint(
+                MessageSendCheckpointStatus.PERM_FAILURE,
+                evt.event_id,
+                evt.room_id,
+                evt.type,
+                error=Exception(error),
+            )
+            await portal._send_message(
+                portal.main_intent,
+                TextMessageEventContent(msgtype=MessageType.NOTICE, body=error),
+            )
