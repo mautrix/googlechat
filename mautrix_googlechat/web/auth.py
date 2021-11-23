@@ -24,7 +24,7 @@ import random
 
 from aiohttp import web
 
-from hangups.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES, TokenManager, GoogleAuthError
+from maugclib.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES, TokenManager, GoogleAuthError
 from mautrix.types import UserID
 from mautrix.util.signed_token import sign_token, verify_token
 

@@ -21,7 +21,7 @@ from attr import dataclass
 from mautrix.types import RoomID, EventID
 from mautrix.util.async_db import Database
 
-fake_db = Database("") if TYPE_CHECKING else None
+fake_db = Database.create("") if TYPE_CHECKING else None
 
 
 @dataclass
@@ -36,6 +36,8 @@ class Message:
     gc_parent_id: Optional[str]
     index: int
     timestamp: int
+    msgtype: Optional[str]
+    gc_sender: Optional[str]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional['Message']:
@@ -43,26 +45,30 @@ class Message:
             return None
         return cls(**row)
 
-    columns = "mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, index, timestamp"
+    columns = ("mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, "
+               "index, timestamp, msgtype, gc_sender")
 
     @classmethod
-    async def get_all_by_gcid(cls, gcid: str, gc_receiver: str) -> List['Message']:
-        q = f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_receiver=$2"
-        rows = await cls.db.fetch(q, gcid, gc_receiver)
+    async def get_all_by_gcid(cls, gcid: str, gc_chat: str, gc_receiver: str) -> List['Message']:
+        q = f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_chat=$2 AND gc_receiver=$3"
+        rows = await cls.db.fetch(q, gcid, gc_chat, gc_receiver)
         return [cls._from_row(row) for row in rows]
 
     @classmethod
-    async def get_by_gcid(cls, gcid: str, gc_receiver: str, index: int = 0) -> Optional['Message']:
-        q = f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"
-        row = await cls.db.fetchrow(q, gcid, gc_receiver, index)
+    async def get_by_gcid(cls, gcid: str, gc_chat: str, gc_receiver: str, index: int = 0
+                          ) -> Optional['Message']:
+        q = (f"SELECT {cls.columns} FROM message WHERE gcid=$1 AND gc_chat=$2 AND gc_receiver=$3"
+             f"                                    AND index=$4")
+        row = await cls.db.fetchrow(q, gcid, gc_chat, gc_receiver, index)
         return cls._from_row(row)
 
     @classmethod
-    async def get_last_in_thread(cls, gc_parent_id: str, gc_receiver: str) -> Optional['Message']:
+    async def get_last_in_thread(cls, gc_parent_id: str, gc_chat: str, gc_receiver: str
+                                 ) -> Optional['Message']:
         q = (f"SELECT {cls.columns} FROM message"
-             " WHERE (gc_parent_id=$1 OR gcid=$1) AND gc_receiver=$2"
+             " WHERE (gc_parent_id=$1 OR gcid=$1) AND gc_chat=$2 AND gc_receiver=$3"
              " ORDER BY timestamp DESC LIMIT 1")
-        row = await cls.db.fetchrow(q, gc_parent_id, gc_receiver)
+        row = await cls.db.fetchrow(q, gc_parent_id, gc_chat, gc_receiver)
         return cls._from_row(row)
 
     @classmethod
@@ -95,10 +101,11 @@ class Message:
 
     async def insert(self) -> None:
         q = ("INSERT INTO message (mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, "
-             "                     index, timestamp) "
-             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
+             "                     index, timestamp, msgtype, gc_sender) "
+             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
         await self.db.execute(q, self.mxid, self.mx_room, self.gcid, self.gc_chat,
-                              self.gc_receiver, self.gc_parent_id, self.index, self.timestamp)
+                              self.gc_receiver, self.gc_parent_id, self.index, self.timestamp,
+                              self.msgtype, self.gc_sender)
 
     async def delete(self) -> None:
         q = "DELETE FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"

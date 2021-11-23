@@ -14,39 +14,35 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, AsyncIterable, cast,
-                    TYPE_CHECKING)
+                    NamedTuple, TYPE_CHECKING)
 import datetime
 import asyncio
 import time
 
-import hangups
-from hangups import (hangouts_pb2 as hangouts, googlechat_pb2 as googlechat,
-                     Client, UserList, RefreshTokenCache, ConversationEvent, ChatMessageEvent,
-                     MembershipChangeEvent)
-from hangups.user import NameType
-from hangups.auth import TokenManager, GoogleAuthError
-from hangups.conversation import ConversationList, Conversation
-from hangups.parsers import TypingStatusMessage, WatermarkNotification
+import maugclib.parsers
+from maugclib import (googlechat_pb2 as googlechat, Client, RefreshTokenCache, TokenManager,
+                      GoogleAuthError)
 
 from mautrix.types import UserID, RoomID, MessageType
-from mautrix.bridge import BaseUser, BridgeState, async_getter_lock
-from mautrix.util.bridge_state import BridgeStateEvent
+from mautrix.bridge import BaseUser, async_getter_lock
+from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Summary, async_time
 
 from .config import Config
-from .db import User as DBUser, Message as DBMessage
+from .db import User as DBUser
 from . import puppet as pu, portal as po
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
 
-METRIC_SYNC_CHATS = Summary('bridge_sync_chats', 'calls to sync_chats')
-METRIC_SYNC_USERS = Summary('bridge_sync_users', 'calls to sync_users')
+METRIC_SYNC = Summary('bridge_sync', 'calls to sync')
 METRIC_TYPING = Summary('bridge_on_typing', 'calls to on_typing')
 METRIC_EVENT = Summary('bridge_on_event', 'calls to on_event')
 METRIC_RECEIPT = Summary('bridge_on_receipt', 'calls to on_receipt')
 METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the bridge')
-METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Hangouts')
+METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Google Chat')
+
+SendResponse = NamedTuple('SendResponse', gcid=str, timestamp=int)
 
 
 class User(DBUser, BaseUser):
@@ -64,9 +60,10 @@ class User(DBUser, BaseUser):
     name_future: asyncio.Future
     connected: bool
 
-    chats: Optional[ConversationList]
-    chats_future: asyncio.Future
-    users: Optional[UserList]
+    groups: Dict[str, googlechat.GetGroupResponse]
+    groups_lock: asyncio.Lock
+    users: Dict[str, googlechat.User]
+    users_lock: asyncio.Lock
 
     def __init__(self, mxid: UserID, gcid: Optional[str] = None,
                  refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None
@@ -78,11 +75,12 @@ class User(DBUser, BaseUser):
         self.is_whitelisted, self.is_admin, self.level = self.config.get_permissions(mxid)
         self.client = None
         self.name = None
-        self.name_future = asyncio.Future()
+        self.name_future = self.loop.create_future()
         self.connected = False
-        self.chats = None
-        self.chats_future = asyncio.Future()
-        self.users = None
+        self.groups = {}
+        self.groups_lock = asyncio.Lock()
+        self.users = {}
+        self.users_lock = asyncio.Lock()
         self._intentional_disconnect = False
 
     # region Sessions
@@ -207,16 +205,28 @@ class User(DBUser, BaseUser):
             )
             self.log.exception("Failed to resume session with stored refresh token")
         else:
-            await self.login_complete(token_mgr)
+            self.login_complete(token_mgr)
 
-    async def login_complete(self, token_manager: TokenManager) -> None:
-        self.client = Client(
-            token_manager, max_retries=self.config['bridge.reconnect.max_retries'],
-            retry_backoff_base=self.config['bridge.reconnect.retry_backoff_base'])
+    def login_complete(self, token_manager: TokenManager) -> None:
+        self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
         asyncio.create_task(self.start())
+        self.client.on_stream_event.add_observer(self._in_background(self.on_stream_event))
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)
+
+    def _in_background(self, method: Callable[[Any], Awaitable[None]]
+                       ) -> Callable[[Any], Awaitable[None]]:
+        async def try_proxy(*args, **kwargs) -> None:
+            try:
+                await method(*args, **kwargs)
+            except Exception:
+                self.log.exception("Exception in event handler")
+
+        async def proxy(*args, **kwargs) -> None:
+            asyncio.create_task(try_proxy(*args, **kwargs))
+
+        return proxy
 
     async def start(self) -> None:
         last_disconnection = 0
@@ -266,32 +276,94 @@ class User(DBUser, BaseUser):
         self.refresh_token = None
         self.connected = False
 
-        self.chats = None
-        if not self.chats_future.done():
-            self.chats_future.set_exception(Exception("logged out"))
-        self.chats_future = asyncio.Future()
-        self.users = None
+        self.users = {}
+        self.groups = {}
 
         self.name = None
         if not self.name_future.done():
             self.name_future.set_exception(Exception("logged out"))
-        self.name_future = asyncio.Future()
+        self.name_future = self.loop.create_future()
 
     async def on_connect(self) -> None:
         self.connected = True
         asyncio.create_task(self.on_connect_later())
-        await self.send_bridge_notice("Connected to Hangouts")
+        await self.send_bridge_notice("Connected to Google Chat")
+
+    async def get_self(self) -> googlechat.User:
+        if not self.gcid:
+            info = await self.client.proto_get_self_user_status(
+                googlechat.GetSelfUserStatusRequest(
+                    request_header=self.client.get_gc_request_header()
+                )
+            )
+            self.gcid = info.user_status.user_id.id
+            self.by_gcid[self.gcid] = self
+
+        resp = await self.client.proto_get_members(googlechat.GetMembersRequest(
+            request_header=self.client.get_gc_request_header(),
+            member_ids=[
+                googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
+            ]
+        ))
+        return resp.members[0].user
+
+    async def get_users(self, ids: List[str]) -> List[googlechat.User]:
+        async with self.users_lock:
+            req_ids = [googlechat.MemberId(user_id=googlechat.UserId(id=user_id))
+                       for user_id in ids if user_id not in self.users]
+            if req_ids:
+                self.log.debug(f"Fetching info of users {[user.user_id.id for user in req_ids]}")
+                resp = await self.client.proto_get_members(googlechat.GetMembersRequest(
+                    request_header=self.client.get_gc_request_header(),
+                    member_ids=req_ids,
+                ))
+                member: googlechat.Member
+                for member in resp.members:
+                    self.users[member.user.user_id.id] = member.user
+        return [self.users[user_id] for user_id in ids]
+
+    async def get_group(self, id: Union[googlechat.GroupId, str]) -> googlechat.GetGroupResponse:
+        if isinstance(id, str):
+            group_id = maugclib.parsers.group_id_from_id(id)
+            conv_id = id
+        else:
+            group_id = id
+            conv_id = maugclib.parsers.id_from_group_id(id)
+        try:
+            return self.groups[conv_id]
+        except KeyError:
+            pass
+
+        async with self.groups_lock:
+            # Try again in case the fetch succeeded while waiting for the lock
+            try:
+                return self.groups[conv_id]
+            except KeyError:
+                pass
+            self.log.debug(f"Fetching info of chat {conv_id}")
+            resp = await self.client.proto_get_group(googlechat.GetGroupRequest(
+                request_header=self.client.get_gc_request_header(),
+                group_id=group_id,
+                fetch_options=[
+                    googlechat.GetGroupRequest.MEMBERS,
+                    googlechat.GetGroupRequest.INCLUDE_DYNAMIC_GROUP_NAME,
+                ],
+            ))
+            self.groups[conv_id] = resp
+        return resp
 
     async def on_connect_later(self) -> None:
         try:
-            info = await self.client.get_self_user_status(googlechat.GetSelfUserStatusRequest(
-                request_header=self.client.get_gc_request_header()
-            ))
+            self_info = await self.get_self()
         except Exception:
-            self.log.exception("Failed to get_self_info")
+            self.log.exception("Failed to get own info")
             return
-        self.gcid = info.user_status.user_id.id
-        self.by_gcid[self.gcid] = self
+        await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
+
+        self.name = self_info.name or self_info.first_name
+        self.log.debug(f"Found own name: {self.name}")
+        self.name_future.set_result(self.name)
+
         self._track_metric(METRIC_CONNECTED, True)
         self._track_metric(METRIC_LOGGED_IN, True)
         await self.save()
@@ -309,9 +381,11 @@ class User(DBUser, BaseUser):
         except Exception:
             self.log.exception("Failed to sync conversations and users")
 
+        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
+
     async def on_reconnect(self) -> None:
         self.connected = True
-        await self.send_bridge_notice("Reconnected to Hangouts")
+        await self.send_bridge_notice("Reconnected to Google Chat")
         await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def on_disconnect(self) -> None:
@@ -320,47 +394,33 @@ class User(DBUser, BaseUser):
         await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT,
                                      error="googlechat-disconnected")
 
+    @async_time(METRIC_SYNC)
     async def sync(self) -> None:
-        await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
-        users, chats = await hangups.build_user_conversation_list(self.client)
-        await asyncio.gather(self.sync_users(users), self.sync_chats(chats))
-        await self.push_bridge_state(BridgeStateEvent.CONNECTED)
-
-    @async_time(METRIC_SYNC_USERS)
-    async def sync_users(self, users: UserList) -> None:
-        self.users = users
-        puppets: Dict[str, pu.Puppet] = {}
-        update_avatars = self.config["bridge.update_avatar_initial_sync"]
-        updates = []
-        self.name = users.get_self().full_name
-        self.log.debug(f"Found own name: {self.name}")
-        if not self.name_future.done():
-            self.name_future.set_result(self.name)
-        for info in users.get_all():
-            if not info.id_:
-                self.log.debug(f"Found user without gaia_id: {info}")
-                continue
-            puppet = await pu.Puppet.get_by_gcid(info.id_, create=True)
-            puppets[puppet.gcid] = puppet
-            if info.name_type == NameType.DEFAULT:
-                self.log.warning(f"users.get_all() returned user with unknown name: {info}")
-            updates.append(puppet.update_info(self, info, update_avatar=update_avatars))
-        self.log.debug(f"Syncing info of {len(updates)} puppets "
-                       f"(avatars included: {update_avatars})...")
-        await asyncio.gather(*updates)
-
-    def _in_background(self, method: Callable[[Any], Awaitable[None]]
-                       ) -> Callable[[Any], Awaitable[None]]:
-        async def try_proxy(*args, **kwargs) -> None:
-            try:
-                await method(*args, **kwargs)
-            except Exception:
-                self.log.exception("Exception in event handler")
-
-        async def proxy(*args, **kwargs) -> None:
-            asyncio.create_task(try_proxy(*args, **kwargs))
-
-        return proxy
+        self.log.debug("Fetching first page of the world")
+        resp = await self.client.proto_paginated_world(googlechat.PaginatedWorldRequest(
+            request_header=self.client.get_gc_request_header(),
+            fetch_from_user_spaces=True,
+            fetch_options=[
+                googlechat.PaginatedWorldRequest.EXCLUDE_GROUP_LITE,
+            ],
+        ))
+        items: List[googlechat.WorldItemLite] = list(resp.world_items)
+        items.sort(key=lambda item: item.sort_timestamp)
+        max_sync = self.config["bridge.initial_chat_sync"]
+        for index, item in enumerate(items):
+            conv_id = maugclib.parsers.id_from_group_id(item.group_id)
+            portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
+            self.log.debug("Syncing %s", portal.gcid)
+            if portal.mxid:
+                await portal.update_matrix_room(self, item)
+                # TODO backfill
+                # if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
+                #     self.log.debug("Last message %s in chat %s not found in db, backfilling...",
+                #                    state.event[0].event_id, state.conversation_id.id)
+                #     await portal.backfill(self, is_initial=False)
+            elif index < max_sync:
+                await portal.create_matrix_room(self, item)
+        await self.update_direct_chats()
 
     async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
         return {
@@ -369,90 +429,52 @@ class User(DBUser, BaseUser):
             if portal.mxid
         }
 
-    @async_time(METRIC_SYNC_CHATS)
-    async def sync_chats(self, chats: ConversationList) -> None:
-        self.chats = chats
-        if not self.chats_future.done():
-            self.chats_future.set_result(None)
-        portals = {conv.id_: await po.Portal.get_by_conversation(conv, self.gcid)
-                   for conv in chats.get_all()}
-        self.chats.on_watermark_notification.add_observer(self._in_background(self.on_receipt))
-        self.chats.on_event.add_observer(self._in_background(self.on_event))
-        self.chats.on_typing.add_observer(self._in_background(self.on_typing))
-        # self.log.debug("Fetching recent conversations to create portals for")
-        # res = await self.client.sync_recent_conversations(hangouts.SyncRecentConversationsRequest(
-        #     request_header=self.client.get_request_header(),
-        #     max_conversations=config["bridge.initial_chat_sync"],
-        #     max_events_per_conversation=1,
-        #     sync_filter=[hangouts.SYNC_FILTER_INBOX],
-        # ))
-        convs = self.chats.get_all()
-        self.log.debug("Found %d conversations in chat list", len(convs))
-        convs = sorted(convs, reverse=True,
-                       key=lambda conv: conv.last_modified)
-        max_sync = self.config["bridge.initial_chat_sync"]
-        for i, chat in enumerate(convs):
-            self.log.debug("Syncing %s", chat.id_)
-            portal = await po.Portal.get_by_conversation(chat, self.gcid)
-            if portal.mxid:
-                await portal.update_matrix_room(self, chat)
-                # TODO backfill
-                # if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
-                #     self.log.debug("Last message %s in chat %s not found in db, backfilling...",
-                #                    state.event[0].event_id, state.conversation_id.id)
-                #     await portal.backfill(self, is_initial=False)
-            elif i < max_sync:
-                await portal.create_matrix_room(self, chat)
-        await self.update_direct_chats()
-
     # region Google Chat event handling
 
-    @async_time(METRIC_RECEIPT)
-    async def on_receipt(self, event: WatermarkNotification) -> None:
-        if not self.chats:
-            self.log.debug("Received receipt event before chat list, ignoring")
+    async def on_stream_event(self, evt: googlechat.Event) -> None:
+        if not evt.group_id:
             return
-        conv: Conversation = self.chats.get(event.conv_id)
-        portal = await po.Portal.get_by_conversation(conv, self.gcid)
-        if not portal:
-            return
-        message = await DBMessage.get_closest_before(portal.gcid, portal.gc_receiver,
-                                                     event.read_timestamp)
-        if not message:
-            return
-        puppet = await pu.Puppet.get_by_gcid(event.user_id)
-        await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
-
-    @async_time(METRIC_EVENT)
-    async def on_event(self, event: ConversationEvent) -> None:
-        if not self.chats:
-            self.log.debug("Received message event before chat list, waiting for chat list")
-            await self.chats_future
-        conv: Conversation = self.chats.get(event.conversation_id)
-        portal = await po.Portal.get_by_conversation(conv, self.gcid)
-        if not portal:
-            return
-
-        sender = await pu.Puppet.get_by_gcid(event.user_id)
-
-        if isinstance(event, ChatMessageEvent):
-            await portal.backfill_lock.wait(event.id_)
-            await portal.handle_googlechat_message(self, sender, event)
-        elif isinstance(event, MembershipChangeEvent):
-            self.log.info(f"{event.id_} by {event.user_id} in {event.conversation_id} "
-                          f"({conv._conversation.type}): {event.participant_ids} {event.type_}'d")
+        conv_id = maugclib.parsers.id_from_group_id(evt.group_id)
+        portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
+        type_name = googlechat.Event.EventType.Name(evt.type)
+        if evt.body.HasField("message_posted"):
+            # await portal.backfill_lock.wait(event.id_)
+            if evt.type == googlechat.Event.MESSAGE_UPDATED:
+                await portal.handle_googlechat_edit(self, evt.body.message_posted.message)
+            else:
+                await portal.handle_googlechat_message(self, evt.body.message_posted.message)
+        elif evt.body.HasField("message_reaction"):
+            await portal.handle_googlechat_reaction(evt.body.message_reaction)
+        elif evt.body.HasField("message_deleted"):
+            await portal.handle_googlechat_redaction(evt.body.message_deleted)
         else:
-            self.log.info(f"Unrecognized event {event}")
+            self.log.debug(f"Unhandled event type {type_name}")
 
-    @async_time(METRIC_TYPING)
-    async def on_typing(self, event: TypingStatusMessage):
-        portal = await po.Portal.get_by_gcid(event.conv_id, self.gcid)
-        if not portal:
-            return
-        sender = await pu.Puppet.get_by_gcid(event.user_id, create=False)
-        if not sender:
-            return
-        await portal.handle_hangouts_typing(self, sender, event.status)
+    # @async_time(METRIC_RECEIPT)
+    # async def on_receipt(self, event: WatermarkNotification) -> None:
+    #     if not self.chats:
+    #         self.log.debug("Received receipt event before chat list, ignoring")
+    #         return
+    #     conv: Conversation = self.chats.get(event.conv_id)
+    #     portal = await po.Portal.get_by_conversation(conv, self.gcid)
+    #     if not portal:
+    #         return
+    #     message = await DBMessage.get_closest_before(portal.gcid, portal.gc_receiver,
+    #                                                  event.read_timestamp)
+    #     if not message:
+    #         return
+    #     puppet = await pu.Puppet.get_by_gcid(event.user_id)
+    #     await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
+
+    # @async_time(METRIC_TYPING)
+    # async def on_typing(self, event: TypingStatusMessage):
+    #     portal = await po.Portal.get_by_gcid(event.conv_id, self.gcid)
+    #     if not portal:
+    #         return
+    #     sender = await pu.Puppet.get_by_gcid(event.user_id, create=False)
+    #     if not sender:
+    #         return
+    #     await portal.handle_hangouts_typing(self, sender, event.status)
 
     # endregion
     # region Google Chat API calls
@@ -465,49 +487,25 @@ class User(DBUser, BaseUser):
         #     type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
         # ))
 
-    async def _get_event_request_header(self, conversation_id: str) -> hangouts.EventRequestHeader:
-        if not self.chats:
-            self.log.debug("Tried to send message before receiving chat list, waiting")
-            await self.chats_future
-        delivery_medium = self.chats.get(conversation_id)._get_default_delivery_medium()
-        return hangouts.EventRequestHeader(
-            conversation_id=hangouts.ConversationId(
-                id=conversation_id,
-            ),
-            delivery_medium=delivery_medium,
-            client_generated_id=self.client.get_client_generated_id(),
-        )
-
-    async def send_emote(self, conversation_id: str, text: str, thread_id: Optional[str] = None,
-                         local_id: Optional[str] = None) -> str:
-        pass
-        # resp = await self.client.send_chat_message(hangouts.SendChatMessageRequest(
-        #     request_header=self.client.get_request_header(),
-        #     annotation=[hangouts.EventAnnotation(type=4)],
-        #     event_request_header=await self._get_event_request_header(conversation_id),
-        #     message_content=hangouts.MessageContent(
-        #         segment=[hangups.ChatMessageSegment(text).serialize()],
-        #     ),
-        # ))
-        # return resp.created_event.event_id
-
     async def send_text(self, conversation_id: str, text: str, thread_id: Optional[str] = None,
-                        local_id: Optional[str] = None) -> str:
-        resp = await self.chats.get(conversation_id).send_message(text, thread_id=thread_id,
-                                                                  local_id=local_id)
-        if thread_id:
-            return resp.message.id.message_id
-        else:
-            return resp.topic.id.topic_id
+                        local_id: Optional[str] = None) -> SendResponse:
+        resp = await self.client.send_message(conversation_id, text=text, thread_id=thread_id,
+                                              local_id=local_id)
+        return self._get_send_response(resp)
 
-    async def send_image(self, conversation_id: str, id: str, thread_id: Optional[str] = None,
-                         local_id: Optional[str] = None) -> str:
-        resp = await self.chats.get(conversation_id).send_message(image_id=id, thread_id=thread_id,
-                                                                  local_id=local_id, text_body="")
-        if thread_id:
-            return resp.message.id.message_id
-        else:
-            return resp.topic.id.topic_id
+    async def send_image(self, conversation_id: str, id: googlechat.UploadMetadata,
+                         thread_id: Optional[str] = None, local_id: Optional[str] = None
+                         ) -> SendResponse:
+        resp = await self.client.send_message(conversation_id, image_id=id, thread_id=thread_id,
+                                              local_id=local_id, text="")
+        return self._get_send_response(resp)
+
+    @staticmethod
+    def _get_send_response(resp: Union[googlechat.CreateTopicResponse,
+                                             googlechat.CreateMessageResponse]) -> SendResponse:
+        if isinstance(resp, googlechat.CreateTopicResponse):
+            return SendResponse(gcid=resp.topic.id.topic_id, timestamp=resp.topic.create_time_usec)
+        return SendResponse(gcid=resp.message.id.message_id, timestamp=resp.message.create_time)
 
     async def mark_read(self, conversation_id: str,
                         timestamp: Optional[Union[datetime.datetime, int]] = None) -> None:

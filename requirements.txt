@@ -4,6 +4,6 @@ asyncpg>=0.20,<0.26
 ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 python-magic>=0.4,<0.5
-beeper-hangups==0.5.0a5
+protobuf>=3,<4
 mautrix>=0.11.4,<0.13
 setuptools

@@ -20,6 +20,6 @@ HANGUPS_COLOR = PREFIX + "35;1m"  # magenta
 
 class ColorFormatter(BaseColorFormatter):
     def _color_name(self, module: str) -> str:
-        if module.startswith("hang"):
+        if module.startswith("hang") or module.startswith("maugclib"):
             return HANGUPS_COLOR + module + RESET
         return super()._color_name(module)

@@ -8,10 +8,7 @@ RUN apk add --no-cache \
       py3-ruamel.yaml \
       py3-commonmark \
       py3-prometheus-client \
-      #hangups
-        py3-async-timeout \
-        py3-appdirs \
-        py3-protobuf \
+      py3-protobuf \
       py3-idna \
       # encryption
       py3-olm \

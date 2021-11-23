@@ -13,11 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from mautrix.client import Client
-from mautrix.bridge import custom_puppet as cpu
 from mautrix.bridge.commands import HelpSection, command_handler
-
-from hangups import googlechat_pb2 as googlechat
 
 from .. import puppet as pu
 from .typehint import CommandEvent
@@ -48,18 +44,7 @@ async def logout(evt: CommandEvent) -> None:
                  help_text="Check if you're logged into Google Chat")
 async def ping(evt: CommandEvent) -> None:
     try:
-        info = await evt.sender.client.get_self_user_status(googlechat.GetSelfUserStatusRequest(
-            request_header=evt.sender.client.get_gc_request_header()
-        ))
-        get_members_response = await evt.sender.client.get_members(
-            googlechat.GetMembersRequest(
-                request_header=evt.sender.client.get_gc_request_header(),
-                member_ids=[googlechat.MemberId(
-                    user_id=googlechat.UserId(id=info.user_status.user_id.id)
-                )]
-            )
-        )
-        self_info = get_members_response.members[0].user
+        self_info = await evt.sender.get_self()
     except Exception as e:
         evt.log.exception("Failed to get user info", exc_info=True)
         await evt.reply(f"Failed to get user info: {e}")

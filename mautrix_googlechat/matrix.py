@@ -77,10 +77,10 @@ class MatrixHandler(BaseMatrixHandler):
     async def handle_presence(self, user_id: UserID, info: PresenceEventContent) -> None:
         if not self.config["bridge.presence"]:
             return
-        user = await u.User.get_by_mxid(user_id, create=False)
-        if user:
-            if info.presence == PresenceState.ONLINE:
-                await user.client.set_active()
+        # user = await u.User.get_by_mxid(user_id, create=False)
+        # if user:
+        #     if info.presence == PresenceState.ONLINE:
+        #         await user.client.set_active()
 
     @staticmethod
     async def handle_typing(room_id: RoomID, typing: List[UserID]) -> None:

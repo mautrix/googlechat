@@ -20,7 +20,7 @@ from yarl import URL
 import aiohttp
 import magic
 
-from hangups.user import User as HangoutsUser, NameType, DEFAULT_NAME
+from maugclib import googlechat_pb2 as googlechat
 from mautrix.types import RoomID, UserID, ContentURI, SyncToken
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePuppet, async_getter_lock
@@ -102,36 +102,43 @@ class Puppet(DBPuppet, BasePuppet):
 
     # region User info updating
 
-    async def update_info(self, source: 'u.User', info: HangoutsUser, update_avatar: bool = True
-                          ) -> None:
-        if not info:
-            info = source.users.get_user(self.gcid)
-            if info.name_type == NameType.DEFAULT:
-                self.log.warning("users.get_user() returned user with unknown name "
-                                 f"in update_info(): {info}")
-            # info = await source.client.get_entity_by_id(hangouts.GetEntityByIdRequest(
-            #     request_header=source.client.get_request_header(),
-            #     batch_lookup_spec=hangouts.EntityLookupSpec(
-            #         gaia_id=self.gid,
-            #     ),
-            # ))
+    async def update_info(self, source: 'u.User', info: Optional[googlechat.User] = None,
+                          update_avatar: bool = True) -> None:
+        if info is None:
+            info = (await source.get_users([self.gcid]))[0]
         changed = await self._update_name(info)
         if update_avatar:
-            changed = await self._update_photo(info.photo_url) or changed
+            changed = await self._update_photo(info.avatar_url) or changed
         if changed:
             await self.save()
 
     @classmethod
-    def get_name_from_info(cls, info: HangoutsUser) -> str:
-        first = info.first_name or info.full_name
-        full = info.full_name or info.first_name
-        if first == DEFAULT_NAME and full == DEFAULT_NAME:
-            return ""
-        return cls.config["bridge.displayname_template"].format(first_name=first, full_name=full)
+    def get_name_from_info(cls, info: googlechat.User) -> Optional[str]:
+        full = info.name
+        first = info.first_name
+        last = info.last_name
+        if not full:
+            if info.first_name or info.last_name:
+                # No full name, but have first and/or last name, use those as fallback
+                full = " ".join(item for item in (info.first_name, info.last_name) if item)
+            elif info.email:
+                # No names at all, use email as fallback
+                full = info.email
+            else:
+                # There's nothing to show at all, return
+                return None
+        elif not first:
+            first = full
+            # Try to find the actual first name if possible
+            if last and first.endswith(last):
+                first = first[:-len(last)].rstrip()
+        return cls.config["bridge.displayname_template"].format(first_name=first, full_name=full,
+                                                                last_name=last, email=info.email)
 
-    async def _update_name(self, info: HangoutsUser) -> bool:
+    async def _update_name(self, info: googlechat.User) -> bool:
         name = self.get_name_from_info(info)
         if not name:
+            self.log.warning(f"Got user info with no name: {info}")
             return False
         if name != self.name or not self.name_set:
             self.name = name

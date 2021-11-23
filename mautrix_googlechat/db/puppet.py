@@ -22,7 +22,7 @@ from yarl import URL
 from mautrix.types import UserID, SyncToken, ContentURI
 from mautrix.util.async_db import Database
 
-fake_db = Database("") if TYPE_CHECKING else None
+fake_db = Database.create("") if TYPE_CHECKING else None
 
 
 @dataclass
