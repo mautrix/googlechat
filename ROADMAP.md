@@ -43,7 +43,7 @@
   * [ ] Message history
   * [ ] Presence
   * [ ] Typing notifications
-  * [ ] Read receipts
+  * [x] Read receipts
   * [ ] Membership actions
     * [ ] Invite
     * [ ] Accept invite

@@ -447,6 +447,10 @@ class User(DBUser, BaseUser):
             await portal.handle_googlechat_reaction(evt.body.message_reaction)
         elif evt.body.HasField("message_deleted"):
             await portal.handle_googlechat_redaction(evt.body.message_deleted)
+        elif evt.body.HasField("read_receipt_changed"):
+            await portal.handle_googlechat_read_receipts(evt.body.read_receipt_changed)
+        elif evt.body.HasField("group_viewed"):
+            await portal.mark_read(self.gcid, evt.body.group_viewed.view_time)
         else:
             self.log.debug(f"Unhandled event type {type_name}")
 
@@ -502,7 +506,7 @@ class User(DBUser, BaseUser):
 
     @staticmethod
     def _get_send_response(resp: Union[googlechat.CreateTopicResponse,
-                                             googlechat.CreateMessageResponse]) -> SendResponse:
+                                       googlechat.CreateMessageResponse]) -> SendResponse:
         if isinstance(resp, googlechat.CreateTopicResponse):
             return SendResponse(gcid=resp.topic.id.topic_id, timestamp=resp.topic.create_time_usec)
         return SendResponse(gcid=resp.message.id.message_id, timestamp=resp.message.create_time)

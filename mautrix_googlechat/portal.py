@@ -588,7 +588,7 @@ class Portal(DBPortal, BasePortal):
                 return
             timestamp = evt.timestamp // 1000
             event_id = await sender.intent_for(self).react(target.mx_room, target.mxid,
-                                                       evt.emoji.unicode, timestamp=timestamp)
+                                                           evt.emoji.unicode, timestamp=timestamp)
             await DBReaction(mxid=event_id, mx_room=target.mx_room, emoji=evt.emoji.unicode,
                              gc_sender=sender.gcid, gc_msgid=target.gcid, gc_chat=target.gc_chat,
                              gc_receiver=target.gc_receiver, timestamp=timestamp).insert()
@@ -727,10 +727,12 @@ class Portal(DBPortal, BasePortal):
         attachment_urls = []
         for annotation in annotations:
             if annotation.HasField('upload_metadata'):
-                attachment_urls.append(URL("https://chat.google.com/api/get_attachment_url").with_query({
-                    "url_type": "FIFE_URL",
-                    "attachment_token": annotation.upload_metadata.attachment_token,
-                }))
+                attachment_urls.append(
+                    URL("https://chat.google.com/api/get_attachment_url").with_query({
+                        "url_type": "FIFE_URL",
+                        "attachment_token": annotation.upload_metadata.attachment_token,
+                    })
+                )
             elif annotation.HasField('url_metadata'):
                 if annotation.url_metadata.should_not_render:
                     continue
@@ -771,6 +773,18 @@ class Portal(DBPortal, BasePortal):
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
             yield event_id, content.msgtype
+
+    async def handle_googlechat_read_receipts(self, evt: googlechat.ReadReceiptChangedEvent
+                                              ) -> None:
+        rr: googlechat.ReadReceipt
+        for rr in evt.read_receipt_set.read_receipts:
+            await self.mark_read(rr.user.user_id.id, rr.read_time_micros)
+
+    async def mark_read(self, user_id: str, ts: int) -> None:
+        message = await DBMessage.get_closest_before(self.gcid, self.gc_receiver, ts // 1000)
+        puppet = await p.Puppet.get_by_gcid(user_id)
+        if puppet and message:
+            await puppet.intent_for(self).mark_read(message.mx_room, message.mxid)
 
     # async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
     #                                  ) -> None:
