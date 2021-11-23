@@ -67,7 +67,7 @@ class Message:
                                  ) -> Optional['Message']:
         q = (f"SELECT {cls.columns} FROM message"
              " WHERE (gc_parent_id=$1 OR gcid=$1) AND gc_chat=$2 AND gc_receiver=$3"
-             " ORDER BY timestamp DESC LIMIT 1")
+             " ORDER BY timestamp DESC, index DESC LIMIT 1")
         row = await cls.db.fetchrow(q, gc_parent_id, gc_chat, gc_receiver)
         return cls._from_row(row)
 

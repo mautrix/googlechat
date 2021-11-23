@@ -187,12 +187,15 @@ class Client:
             A tuple containing the raw data, the mime type (from Content-Type)
             and the file name (from Content-Disposition).
         """
+        if isinstance(url, str):
+            url = URL(url)
         async with self._session.fetch_raw_ctx("GET", url) as resp:
+            resp.raise_for_status()
             try:
                 _, params = cgi.parse_header(resp.headers["Content-Disposition"])
-                filename = params.get("filename") or url.split("/")[-1]
+                filename = params.get("filename") or url.path.split("/")[-1]
             except KeyError:
-                filename = url.split("/")[-1]
+                filename = url.path.split("/")[-1]
             mime = resp.headers["Content-Type"]
             if 0 < max_size < int(resp.headers["Content-Length"]):
                 raise exceptions.FileTooLargeError("Image size larger than maximum")

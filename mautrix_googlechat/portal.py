@@ -16,6 +16,7 @@
 from typing import (Dict, Deque, Optional, Tuple, Union, Set, List, Any, AsyncIterable, cast,
                     TYPE_CHECKING)
 from collections import deque
+import mimetypes
 import asyncio
 import random
 import io
@@ -713,10 +714,18 @@ class Portal(DBPortal, BasePortal):
     @staticmethod
     async def _download_external_attachment(url: URL, max_size: int) -> Tuple[bytes, str, str]:
         async with aiohttp.ClientSession() as sess, sess.get(url) as resp:
+            resp.raise_for_status()
             filename = url.path.split("/")[-1]
             if 0 < max_size < int(resp.headers.get("Content-Length", "0")):
                 raise FileTooLargeError("Image size larger than maximum")
-            data = await resp.content.read(max_size)
+            blocks = []
+            while True:
+                block = await resp.content.read(max_size)
+                if not block:
+                    break
+                max_size -= len(block)
+                blocks.append(block)
+            data = b"".join(blocks)
             mime = resp.headers.get("Content-Type") or magic.from_buffer(data, mime=True)
             return data, mime, filename
 
@@ -756,7 +765,15 @@ class Portal(DBPortal, BasePortal):
                 # TODO send error message
                 self.log.warning("Can't upload too large attachment")
                 continue
+            except aiohttp.ClientResponseError as e:
+                self.log.warning(f"Failed to download attachment: {e}")
+                continue
 
+            msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
+            if msgtype == MessageType.TEXT:
+                msgtype = MessageType.FILE
+            if not filename or filename == "get_attachment_url":
+                filename = msgtype.value + mimetypes.guess_extension(mime)
             upload_mime = mime
             decryption_info = None
             if self.encrypted and encrypt_attachment:
@@ -768,7 +785,7 @@ class Portal(DBPortal, BasePortal):
                 mxc_url = None
             content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
                                                info=ImageInfo(size=len(data), mimetype=mime))
-            content.msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
+            content.msgtype = msgtype
             if reply_to:
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
