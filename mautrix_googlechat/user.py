@@ -405,7 +405,7 @@ class User(DBUser, BaseUser):
             ],
         ))
         items: List[googlechat.WorldItemLite] = list(resp.world_items)
-        items.sort(key=lambda item: item.sort_timestamp)
+        items.sort(key=lambda item: item.sort_timestamp, reverse=True)
         max_sync = self.config["bridge.initial_chat_sync"]
         for index, item in enumerate(items):
             conv_id = maugclib.parsers.id_from_group_id(item.group_id)
