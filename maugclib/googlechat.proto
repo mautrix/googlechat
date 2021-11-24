@@ -58,9 +58,9 @@ message DndSettings {
 }
 
 message Emoji {
-	//oneof Content {
-	optional	string unicode = 1;
-	//}
+	oneof Content {
+		string unicode = 1;
+	}
 }
 
 message CustomStatus {
@@ -145,17 +145,17 @@ enum InviteCategory {
 }
 
 message Member {
-	//oneof Profile {
-	optional	User user = 1;
+	oneof Profile {
+		User user = 1;
 		//Roster roster = 2;
-	//}
+	}
 }
 
 message MemberId {
-	//oneof Id {
-	optional	UserId user_id = 1;
+	oneof Id {
+		UserId user_id = 1;
 		//RosterId roster_id = 2;
-	//}
+	}
 }
 
 message MembershipId {
@@ -269,10 +269,10 @@ message JAddOnsFormattedText {
 			optional string original_link = 3;
 			optional string text = 2;
 		}
-		//oneof Element {
-		optional StyledText styled_text = 1;
-		optional HyperLink hyperlink = 2;
-		//}
+		oneof Element {
+			StyledText styled_text = 1;
+			HyperLink hyperlink = 2;
+		}
 
 	}
 
@@ -371,14 +371,14 @@ message JAddOnsPushCard {
 }
 
 message JAddOnsOnClick {
-	//oneof DataCase {
-	optional	string link = 1;
-	optional	JAddOnsFormAction action = 2;
-	optional	JAddOnsOpenLink open_link = 5;
-	optional	JAddOnsFormAction open_link_action = 7;
-	optional	JAddOnsPushCard push_card = 8;
-	//optional	ComGoogleAppsExtensionsV1HostAppAction host_app_action = 9;
-	//}
+	oneof DataCase {
+		string link = 1;
+		JAddOnsFormAction action = 2;
+		JAddOnsOpenLink open_link = 5;
+		JAddOnsFormAction open_link_action = 7;
+		JAddOnsPushCard push_card = 8;
+	//	ComGoogleAppsExtensionsV1HostAppAction host_app_action = 9;
+	}
 }
 
 message JAddOnsTextWidget {
@@ -487,11 +487,11 @@ message JAddOnsWidget {
 		optional bool content_multiline = 8;
 		optional JAddOnsFormattedText bottom_label = 4;
 		optional JAddOnsOnClick on_click = 5;
-		//oneof Control {
-		optional Button button = 6;
-		optional SwitchWidget switch_widget = 7;
-		optional Icon end_icon = 12;
-		//}
+		oneof Control {
+			Button button = 6;
+			SwitchWidget switch_widget = 7;
+			Icon end_icon = 12;
+		}
 	}
 	message Divider {
 		// This protobuf intentionally left blank
@@ -597,10 +597,10 @@ message JAddOnsWidget {
 	}
 
 	message Button {
-		//oneof Type {
-		optional	TextButton text_button = 1;
-		optional	ImageButton image_button = 2;
-		//}
+		oneof Type {
+			TextButton text_button = 1;
+			ImageButton image_button = 2;
+		}
 	}
 
 	enum HorizontalAlign {
@@ -611,21 +611,21 @@ message JAddOnsWidget {
 	}
 
 
-	//oneof Data {
-	optional JAddOnsTextWidget text_widget = 1;
-	optional JAddOnsLabelContentPairWidget label_content_pair_widget = 2;
-	optional TextParagraph text_paragraph = 3;
-	optional TextKeyValue text_key_value = 4;
-	optional ImageKeyValue image_key_value = 5;
-	optional Image image = 9;
-	optional KeyValue key_value = 13;
-	optional Divider divider = 16;
-	optional JAddOnsGrid grid = 17;
-	optional Menu menu = 10;
-	optional TextField text_field = 11;
-	optional SelectionControl selection_control = 12;
-	optional DateTimePicker date_time_picker = 14;
-	//}
+	oneof Data {
+		JAddOnsTextWidget text_widget = 1;
+		JAddOnsLabelContentPairWidget label_content_pair_widget = 2;
+		TextParagraph text_paragraph = 3;
+		TextKeyValue text_key_value = 4;
+		ImageKeyValue image_key_value = 5;
+		Image image = 9;
+		KeyValue key_value = 13;
+		Divider divider = 16;
+		JAddOnsGrid grid = 17;
+		Menu menu = 10;
+		TextField text_field = 11;
+		SelectionControl selection_control = 12;
+		DateTimePicker date_time_picker = 14;
+	}
 	repeated Button buttons = 8;
 	optional HorizontalAlign horizontal_align = 15;
 
@@ -716,10 +716,10 @@ message HtmlAttachment {
 }
 
 message Attachment {
-	//oneof Type {
-	optional	HtmlAttachment html = 1;
-	optional	JAddOnsContextualAddOn add_on_data = 2;
-	//}
+	oneof Type {
+		HtmlAttachment html = 1;
+		JAddOnsContextualAddOn add_on_data = 2;
+	}
 	optional UserId app_id = 5;
 	optional User app_user = 6;
 }
@@ -732,9 +732,9 @@ message Reaction {
 }
 
 message MessageParentId {
-	//oneof Parent {
-	optional	TopicId topic_id = 4;
-	//}
+	oneof Parent {
+		TopicId topic_id = 4;
+	}
 }
 
 message MessageId {
@@ -839,10 +839,10 @@ message UrlMetadata {
 }
 
 message UploadMetadata {
-	//oneof Payload {
-		optional string attachment_token = 1;
+	oneof Payload {
+		string attachment_token = 1;
 		//optional BackendUploadMetadata backend_upload_metadata = 2;
-	// }
+	}
 	optional string content_name = 3;
 	optional string content_type = 4;
 	//optional Dimension original_dimension = 5;
@@ -890,18 +890,18 @@ message Annotation {
 	optional ChipRenderType chip_render_type = 20;
 	optional bool server_invalidated = 13;
 
-	//oneof Metadata {
-	optional	UserMentionMetadata user_mention_metadata = 5;
-	optional	FormatMetadata format_metadata = 8;
-	optional	SlashCommandMetadata slash_command_metadata = 15;
-	optional	DriveMetadata drive_metadata = 4;
+	oneof Metadata {
+		UserMentionMetadata user_mention_metadata = 5;
+		FormatMetadata format_metadata = 8;
+		SlashCommandMetadata slash_command_metadata = 15;
+		DriveMetadata drive_metadata = 4;
 
 		//DYNProtoYoutubeMetadata youtube_metadata = 6;
-	optional	UrlMetadata url_metadata = 7;
-	optional	UploadMetadata upload_metadata = 10;
-	optional	MembershipChangedMetadata membership_changed = 11;
+		UrlMetadata url_metadata = 7;
+		UploadMetadata upload_metadata = 10;
+		MembershipChangedMetadata membership_changed = 11;
 		//DYNProtoVideoCallMetadata video_call_metadata = 12;
-	optional	RoomUpdatedMetadata room_updated = 14;
+		RoomUpdatedMetadata room_updated = 14;
 		//DYNProtoGsuiteIntegrationMetadata gsuite_integration_metadata = 16;
 		//DYNProtoGroupRetentionSettingsUpdatedMetaData group_retention_settings_updated = 17;
 		//DYNProtoBabelPlaceholderMetadata babel_placeholder_metadata = 18
@@ -909,7 +909,7 @@ message Annotation {
 		//DYNProtoIncomingWebhookChangedMetadata incoming_webhook_changed_metadata = 22;
 		//DYNProtoIntegrationConfigUpdatedMetadata integration_config_updated = 23;
 		//DYNProtoConsentedAppUnfurlMetadata consented_app_unfurl_metadata = 24;
-	//}
+	}
 }
 
 enum TypingState {
@@ -919,10 +919,10 @@ enum TypingState {
 }
 
 message TypingContext {
-	//oneof Context {
-	optional	GroupId group_id = 1;
-	optional	TopicId topic_id = 2;
-	//}
+	oneof Context {
+		GroupId group_id = 1;
+		TopicId topic_id = 2;
+	}
 }
 
 message SetTypingStateRequest {
@@ -944,10 +944,10 @@ message SpaceId {
 }
 
 message GroupId {
-	//oneof Id {
-	optional	SpaceId space_id = 1;
-	optional	DmId dm_id = 3;
-	//}
+	oneof Id {
+		SpaceId space_id = 1;
+		DmId dm_id = 3;
+	}
 }
 
 message Group {
@@ -983,10 +983,10 @@ message Group {
 
 	message FlatGroup {}
 	message ThreadedGroup {}
-	//oneof ThreadedModel {
-	optional	FlatGroup flat_group = 26;
-	optional	ThreadedGroup threaded_group = 27;
-	//}
+	oneof ThreadedModel {
+		FlatGroup flat_group = 26;
+		ThreadedGroup threaded_group = 27;
+	}
 
 	optional string avatar_url = 28;
 	//optional DYNProtoGroupIntegrationSettings group_integration_settings = 36;
@@ -1141,10 +1141,10 @@ message InviteeInfo {
 }
 
 message InviteeMemberInfo {
-	//oneof Id {
-	optional	InviteeInfo invitee_info = 1;
+	oneof Id {
+		InviteeInfo invitee_info = 1;
 		// RosterId roster_id = 2;
-	//}
+	}
 }
 
 message SpaceCreationInfo {
@@ -1179,9 +1179,9 @@ message SpaceCreationInfo {
 
 message CreateGroupRequest {
 	optional RequestHeader request_header = 100;
-	//oneof CreationInfo {
-	optional	SpaceCreationInfo space = 1;
-	//}
+	oneof CreationInfo {
+		SpaceCreationInfo space = 1;
+	}
 	optional string local_id = 3;
 	optional bool should_find_existing_space = 4;
 }
@@ -1586,35 +1586,35 @@ message Event {
 	}
 
 	message EventBody {
-		//oneof Type {
-		optional	GroupViewedEvent group_viewed = 3;
+		oneof Type {
+			GroupViewedEvent group_viewed = 3;
 			//TopicViewedEvent topic_viewed = 4;
 			//GroupUpdatedEvent group_updated = 5;
-		optional	MessageEvent message_posted = 6;
+			MessageEvent message_posted = 6;
 			//TopicMuteChangedEvent topic_mute_changed = 7;
 			//UserSettingsChangedEvent user_settings_changed = 8;
 			//GroupStarredEvent group_starred = 9;
-		optional	WebPushNotificationEvent web_push_notification = 10;
+			WebPushNotificationEvent web_push_notification = 10;
 			//GroupUnreadSubscribedTopicCountUpdatedEvent group_unread_subscribed_topic_count_updated_event = 11;
 			//InviteCountUpdatedEvent invite_count_updated = 13;
-		optional	MembershipChangedEvent membership_changed = 14;
+			MembershipChangedEvent membership_changed = 14;
 			//GroupHideChangedEvent group_hide_changed = 15;
 			//DriveAclFixProcessedEvent drive_acl_fix_processed = 16;
 			//GroupNotificationSettingsUpdatedEvent group_notification_settings_updated = 17;
-		optional	MessageDeletedEvent message_deleted = 18;
+			MessageDeletedEvent message_deleted = 18;
 			//RetentionSettingsUpdatedEvent retention_settings_updated = 19;
 			//TopicCreatedEvent topic_created = 21;
-		optional	MessageReactionEvent message_reaction = 22;
-		optional	UserStatusUpdatedEvent user_status_updated_event = 23;
+			MessageReactionEvent message_reaction = 22;
+			UserStatusUpdatedEvent user_status_updated_event = 23;
 			//WorkingHoursSettingsUpdatedEvent working_hours_settings_updated_event = 24;
 			//MessageSmartRepliesEvent message_smart_replies_event = 25;
-		optional	TypingStateChangedEvent typing_state_changed_event = 26;
+			TypingStateChangedEvent typing_state_changed_event = 26;
 			//GroupDeletedEvent group_deleted_event = 27;
 			//BlockStateChangedEvent block_state_changed_event = 28;
 			//ClearHistoryEvent clear_history_event = 29;
 			//GroupSortTimestampChangedEvent group_sort_timestamp_changed_event = 30;
 			//MarkAsUnreadEvent mark_as_unread_event = 32;
-		optional	ReadReceiptChangedEvent read_receipt_changed = 33;
+			ReadReceiptChangedEvent read_receipt_changed = 33;
 			//GroupNoOpEvent group_no_op_event = 34;
 			//UserNoOpEvent user_no_op_event = 35;
 			//UserDenormalizedGroupUpdatedEvent user_denormalized_group_updated_event = 36;
@@ -1625,7 +1625,7 @@ message Event {
 			//SharedDriveCreateScheduledEvent shared_drive_create_scheduled_event = 41;
 			//SharedDriveUpdatedEvent shared_drive_updated_event = 42;
 			//MessagePersonalLabelUpdatedEvent message_personal_label_updated = 43;
-		//}
+		}
 
 		optional EventType event_type = 12;
 		optional int64 trace_id = 20;
@@ -1635,10 +1635,10 @@ message Event {
 	optional EventBody body = 4; // This is the first event body
 
 	optional UserId user_id = 5;
-	//oneof RevisionType {
-		optional	WriteRevision user_revision = 6;
-		optional	WriteRevision group_revision = 7;
-	//}
+	oneof RevisionType {
+			WriteRevision user_revision = 6;
+			WriteRevision group_revision = 7;
+	}
 	repeated EventBody bodies = 8;  // This is the second and subsequent event bodies in this event
 }
 
@@ -2231,10 +2231,10 @@ message WorldSectionRequest {
 	optional WorldFilter world_filter = 4;
 	optional int32 num_world_items_with_snippet = 5;
 	optional int64 anchor_sort_timestamp_micros = 3;
-	//oneof Pagination {
-	optional	string pagination_token = 6;
+	oneof Pagination {
+		string pagination_token = 6;
 		// SortingOrder sorting_order = 7;
-	//}
+	}
 }
 
 message WorldSectionResponse {
@@ -2358,10 +2358,10 @@ message SetDndDurationRequest {
 	}
 	optional State current_dnd_state = 2;
 
-	//oneof DndExpiry {
-	optional	int64 new_dnd_duration_usec = 1;
-	optional	int64 dnd_expiry_timestamp_usec = 3;
-	//}
+	oneof DndExpiry {
+		int64 new_dnd_duration_usec = 1;
+		int64 dnd_expiry_timestamp_usec = 3;
+	}
 }
 
 message SetDndDurationResponse {
@@ -2394,10 +2394,10 @@ message UpdateGroupResponse {
 
 message BlockEntityRequest {
 	optional RequestHeader request_header = 100;
-	//oneof Entity {
-	optional	UserId user_id = 1;
-	optional	GroupId group_id = 2;
-	//}
+	oneof Entity {
+		UserId user_id = 1;
+		GroupId group_id = 2;
+	}
 	optional bool blocked = 3;
 	optional bool reported = 4;
 }
@@ -2410,10 +2410,10 @@ message BlockEntityResponse {
 message SetCustomStatusRequest {
 	optional RequestHeader request_header = 100;
 	optional CustomStatus custom_status = 1;
-	//oneof CustomStatusTiming {
-	optional	int64 custom_status_expiry_timestamp_usec = 2;
-	optional	int64 custom_status_remaining_duration_usec = 3;
-	//}
+	oneof CustomStatusTiming {
+		int64 custom_status_expiry_timestamp_usec = 2;
+		int64 custom_status_remaining_duration_usec = 3;
+	}
 }
 
 message SetCustomStatusResponse {
