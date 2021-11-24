@@ -199,7 +199,7 @@ class GoogleChatAuthServer:
                 "error": "internal error",
             }, status=500)
         else:
-            await user.login_complete(token_mgr)
+            user.login_complete(token_mgr)
             return web.json_response({
                 "status": "success",
                 "name": await user.name_future,
