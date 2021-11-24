@@ -477,15 +477,17 @@ class Portal(DBPortal, BasePortal):
 
     async def handle_matrix_reaction(self, sender: 'u.User', reaction_id: EventID,
                                      target_id: EventID, reaction: str) -> None:
-        # TODO checkpoints
         reaction = reaction.rstrip("\ufe0f")
 
         target = await DBMessage.get_by_mxid(target_id, self.mxid)
         if not target:
+            self._rec_dropped(sender, reaction_id, EventType.REACTION,
+                              reason="reaction target not found")
             return
         existing = await DBReaction.get_by_gcid(reaction, sender.gcid, target.gcid,
                                                 target.gc_chat, target.gc_receiver)
         if existing:
+            self._rec_dropped(sender, reaction_id, EventType.REACTION, reason="duplicate reaction")
             return
         # TODO real timestamp?
         fake_ts = int(time.time() * 1000)
@@ -493,15 +495,25 @@ class Portal(DBPortal, BasePortal):
         await DBReaction(mxid=reaction_id, mx_room=self.mxid, emoji=reaction,
                          gc_sender=sender.gcid, gc_msgid=target.gcid, gc_chat=target.gc_chat,
                          gc_receiver=target.gc_receiver, timestamp=fake_ts).insert()
-        await sender.client.react(target.gc_chat, target.gc_parent_id, target.gcid, reaction)
+        try:
+            await sender.client.react(target.gc_chat, target.gc_parent_id, target.gcid, reaction)
+        except Exception as e:
+            self._rec_error(sender, e, reaction_id, EventType.REACTION)
+        else:
+            await self._rec_success(sender, reaction_id, EventType.REACTION)
 
     async def handle_matrix_redaction(self, sender: 'u.User', target_id: EventID,
                                       redaction_id: EventID) -> None:
-        # TODO checkpoints
         target = await DBMessage.get_by_mxid(target_id, self.mxid)
         if target:
             await target.delete()
-            await sender.client.delete_message(target.gc_chat, target.gc_parent_id, target.gcid)
+            try:
+                await sender.client.delete_message(target.gc_chat, target.gc_parent_id,
+                                                   target.gcid)
+            except Exception as e:
+                self._rec_error(sender, e, redaction_id, EventType.ROOM_REDACTION)
+            else:
+                await self._rec_success(sender, redaction_id, EventType.ROOM_REDACTION)
             return
 
         reaction = await DBReaction.get_by_mxid(target_id, self.mxid)
@@ -509,23 +521,40 @@ class Portal(DBPortal, BasePortal):
             reaction_target = await DBMessage.get_by_gcid(reaction.gc_msgid, reaction.gc_chat,
                                                           reaction.gc_receiver)
             await reaction.delete()
-            await sender.client.react(reaction.gc_chat, reaction_target.gc_parent_id,
-                                      reaction_target.gcid, reaction.emoji, remove=True)
+            try:
+                await sender.client.react(reaction.gc_chat, reaction_target.gc_parent_id,
+                                          reaction_target.gcid, reaction.emoji, remove=True)
+            except Exception as e:
+                self._rec_error(sender, e, redaction_id, EventType.ROOM_REDACTION)
+            else:
+                await self._rec_success(sender, redaction_id, EventType.ROOM_REDACTION)
+            return
+
+        self._rec_dropped(sender, redaction_id, EventType.ROOM_REDACTION,
+                          reason="redaction target not found")
 
     async def handle_matrix_edit(self, sender: 'u.User', message: MessageEventContent,
                                  event_id: EventID) -> None:
-        # TODO checkpoints
         target = await DBMessage.get_by_mxid(message.get_edit(), self.mxid)
         if not target:
+            self._rec_dropped(sender, event_id, EventType.ROOM_MESSAGE,
+                              reason="unknown edit target", msgtype=message.msgtype)
             return
         # We don't support non-text edits yet
         if message.msgtype != MessageType.TEXT:
+            self._rec_dropped(sender, event_id, EventType.ROOM_MESSAGE, reason="non-text edit",
+                              msgtype=message.msgtype)
             return
 
-        async with self.require_send_lock(sender.gcid):
-            resp = await sender.client.edit_message(target.gc_chat, target.gc_parent_id,
-                                                    target.gcid, text=message.body)
-            self._edit_dedup[target.gcid] = resp.message.last_edit_time
+        try:
+            async with self.require_send_lock(sender.gcid):
+                resp = await sender.client.edit_message(target.gc_chat, target.gc_parent_id,
+                                                        target.gcid, text=message.body)
+                self._edit_dedup[target.gcid] = resp.message.last_edit_time
+        except Exception as e:
+            self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
+        else:
+            await self._rec_success(sender, event_id, EventType.ROOM_MESSAGE, message.msgtype)
 
     async def handle_matrix_message(self, sender: 'u.User', message: MessageEventContent,
                                     event_id: EventID) -> None:
@@ -546,27 +575,12 @@ class Portal(DBPortal, BasePortal):
                 elif message.msgtype == MessageType.IMAGE:
                     resp = await self._handle_matrix_image(sender, message, thread_id, local_id)
                 else:
-                    raise ValueError(f"Unsupported msgtype in {message}")
+                    raise ValueError(f"Unsupported msgtype {message.msgtype}")
             except Exception as e:
-                self.log.exception(f"Failed handling matrix message {event_id}")
-                sender.send_remote_checkpoint(
-                    status=MessageSendCheckpointStatus.PERM_FAILURE,
-                    event_id=event_id,
-                    room_id=self.mxid,
-                    event_type=EventType.ROOM_MESSAGE,
-                    message_type=message.msgtype,
-                    error=e,
-                )
+                self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
             else:
                 self.log.debug(f"Handled Matrix message {event_id} -> {local_id} -> {resp.gcid}")
-                await self._send_delivery_receipt(event_id)
-                sender.send_remote_checkpoint(
-                    status=MessageSendCheckpointStatus.SUCCESS,
-                    event_id=event_id,
-                    room_id=self.mxid,
-                    event_type=EventType.ROOM_MESSAGE,
-                    message_type=message.msgtype,
-                )
+                await self._rec_success(sender, event_id, EventType.ROOM_MESSAGE, message.msgtype)
                 self._dedup.appendleft(resp.gcid)
                 self._local_dedup.remove(local_id)
                 await DBMessage(mxid=event_id, mx_room=self.mxid, gcid=resp.gcid,
@@ -574,6 +588,50 @@ class Portal(DBPortal, BasePortal):
                                 gc_parent_id=thread_id, index=0, timestamp=resp.timestamp // 1000,
                                 msgtype=message.msgtype.value, gc_sender=sender.gcid).insert()
                 self._last_bridged_mxid = event_id
+
+    def _rec_dropped(self, user: 'u.User', event_id: EventID, evt_type: EventType, reason: str,
+                     msgtype: Optional[MessageType] = None) -> None:
+        user.send_remote_checkpoint(
+            status=MessageSendCheckpointStatus.PERM_FAILURE,
+            event_id=event_id,
+            room_id=self.mxid,
+            event_type=evt_type,
+            message_type=msgtype,
+            error=Exception(reason),
+        )
+
+    def _rec_error(self, user: 'u.User', err: Exception, event_id: EventID, evt_type: EventType,
+                   msgtype: Optional[MessageType] = None, edit: bool = False) -> None:
+        if evt_type == EventType.ROOM_MESSAGE:
+            if edit:
+                self.log.exception(f"Failed handling Matrix edit {event_id}", exc_info=err)
+            else:
+                self.log.exception(f"Failed handling Matrix message {event_id}", exc_info=err)
+        elif evt_type == EventType.ROOM_REDACTION:
+            self.log.exception(f"Failed handling Matrix redaction {event_id}", exc_info=err)
+        elif evt_type == EventType.REACTION:
+            self.log.exception(f"Failed handling Matrix reaction {event_id}", exc_info=err)
+        else:
+            self.log.exception(f"Failed handling unknown Matrix event {event_id}", exc_info=err)
+        user.send_remote_checkpoint(
+            status=MessageSendCheckpointStatus.PERM_FAILURE,
+            event_id=event_id,
+            room_id=self.mxid,
+            event_type=evt_type,
+            message_type=msgtype,
+            error=err,
+        )
+
+    async def _rec_success(self, user: 'u.User', event_id: EventID, evt_type: EventType,
+                           msgtype: Optional[MessageType] = None) -> None:
+        await self._send_delivery_receipt(event_id)
+        _ = user.send_remote_checkpoint(
+            status=MessageSendCheckpointStatus.SUCCESS,
+            event_id=event_id,
+            room_id=self.mxid,
+            event_type=evt_type,
+            message_type=msgtype,
+        )
 
     @staticmethod
     def _get_send_response(resp: Union[googlechat.CreateTopicResponse,
