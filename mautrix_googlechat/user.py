@@ -42,8 +42,6 @@ METRIC_RECEIPT = Summary('bridge_on_receipt', 'calls to on_receipt')
 METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the bridge')
 METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Google Chat')
 
-SendResponse = NamedTuple('SendResponse', gcid=str, timestamp=int)
-
 
 class User(DBUser, BaseUser):
     by_mxid: Dict[UserID, 'User'] = {}
@@ -490,26 +488,6 @@ class User(DBUser, BaseUser):
         #     conversation_id=hangouts.ConversationId(id=conversation_id),
         #     type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
         # ))
-
-    async def send_text(self, conversation_id: str, text: str, thread_id: Optional[str] = None,
-                        local_id: Optional[str] = None) -> SendResponse:
-        resp = await self.client.send_message(conversation_id, text=text, thread_id=thread_id,
-                                              local_id=local_id)
-        return self._get_send_response(resp)
-
-    async def send_image(self, conversation_id: str, id: googlechat.UploadMetadata,
-                         thread_id: Optional[str] = None, local_id: Optional[str] = None
-                         ) -> SendResponse:
-        resp = await self.client.send_message(conversation_id, image_id=id, thread_id=thread_id,
-                                              local_id=local_id, text="")
-        return self._get_send_response(resp)
-
-    @staticmethod
-    def _get_send_response(resp: Union[googlechat.CreateTopicResponse,
-                                       googlechat.CreateMessageResponse]) -> SendResponse:
-        if isinstance(resp, googlechat.CreateTopicResponse):
-            return SendResponse(gcid=resp.topic.id.topic_id, timestamp=resp.topic.create_time_usec)
-        return SendResponse(gcid=resp.message.id.message_id, timestamp=resp.message.create_time)
 
     async def mark_read(self, conversation_id: str,
                         timestamp: Optional[Union[datetime.datetime, int]] = None) -> None:

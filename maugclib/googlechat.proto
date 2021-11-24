@@ -1135,6 +1135,46 @@ message CreateMessageResponse {
 	optional ReadRevision current_group_revision = 4;
 }
 
+message UpdateReactionRequest {
+	optional RequestHeader request_header = 100;
+	optional MessageId message_id = 1;
+	optional Emoji emoji = 2;
+	enum ReactionUpdateType {
+		ADD = 1;
+		REMOVE = 2;
+	}
+	optional ReactionUpdateType type = 3;
+}
+
+message UpdateReactionResponse {
+	optional WriteRevision group_revision = 1;
+}
+
+message DeleteMessageRequest {
+	optional RequestHeader request_header = 100;
+	optional MessageId message_id = 1;
+}
+
+message DeleteMessageResponse {
+	optional WriteRevision group_revision = 3;
+	optional int64 group_sort_time = 4;
+	optional int64 topic_sort_time = 5;
+	//optional bool delete_inline_replies = 7;
+}
+
+message EditMessageRequest {
+	optional RequestHeader request_header = 100;
+	optional MessageId message_id = 1;
+	optional string text_body = 2;
+	repeated Annotation annotations = 3;
+	optional MessageInfo message_info = 4;
+}
+
+message EditMessageResponse {
+	optional Message message = 1;
+	optional WriteRevision group_revision = 3;
+}
+
 message InviteeInfo {
 	optional UserId user_id = 1;
 	optional string email = 2;

@@ -12,9 +12,9 @@
       * [ ] Locations
     * [ ] Formatting
     * [x] Replies (into threads)
-  * [ ] Message redactions
-  * [ ] Message reactions
-  * [ ] Message editing
+  * [x] Message redactions
+  * [x] Message reactions
+  * [x] Message editing (text only)
   * [ ] Presence
   * [ ] Typing notifications
   * [ ] Read receipts
@@ -37,9 +37,7 @@
     * [x] Threads (as replies)
   * [x] Message deletions
   * [x] Message reactions
-  * [ ] Message editing
-    * [x] Text
-    * [ ] Attachments
+  * [x] Message editing (text only)
   * [ ] Message history
   * [ ] Presence
   * [ ] Typing notifications

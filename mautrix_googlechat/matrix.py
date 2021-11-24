@@ -16,7 +16,8 @@
 from typing import List, TYPE_CHECKING
 
 from mautrix.types import (EventID, RoomID, UserID, Event, EventType, PresenceEventContent,
-                           PresenceState, SingleReceiptEventContent)
+                           ReactionEventContent, RelationType, SingleReceiptEventContent,
+                           ReactionEvent, RedactionEvent)
 from mautrix.bridge import BaseMatrixHandler
 from mautrix.types.event.message import MessageType, TextMessageEventContent
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
@@ -103,22 +104,46 @@ class MatrixHandler(BaseMatrixHandler):
         else:
             await super().handle_ephemeral_event(evt)
 
+    @classmethod
+    async def handle_reaction(cls, room_id: RoomID, user_id: UserID, event_id: EventID,
+                              content: ReactionEventContent) -> None:
+        if content.relates_to.rel_type != RelationType.ANNOTATION:
+            cls.log.debug(f"Ignoring m.reaction event in {room_id} from {user_id} with unexpected "
+                          f"relation type {content.relates_to.rel_type}")
+            return
+        user = await u.User.get_by_mxid(user_id)
+        if not user:
+            return
+
+        portal = await po.Portal.get_by_mxid(room_id)
+        if not portal:
+            return
+
+        await portal.handle_matrix_reaction(user, event_id, content.relates_to.event_id,
+                                            content.relates_to.key)
+
+    @staticmethod
+    async def handle_redaction(room_id: RoomID, user_id: UserID, event_id: EventID,
+                               redaction_event_id: EventID) -> None:
+        user = await u.User.get_by_mxid(user_id)
+        if not user:
+            return
+
+        portal = await po.Portal.get_by_mxid(room_id)
+        if not portal:
+            return
+
+        await portal.handle_matrix_redaction(user, event_id, redaction_event_id)
+
     async def handle_event(self, evt: Event) -> None:
         portal = await po.Portal.get_by_mxid(evt.room_id)
         if not portal:
             return
 
-        if evt.type in (EventType.ROOM_REDACTION, EventType.REACTION):
-            friendly_action = "Reacting to" if evt.type == EventType.REACTION else "Deleting"
-            error = f"{friendly_action} messages is not yet supported by the bridge"
-            evt.sender.send_remote_checkpoint(
-                MessageSendCheckpointStatus.PERM_FAILURE,
-                evt.event_id,
-                evt.room_id,
-                evt.type,
-                error=Exception(error),
-            )
-            await portal._send_message(
-                portal.main_intent,
-                TextMessageEventContent(msgtype=MessageType.NOTICE, body=error),
-            )
+        if evt.type == EventType.REACTION:
+            evt: ReactionEvent
+            await self.handle_reaction(room_id=evt.room_id, user_id=evt.sender,
+                                       event_id=evt.event_id, content=evt.content)
+        elif evt.type == EventType.ROOM_REDACTION:
+            evt: RedactionEvent
+            await self.handle_redaction(evt.room_id, evt.sender, evt.redacts, evt.event_id)

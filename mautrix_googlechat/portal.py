@@ -13,12 +13,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import (Dict, Deque, Optional, Tuple, Union, Set, List, Any, AsyncIterable, cast,
-                    TYPE_CHECKING)
+from typing import (Dict, Deque, Optional, Tuple, Union, Set, List, Any, AsyncIterable, NamedTuple,
+                    cast, TYPE_CHECKING)
 from collections import deque
 import mimetypes
 import asyncio
 import random
+import time
 import io
 
 import magic
@@ -61,6 +62,7 @@ class FakeLock:
 StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 
+SendResponse = NamedTuple('SendResponse', gcid=str, timestamp=int)
 ChatInfo = Union[googlechat.WorldItemLite, googlechat.GetGroupResponse]
 
 
@@ -473,8 +475,63 @@ class Portal(DBPortal, BasePortal):
             except Exception:
                 self.log.exception("Failed to send delivery receipt for %s", event_id)
 
+    async def handle_matrix_reaction(self, sender: 'u.User', reaction_id: EventID,
+                                     target_id: EventID, reaction: str) -> None:
+        # TODO checkpoints
+        reaction = reaction.rstrip("\ufe0f")
+
+        target = await DBMessage.get_by_mxid(target_id, self.mxid)
+        if not target:
+            return
+        existing = await DBReaction.get_by_gcid(reaction, sender.gcid, target.gcid,
+                                                target.gc_chat, target.gc_receiver)
+        if existing:
+            return
+        # TODO real timestamp?
+        fake_ts = int(time.time() * 1000)
+        # TODO proper locks?
+        await DBReaction(mxid=reaction_id, mx_room=self.mxid, emoji=reaction,
+                         gc_sender=sender.gcid, gc_msgid=target.gcid, gc_chat=target.gc_chat,
+                         gc_receiver=target.gc_receiver, timestamp=fake_ts).insert()
+        await sender.client.react(target.gc_chat, target.gc_parent_id, target.gcid, reaction)
+
+    async def handle_matrix_redaction(self, sender: 'u.User', target_id: EventID,
+                                      redaction_id: EventID) -> None:
+        # TODO checkpoints
+        target = await DBMessage.get_by_mxid(target_id, self.mxid)
+        if target:
+            await target.delete()
+            await sender.client.delete_message(target.gc_chat, target.gc_parent_id, target.gcid)
+            return
+
+        reaction = await DBReaction.get_by_mxid(target_id, self.mxid)
+        if reaction:
+            reaction_target = await DBMessage.get_by_gcid(reaction.gc_msgid, reaction.gc_chat,
+                                                          reaction.gc_receiver)
+            await reaction.delete()
+            await sender.client.react(reaction.gc_chat, reaction_target.gc_parent_id,
+                                      reaction_target.gcid, reaction.emoji, remove=True)
+
+    async def handle_matrix_edit(self, sender: 'u.User', message: MessageEventContent,
+                                 event_id: EventID) -> None:
+        # TODO checkpoints
+        target = await DBMessage.get_by_mxid(message.get_edit(), self.mxid)
+        if not target:
+            return
+        # We don't support non-text edits yet
+        if message.msgtype != MessageType.TEXT:
+            return
+
+        async with self.require_send_lock(sender.gcid):
+            resp = await sender.client.edit_message(target.gc_chat, target.gc_parent_id,
+                                                    target.gcid, text=message.body)
+            self._edit_dedup[target.gcid] = resp.message.last_edit_time
+
     async def handle_matrix_message(self, sender: 'u.User', message: MessageEventContent,
                                     event_id: EventID) -> None:
+        if message.get_edit():
+            await self.handle_matrix_edit(sender, message, event_id)
+            return
         reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
         thread_id = (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
@@ -518,13 +575,21 @@ class Portal(DBPortal, BasePortal):
                                 msgtype=message.msgtype.value, gc_sender=sender.gcid).insert()
                 self._last_bridged_mxid = event_id
 
+    @staticmethod
+    def _get_send_response(resp: Union[googlechat.CreateTopicResponse,
+                                       googlechat.CreateMessageResponse]) -> SendResponse:
+        if isinstance(resp, googlechat.CreateTopicResponse):
+            return SendResponse(gcid=resp.topic.id.topic_id, timestamp=resp.topic.create_time_usec)
+        return SendResponse(gcid=resp.message.id.message_id, timestamp=resp.message.create_time)
+
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent,
-                                  thread_id: str, local_id: str) -> 'u.SendResponse':
-        return await sender.send_text(self.gcid, message.body, thread_id=thread_id,
-                                      local_id=local_id)
+                                  thread_id: str, local_id: str) -> SendResponse:
+        resp = await sender.client.send_message(self.gcid, text=message.body, thread_id=thread_id,
+                                                local_id=local_id)
+        return self._get_send_response(resp)
 
     async def _handle_matrix_image(self, sender: 'u.User', message: MediaMessageEventContent,
-                                   thread_id: str, local_id: str) -> 'u.SendResponse':
+                                   thread_id: str, local_id: str) -> SendResponse:
         if message.file and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
             data = decrypt_attachment(data, message.file.key.key,
@@ -536,7 +601,9 @@ class Portal(DBPortal, BasePortal):
         image = await sender.client.upload_image(image_file=io.BytesIO(data),
                                                  group_id=self.gcid_plain,
                                                  filename=message.body)
-        return await sender.send_image(self.gcid, image, thread_id=thread_id, local_id=local_id)
+        resp = await sender.client.send_message(self.gcid, image_id=image, thread_id=thread_id,
+                                                local_id=local_id, text="")
+        return self._get_send_response(resp)
 
     async def handle_matrix_leave(self, user: 'u.User') -> None:
         if self.is_direct:
@@ -588,8 +655,13 @@ class Portal(DBPortal, BasePortal):
                 # Duplicate reaction
                 return
             timestamp = evt.timestamp // 1000
+            matrix_reaction = evt.emoji.unicode
+            # TODO there are probably other emojis that need variation selectors
+            #      mautrix-facebook also needs improved logic for this, so put it in mautrix-python
+            if matrix_reaction in ("\u2764", "\U0001f44d", "\U0001f44e"):
+                matrix_reaction += "\ufe0f"
             event_id = await sender.intent_for(self).react(target.mx_room, target.mxid,
-                                                           evt.emoji.unicode, timestamp=timestamp)
+                                                           matrix_reaction, timestamp=timestamp)
             await DBReaction(mxid=event_id, mx_room=target.mx_room, emoji=evt.emoji.unicode,
                              gc_sender=sender.gcid, gc_msgid=target.gcid, gc_chat=target.gc_chat,
                              gc_receiver=target.gc_receiver, timestamp=timestamp).insert()
@@ -629,14 +701,15 @@ class Portal(DBPortal, BasePortal):
         msg_id = evt.id.message_id
         if not await self._bridge_own_message_pm(source, sender, f"edit {msg_id}"):
             return
-        edit_ts = evt.last_update_time
-        try:
-            if self._edit_dedup[msg_id] >= edit_ts:
-                self.log.debug(f"Ignoring likely duplicate edit of {msg_id} at {edit_ts}")
-                return
-        except KeyError:
-            pass
-        self._edit_dedup[msg_id] = edit_ts
+        async with self.optional_send_lock(sender.gcid):
+            edit_ts = evt.last_edit_time or evt.last_update_time
+            try:
+                if self._edit_dedup[msg_id] >= edit_ts:
+                    self.log.debug(f"Ignoring likely duplicate edit of {msg_id} at {edit_ts}")
+                    return
+            except KeyError:
+                pass
+            self._edit_dedup[msg_id] = edit_ts
         target = await DBMessage.get_by_gcid(msg_id, self.gcid, self.gc_receiver, index=0)
         if not target:
             self.log.debug(f"Ignoring edit of unknown message {msg_id}")

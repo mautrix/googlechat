@@ -13,7 +13,6 @@ import os
 import random
 import cgi
 
-
 from yarl import URL
 
 from google.protobuf import message as proto
@@ -285,9 +284,57 @@ class Client:
             logger.warning('Failed to update read timestamp: {}'.format(e))
             raise
 
-    async def send_message(self, conversation_id: str, text: str,
-                           image_id: Optional[googlechat_pb2.UploadMetadata] = None,
-                           thread_id: Optional[str] = None, local_id: Optional[str] = None):
+    async def react(self, conversation_id: str, thread_id: str, message_id: str, emoji: str,
+                    remove: bool = False) -> None:
+        await self.proto_update_reaction(googlechat_pb2.UpdateReactionRequest(
+            request_header=self.get_gc_request_header(),
+            emoji=googlechat_pb2.Emoji(unicode=emoji),
+            message_id=googlechat_pb2.MessageId(
+                parent_id=googlechat_pb2.MessageParentId(topic_id=googlechat_pb2.TopicId(
+                    group_id=parsers.group_id_from_id(conversation_id),
+                    topic_id=thread_id or message_id,
+                )),
+                message_id=message_id or thread_id,
+            ),
+            type=(googlechat_pb2.UpdateReactionRequest.REMOVE if remove
+                  else googlechat_pb2.UpdateReactionRequest.ADD),
+        ))
+
+    async def delete_message(self, conversation_id: str, thread_id: str, message_id: str
+                     ) -> googlechat_pb2.DeleteMessageResponse:
+        return await self.proto_delete_message(googlechat_pb2.DeleteMessageRequest(
+            request_header=self.get_gc_request_header(),
+            message_id=googlechat_pb2.MessageId(
+                parent_id=googlechat_pb2.MessageParentId(topic_id=googlechat_pb2.TopicId(
+                    group_id=parsers.group_id_from_id(conversation_id),
+                    topic_id=thread_id or message_id,
+                )),
+                message_id=message_id or thread_id,
+            ),
+        ))
+
+    async def edit_message(self, conversation_id: str, thread_id: str, message_id: str,
+                           text: str) -> googlechat_pb2.EditMessageResponse:
+        return await self.proto_edit_message(googlechat_pb2.EditMessageRequest(
+            request_header=self.get_gc_request_header(),
+            message_id=googlechat_pb2.MessageId(
+                parent_id=googlechat_pb2.MessageParentId(topic_id=googlechat_pb2.TopicId(
+                    group_id=parsers.group_id_from_id(conversation_id),
+                    topic_id=thread_id or message_id,
+                )),
+                message_id=message_id or thread_id,
+            ),
+            text_body=text,
+        ))
+
+    async def send_message(
+        self,
+        conversation_id: str,
+        text: str,
+        image_id: Optional[googlechat_pb2.UploadMetadata] = None,
+        thread_id: Optional[str] = None,
+        local_id: Optional[str] = None,
+    ) -> Union[googlechat_pb2.CreateTopicResponse, googlechat_pb2.CreateMessageResponse]:
         """Send a message to this conversation.
 
         A per-conversation lock is acquired to ensure that messages are sent in
@@ -573,6 +620,30 @@ class Client:
         response = googlechat_pb2.CreateMessageResponse()
         await self._gc_request('create_message', create_message_request,
                                response)
+        return response
+
+    async def proto_update_reaction(
+        self, update_reaction_request: googlechat_pb2.UpdateReactionRequest,
+    ) -> googlechat_pb2.UpdateReactionResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.UpdateReactionResponse()
+        await self._gc_request('update_reaction', update_reaction_request, response)
+        return response
+
+    async def proto_delete_message(
+        self, delete_message_request: googlechat_pb2.DeleteMessageRequest,
+    ) -> googlechat_pb2.DeleteMessageResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.DeleteMessageResponse()
+        await self._gc_request('delete_message', delete_message_request, response)
+        return response
+
+    async def proto_edit_message(
+        self, edit_message_request: googlechat_pb2.EditMessageRequest,
+    ) -> googlechat_pb2.EditMessageResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.EditMessageResponse()
+        await self._gc_request('edit_message', edit_message_request, response)
         return response
 
 
