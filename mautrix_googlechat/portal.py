@@ -39,7 +39,7 @@ from mautrix.errors import MatrixError, MForbidden
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage, Reaction as DBReaction
-from . import puppet as p, user as u
+from . import puppet as p, user as u, formatter as fmt
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
@@ -546,10 +546,13 @@ class Portal(DBPortal, BasePortal):
                               msgtype=message.msgtype)
             return
 
+        text, annotations = await fmt.matrix_to_googlechat(message)
         try:
             async with self.require_send_lock(sender.gcid):
-                resp = await sender.client.edit_message(target.gc_chat, target.gc_parent_id,
-                                                        target.gcid, text=message.body)
+                resp = await sender.client.edit_message(
+                    target.gc_chat, target.gc_parent_id, target.gcid,
+                    text=text, annotations=annotations,
+                )
                 self._edit_dedup[target.gcid] = resp.message.last_edit_time
         except Exception as e:
             self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
@@ -642,8 +645,9 @@ class Portal(DBPortal, BasePortal):
 
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent,
                                   thread_id: str, local_id: str) -> SendResponse:
-        resp = await sender.client.send_message(self.gcid, text=message.body, thread_id=thread_id,
-                                                local_id=local_id)
+        text, annotations = await fmt.matrix_to_googlechat(message)
+        resp = await sender.client.send_message(self.gcid, text=text, annotations=annotations,
+                                                thread_id=thread_id, local_id=local_id)
         return self._get_send_response(resp)
 
     async def _handle_matrix_image(self, sender: 'u.User', message: MediaMessageEventContent,
@@ -659,8 +663,13 @@ class Portal(DBPortal, BasePortal):
         image = await sender.client.upload_image(image_file=io.BytesIO(data),
                                                  group_id=self.gcid_plain,
                                                  filename=message.body)
-        resp = await sender.client.send_message(self.gcid, image_id=image, thread_id=thread_id,
-                                                local_id=local_id, text="")
+        annotations = [googlechat.Annotation(
+            type=googlechat.UPLOAD_METADATA,
+            upload_metadata=image,
+            chip_render_type=googlechat.Annotation.RENDER,
+        )]
+        resp = await sender.client.send_message(self.gcid, annotations=annotations,
+                                                thread_id=thread_id, local_id=local_id)
         return self._get_send_response(resp)
 
     async def handle_matrix_leave(self, user: 'u.User') -> None:
@@ -777,8 +786,7 @@ class Portal(DBPortal, BasePortal):
             self.log.debug(f"Ignoring edit of non-text message {msg_id}")
             return
 
-        # TODO formatting
-        content = TextMessageEventContent(msgtype=MessageType.TEXT, body=evt.text_body)
+        content = await fmt.googlechat_to_matrix(evt.text_body, evt.annotations)
         content.set_edit(target.mxid)
         event_id = await self._send_message(sender.intent_for(self), content,
                                             timestamp=edit_ts // 1000)
@@ -815,8 +823,7 @@ class Portal(DBPortal, BasePortal):
 
         event_ids: List[Tuple[EventID, MessageType]] = []
         if evt.text_body:
-            # TODO handle formatting
-            content = TextMessageEventContent(msgtype=MessageType.TEXT, body=evt.text_body)
+            content = await fmt.googlechat_to_matrix(evt.text_body, evt.annotations)
             if reply_to:
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)

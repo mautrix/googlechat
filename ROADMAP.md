@@ -10,7 +10,7 @@
       * [ ] Videos
       * [x] Images
       * [ ] Locations
-    * [ ] Formatting
+    * [x] Formatting
     * [x] Replies (into threads)
   * [x] Message redactions
   * [x] Message reactions
@@ -33,7 +33,7 @@
       * [ ] Videos
       * [x] Images
       * [ ] Locations
-    * [ ] Formatting
+    * [x] Formatting
     * [x] Threads (as replies)
   * [x] Message deletions
   * [x] Message reactions

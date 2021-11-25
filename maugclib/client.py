@@ -1,6 +1,6 @@
 """Abstract class for writing chat clients."""
 
-from typing import Tuple, Optional, IO, Dict, Union
+from typing import Tuple, Optional, IO, Dict, Union, List
 import asyncio
 import base64
 import binascii
@@ -301,7 +301,7 @@ class Client:
         ))
 
     async def delete_message(self, conversation_id: str, thread_id: str, message_id: str
-                     ) -> googlechat_pb2.DeleteMessageResponse:
+                             ) -> googlechat_pb2.DeleteMessageResponse:
         return await self.proto_delete_message(googlechat_pb2.DeleteMessageRequest(
             request_header=self.get_gc_request_header(),
             message_id=googlechat_pb2.MessageId(
@@ -314,7 +314,8 @@ class Client:
         ))
 
     async def edit_message(self, conversation_id: str, thread_id: str, message_id: str,
-                           text: str) -> googlechat_pb2.EditMessageResponse:
+                           text: str, annotations: Optional[List[googlechat_pb2.Annotation]] = None
+                           ) -> googlechat_pb2.EditMessageResponse:
         return await self.proto_edit_message(googlechat_pb2.EditMessageRequest(
             request_header=self.get_gc_request_header(),
             message_id=googlechat_pb2.MessageId(
@@ -325,46 +326,20 @@ class Client:
                 message_id=message_id or thread_id,
             ),
             text_body=text,
+            annotations=annotations,
+            message_info=googlechat_pb2.MessageInfo(
+                accept_format_annotations=True,
+            ),
         ))
 
     async def send_message(
         self,
         conversation_id: str,
-        text: str,
-        image_id: Optional[googlechat_pb2.UploadMetadata] = None,
+        text: str = "",
+        annotations: Optional[List[googlechat_pb2.Annotation]] = None,
         thread_id: Optional[str] = None,
         local_id: Optional[str] = None,
     ) -> Union[googlechat_pb2.CreateTopicResponse, googlechat_pb2.CreateMessageResponse]:
-        """Send a message to this conversation.
-
-        A per-conversation lock is acquired to ensure that messages are sent in
-        the correct order when this method is called multiple times
-        asynchronously.
-
-        Args:
-            conversation_id: The conversation ID to send the message to.
-            text: :str: The contents of the message to send.
-            image_id: (optional) The image metadata from :meth:`upload_image`.
-            thread_id: (optional) ID of the first message in the thread to reply to
-            local_id: (optional) local transaction ID to identify message echo
-
-        Raises:
-            .NetworkError: If the message cannot be sent.
-
-        Returns:
-            :class:`.ConversationEvent` representing the new message.
-        """
-        annotations = None
-
-        if image_id:
-            annotations = [
-                googlechat_pb2.Annotation(
-                    type=googlechat_pb2.AnnotationType.UPLOAD_METADATA,
-                    upload_metadata=image_id,
-                    chip_render_type=googlechat_pb2.Annotation.ChipRenderType.RENDER,
-                )
-            ]
-
         try:
             local_id = local_id or f'hangups%{random.randint(0, 0xffffffffffffffff)}'
             if thread_id:
@@ -379,6 +354,9 @@ class Client:
                     local_id=local_id,
                     text_body=text,
                     annotations=annotations,
+                    message_info=googlechat_pb2.MessageInfo(
+                        accept_format_annotations=True,
+                    ),
                 )
                 return await self.proto_create_message(request)
             else:
@@ -389,6 +367,9 @@ class Client:
                     text_body=text,
                     history_v2=True,
                     annotations=annotations,
+                    message_info=googlechat_pb2.MessageInfo(
+                        accept_format_annotations=True,
+                    ),
                 )
                 return await self.proto_create_topic(request)
         except exceptions.NetworkError as e:

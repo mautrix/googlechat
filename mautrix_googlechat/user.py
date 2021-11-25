@@ -360,7 +360,8 @@ class User(DBUser, BaseUser):
 
         self.name = self_info.name or self_info.first_name
         self.log.debug(f"Found own name: {self.name}")
-        self.name_future.set_result(self.name)
+        if not self.name_future.done():
+            self.name_future.set_result(self.name)
 
         self._track_metric(METRIC_CONNECTED, True)
         self._track_metric(METRIC_LOGGED_IN, True)

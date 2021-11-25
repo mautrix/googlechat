@@ -1127,6 +1127,7 @@ message CreateMessageRequest {
 	repeated Annotation annotations = 3;
 	optional string local_id = 4;
 	optional string message_id = 6;
+	optional MessageInfo message_info = 7;
 }
 
 message CreateMessageResponse {
@@ -1167,7 +1168,7 @@ message EditMessageRequest {
 	optional MessageId message_id = 1;
 	optional string text_body = 2;
 	repeated Annotation annotations = 3;
-	optional MessageInfo message_info = 4;
+	optional MessageInfo message_info = 5;
 }
 
 message EditMessageResponse {
