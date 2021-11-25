@@ -16,7 +16,7 @@
   * [x] Message reactions
   * [x] Message editing (text only)
   * [ ] Presence
-  * [ ] Typing notifications
+  * [x] Typing notifications
   * [ ] Read receipts
   * [ ] Membership actions
     * [ ] Invite

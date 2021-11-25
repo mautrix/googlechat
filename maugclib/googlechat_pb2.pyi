@@ -4976,8 +4976,8 @@ class Event(google.protobuf.message.Message):
         MEMBERSHIP_CHANGED_FIELD_NUMBER: builtins.int
         MESSAGE_DELETED_FIELD_NUMBER: builtins.int
         MESSAGE_REACTION_FIELD_NUMBER: builtins.int
-        USER_STATUS_UPDATED_EVENT_FIELD_NUMBER: builtins.int
-        TYPING_STATE_CHANGED_EVENT_FIELD_NUMBER: builtins.int
+        USER_STATUS_UPDATED_FIELD_NUMBER: builtins.int
+        TYPING_STATE_CHANGED_FIELD_NUMBER: builtins.int
         READ_RECEIPT_CHANGED_FIELD_NUMBER: builtins.int
         EVENT_TYPE_FIELD_NUMBER: builtins.int
         TRACE_ID_FIELD_NUMBER: builtins.int
@@ -5016,9 +5016,9 @@ class Event(google.protobuf.message.Message):
             """
             pass
         @property
-        def user_status_updated_event(self) -> global___UserStatusUpdatedEvent: ...
+        def user_status_updated(self) -> global___UserStatusUpdatedEvent: ...
         @property
-        def typing_state_changed_event(self) -> global___TypingStateChangedEvent:
+        def typing_state_changed(self) -> global___TypingStateChangedEvent:
             """WorkingHoursSettingsUpdatedEvent working_hours_settings_updated_event = 24;
             MessageSmartRepliesEvent message_smart_replies_event = 25;
             """
@@ -5052,15 +5052,15 @@ class Event(google.protobuf.message.Message):
             membership_changed : typing.Optional[global___MembershipChangedEvent] = ...,
             message_deleted : typing.Optional[global___MessageDeletedEvent] = ...,
             message_reaction : typing.Optional[global___MessageReactionEvent] = ...,
-            user_status_updated_event : typing.Optional[global___UserStatusUpdatedEvent] = ...,
-            typing_state_changed_event : typing.Optional[global___TypingStateChangedEvent] = ...,
+            user_status_updated : typing.Optional[global___UserStatusUpdatedEvent] = ...,
+            typing_state_changed : typing.Optional[global___TypingStateChangedEvent] = ...,
             read_receipt_changed : typing.Optional[global___ReadReceiptChangedEvent] = ...,
             event_type : typing.Optional[global___Event.EventType.V] = ...,
             trace_id : typing.Optional[builtins.int] = ...,
             ) -> None: ...
-        def HasField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed_event",b"typing_state_changed_event","user_status_updated_event",b"user_status_updated_event","web_push_notification",b"web_push_notification"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed_event",b"typing_state_changed_event","user_status_updated_event",b"user_status_updated_event","web_push_notification",b"web_push_notification"]) -> None: ...
-        def WhichOneof(self, oneof_group: typing_extensions.Literal["Type",b"Type"]) -> typing.Optional[typing_extensions.Literal["group_viewed","message_posted","web_push_notification","membership_changed","message_deleted","message_reaction","user_status_updated_event","typing_state_changed_event","read_receipt_changed"]]: ...
+        def HasField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed",b"typing_state_changed","user_status_updated",b"user_status_updated","web_push_notification",b"web_push_notification"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed",b"typing_state_changed","user_status_updated",b"user_status_updated","web_push_notification",b"web_push_notification"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing_extensions.Literal["Type",b"Type"]) -> typing.Optional[typing_extensions.Literal["group_viewed","message_posted","web_push_notification","membership_changed","message_deleted","message_reaction","user_status_updated","typing_state_changed","read_receipt_changed"]]: ...
 
     GROUP_ID_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int

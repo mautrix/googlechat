@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, AsyncIterable, cast,
-                    Tuple, Set, TYPE_CHECKING)
+                    Tuple, Set, Iterable, TYPE_CHECKING)
 import datetime
 import asyncio
 import time
@@ -307,7 +307,7 @@ class User(DBUser, BaseUser):
         self.users[user.user_id.id] = user
         return user
 
-    async def get_users(self, ids: List[str]) -> List[googlechat.User]:
+    async def get_users(self, ids: Iterable[str]) -> List[googlechat.User]:
         async with self.users_lock:
             req_ids = [googlechat.MemberId(user_id=googlechat.UserId(id=user_id))
                        for user_id in ids if user_id not in self.users]
@@ -438,9 +438,12 @@ class User(DBUser, BaseUser):
     # region Google Chat event handling
 
     async def on_stream_event(self, evt: googlechat.Event) -> None:
-        if not evt.group_id:
+        group_id = evt.group_id
+        if evt.type == googlechat.Event.TYPING_STATE_CHANGED:
+            group_id = evt.body.typing_state_changed.context.group_id
+        if not group_id:
             return
-        conv_id = maugclib.parsers.id_from_group_id(evt.group_id)
+        conv_id = maugclib.parsers.id_from_group_id(group_id)
         portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
         type_name = googlechat.Event.EventType.Name(evt.type)
         if evt.body.HasField("message_posted"):
@@ -455,47 +458,20 @@ class User(DBUser, BaseUser):
             await portal.handle_googlechat_redaction(evt.body.message_deleted)
         elif evt.body.HasField("read_receipt_changed"):
             await portal.handle_googlechat_read_receipts(evt.body.read_receipt_changed)
+        elif evt.body.HasField("typing_state_changed"):
+            await portal.handle_googlechat_typing(self, evt.body.typing_state_changed.user_id.id,
+                                                  evt.body.typing_state_changed.state)
         elif evt.body.HasField("group_viewed"):
             await portal.mark_read(self.gcid, evt.body.group_viewed.view_time)
         else:
             self.log.debug(f"Unhandled event type {type_name}")
-
-    # @async_time(METRIC_RECEIPT)
-    # async def on_receipt(self, event: WatermarkNotification) -> None:
-    #     if not self.chats:
-    #         self.log.debug("Received receipt event before chat list, ignoring")
-    #         return
-    #     conv: Conversation = self.chats.get(event.conv_id)
-    #     portal = await po.Portal.get_by_conversation(conv, self.gcid)
-    #     if not portal:
-    #         return
-    #     message = await DBMessage.get_closest_before(portal.gcid, portal.gc_receiver,
-    #                                                  event.read_timestamp)
-    #     if not message:
-    #         return
-    #     puppet = await pu.Puppet.get_by_gcid(event.user_id)
-    #     await puppet.intent_for(portal).mark_read(message.mx_room, message.mxid)
-
-    # @async_time(METRIC_TYPING)
-    # async def on_typing(self, event: TypingStatusMessage):
-    #     portal = await po.Portal.get_by_gcid(event.conv_id, self.gcid)
-    #     if not portal:
-    #         return
-    #     sender = await pu.Puppet.get_by_gcid(event.user_id, create=False)
-    #     if not sender:
-    #         return
-    #     await portal.handle_hangouts_typing(self, sender, event.status)
 
     # endregion
     # region Google Chat API calls
 
     async def set_typing(self, conversation_id: str, typing: bool) -> None:
         self.log.debug(f"set_typing({conversation_id}, {typing})")
-        # await self.client.set_typing(hangouts.SetTypingRequest(
-        #     request_header=self.client.get_request_header(),
-        #     conversation_id=hangouts.ConversationId(id=conversation_id),
-        #     type=hangouts.TYPING_TYPE_STARTED if typing else hangouts.TYPING_TYPE_STOPPED,
-        # ))
+        await self.client.mark_typing(conversation_id, typing=typing)
 
     async def mark_read(self, conversation_id: str,
                         timestamp: Optional[Union[datetime.datetime, int]] = None) -> None:

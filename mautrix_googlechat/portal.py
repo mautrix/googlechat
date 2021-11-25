@@ -643,6 +643,7 @@ class Portal(DBPortal, BasePortal):
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent,
                                   thread_id: str, local_id: str) -> SendResponse:
         text, annotations = await fmt.matrix_to_googlechat(message)
+        await sender.set_typing(self.gcid, typing=False)
         resp = await sender.client.send_message(self.gcid, text=text, annotations=annotations,
                                                 thread_id=thread_id, local_id=local_id)
         return self._get_send_response(resp)
@@ -681,10 +682,10 @@ class Portal(DBPortal, BasePortal):
         user_map = {mxid: await u.User.get_by_mxid(mxid, create=False) for mxid in users}
         stopped_typing = [user_map[mxid].set_typing(self.gcid, False)
                           for mxid in self._typing - users
-                          if mxid in user_map]
+                          if user_map.get(mxid)]
         started_typing = [user_map[mxid].set_typing(self.gcid, True)
                           for mxid in users - self._typing
-                          if mxid in user_map]
+                          if user_map.get(mxid)]
         self._typing = users
         await asyncio.gather(*stopped_typing, *started_typing)
 
@@ -938,17 +939,16 @@ class Portal(DBPortal, BasePortal):
         if puppet and message:
             await puppet.intent_for(self).mark_read(message.mx_room, message.mxid)
 
-    # async def handle_hangouts_typing(self, source: 'u.User', sender: 'p.Puppet', status: int
-    #                                  ) -> None:
-    #     if not self.mxid:
-    #         return
-    #     if self.is_direct and sender.gcid == source.gcid:
-    #         membership = await self.az.state_store.get_membership(self.mxid, sender.mxid)
-    #         if membership != Membership.JOIN:
-    #             return
-    #     await sender.intent_for(self).set_typing(self.mxid,
-    #                                              status == googlechat.TypingState.TYPING,
-    #                                              timeout=6000)
+    async def handle_googlechat_typing(self, source: 'u.User', sender: str, status: int) -> None:
+        if not self.mxid:
+            return
+        puppet = await p.Puppet.get_by_gcid(sender)
+        if self.is_direct and puppet.gcid == source.gcid:
+            membership = await self.az.state_store.get_membership(self.mxid, puppet.mxid)
+            if membership != Membership.JOIN:
+                return
+        await puppet.intent_for(self).set_typing(self.mxid, status == googlechat.TYPING,
+                                                 timeout=6000)
 
     # endregion
     # region Getters

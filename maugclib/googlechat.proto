@@ -1646,10 +1646,10 @@ message Event {
 			//RetentionSettingsUpdatedEvent retention_settings_updated = 19;
 			//TopicCreatedEvent topic_created = 21;
 			MessageReactionEvent message_reaction = 22;
-			UserStatusUpdatedEvent user_status_updated_event = 23;
+			UserStatusUpdatedEvent user_status_updated = 23;
 			//WorkingHoursSettingsUpdatedEvent working_hours_settings_updated_event = 24;
 			//MessageSmartRepliesEvent message_smart_replies_event = 25;
-			TypingStateChangedEvent typing_state_changed_event = 26;
+			TypingStateChangedEvent typing_state_changed = 26;
 			//GroupDeletedEvent group_deleted_event = 27;
 			//BlockStateChangedEvent block_state_changed_event = 28;
 			//ClearHistoryEvent clear_history_event = 29;

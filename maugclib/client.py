@@ -376,6 +376,23 @@ class Client:
             logger.warning('Failed to send message: {}'.format(e))
             raise
 
+    async def mark_typing(self, conversation_id: str, thread_id: Optional[str] = None,
+                          typing: bool = True) -> int:
+        group_id = parsers.group_id_from_id(conversation_id)
+        if thread_id:
+            context = googlechat_pb2.TypingContext(topic_id=googlechat_pb2.TopicId(
+                group_id=group_id,
+                topic_id=thread_id,
+            ))
+        else:
+            context = googlechat_pb2.TypingContext(group_id=group_id)
+        resp = await self.proto_set_typing_state(googlechat_pb2.SetTypingStateRequest(
+            request_header=self.get_gc_request_header(),
+            state=googlechat_pb2.TYPING if typing else googlechat_pb2.STOPPED,
+            context=context,
+        ))
+        return resp.start_timestamp_usec
+
     ##########################################################################
     # Private methods
     ##########################################################################
@@ -625,6 +642,14 @@ class Client:
         """Reacts to a message"""
         response = googlechat_pb2.EditMessageResponse()
         await self._gc_request('edit_message', edit_message_request, response)
+        return response
+
+    async def proto_set_typing_state(
+        self, set_typing_state_request: googlechat_pb2.SetTypingStateRequest,
+    ) -> googlechat_pb2.SetTypingStateResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.SetTypingStateResponse()
+        await self._gc_request('set_typing_state', set_typing_state_request, response)
         return response
 
 
