@@ -32,6 +32,7 @@ class User:
     gcid: Optional[str]
     refresh_token: Optional[str]
     notice_room: Optional[RoomID]
+    revision: Optional[int]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional['User']:
@@ -41,30 +42,41 @@ class User:
 
     @classmethod
     async def all_logged_in(cls) -> List['User']:
-        rows = await cls.db.fetch('SELECT mxid, gcid, refresh_token, notice_room FROM "user" '
-                                  "WHERE gcid IS NOT NULL AND refresh_token IS NOT NULL")
+        q = ('SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" '
+             "WHERE gcid IS NOT NULL AND refresh_token IS NOT NULL")
+        rows = await cls.db.fetch(q)
         return [cls._from_row(row) for row in rows]
 
     @classmethod
     async def get_by_gcid(cls, gcid: str) -> Optional['User']:
-        q = 'SELECT mxid, gcid, refresh_token, notice_room FROM "user" WHERE gcid=$1'
+        q = 'SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" WHERE gcid=$1'
         row = await cls.db.fetchrow(q, gcid)
         return cls._from_row(row)
 
     @classmethod
     async def get_by_mxid(cls, mxid: UserID) -> Optional['User']:
-        q = 'SELECT mxid, gcid, refresh_token, notice_room FROM "user" WHERE mxid=$1'
+        q = 'SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" WHERE mxid=$1'
         row = await cls.db.fetchrow(q, mxid)
         return cls._from_row(row)
 
     async def insert(self) -> None:
-        q = 'INSERT INTO "user" (mxid, gcid, refresh_token, notice_room) VALUES ($1, $2, $3, $4)'
-        await self.db.execute(q, self.mxid, self.gcid, self.refresh_token, self.notice_room)
+        q = ('INSERT INTO "user" (mxid, gcid, refresh_token, notice_room, revision) '
+             'VALUES ($1, $2, $3, $4, $5)')
+        await self.db.execute(q, self.mxid, self.gcid, self.refresh_token, self.notice_room,
+                              self.revision)
 
     async def delete(self) -> None:
         await self.db.execute('DELETE FROM "user" WHERE mxid=$1', self.mxid)
 
     async def save(self) -> None:
-        await self.db.execute('UPDATE "user" SET gcid=$2, refresh_token=$3, notice_room=$4 '
-                              'WHERE mxid=$1',
-                              self.mxid, self.gcid, self.refresh_token, self.notice_room)
+        q = ('UPDATE "user" SET gcid=$2, refresh_token=$3, notice_room=$4, revision=$5 '
+             'WHERE mxid=$1')
+        await self.db.execute(q, self.mxid, self.gcid, self.refresh_token, self.notice_room,
+                              self.revision)
+
+    async def set_revision(self, revision: int) -> None:
+        if self.revision and self.revision >= revision > 0:
+            return
+        self.revision = revision
+        await self.db.execute('UPDATE "portal" SET revision=$1 WHERE mxid=$2',
+                              self.revision, self.mxid)

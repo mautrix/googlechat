@@ -87,10 +87,11 @@ class Portal(DBPortal, BasePortal):
     def __init__(self, gcid: str, gc_receiver: str, other_user_id: Optional[str] = None,
                  mxid: Optional[RoomID] = None, name: Optional[str] = None,
                  avatar_mxc: Optional[ContentURI] = None, name_set: bool = False,
-                 avatar_set: bool = False, encrypted: bool = False) -> None:
+                 avatar_set: bool = False, encrypted: bool = False, revision: Optional[int] = None
+                 ) -> None:
         super().__init__(gcid=gcid, gc_receiver=gc_receiver, other_user_id=other_user_id,
                          mxid=mxid, name=name, avatar_mxc=avatar_mxc, name_set=name_set,
-                         avatar_set=avatar_set, encrypted=encrypted)
+                         avatar_set=avatar_set, encrypted=encrypted, revision=revision)
         self.log = self.log.getChild(self.gcid_log)
 
         self._main_intent = None

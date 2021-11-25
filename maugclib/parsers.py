@@ -28,10 +28,12 @@ def to_timestamp(datetime_timestamp):
 
 
 def id_from_group_id(group_id: googlechat_pb2.GroupId) -> str:
-    if group_id.HasField('dm_id'):
-        return f'dm:{group_id.dm_id.dm_id}'
+    if group_id.HasField("dm_id"):
+        return f"dm:{group_id.dm_id.dm_id}"
+    elif group_id.HasField("space_id"):
+        return f"space:{group_id.space_id.space_id}"
     else:
-        return f'space:{group_id.space_id.space_id}'
+        return ""
 
 
 def group_id_from_id(conversation_id: str) -> googlechat_pb2.GroupId:

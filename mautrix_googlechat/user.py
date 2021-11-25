@@ -63,10 +63,10 @@ class User(DBUser, BaseUser):
     users: Dict[str, googlechat.User]
     users_lock: asyncio.Lock
 
-    def __init__(self, mxid: UserID, gcid: Optional[str] = None,
-                 refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None
+    def __init__(self, mxid: UserID, gcid: Optional[str] = None, revision: Optional[int] = None,
+                 refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None,
                  ) -> None:
-        super().__init__(mxid=mxid, gcid=gcid, refresh_token=refresh_token,
+        super().__init__(mxid=mxid, gcid=gcid, refresh_token=refresh_token, revision=revision,
                          notice_room=notice_room)
         BaseUser.__init__(self)
         self._notice_room_lock = asyncio.Lock()
@@ -441,9 +441,9 @@ class User(DBUser, BaseUser):
         group_id = evt.group_id
         if evt.type == googlechat.Event.TYPING_STATE_CHANGED:
             group_id = evt.body.typing_state_changed.context.group_id
-        if not group_id:
-            return
         conv_id = maugclib.parsers.id_from_group_id(group_id)
+        if not conv_id:
+            return
         portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
         type_name = googlechat.Event.EventType.Name(evt.type)
         if evt.body.HasField("message_posted"):
@@ -465,6 +465,8 @@ class User(DBUser, BaseUser):
             await portal.mark_read(self.gcid, evt.body.group_viewed.view_time)
         else:
             self.log.debug(f"Unhandled event type {type_name}")
+        await asyncio.gather(self.set_revision(evt.user_revision.timestamp),
+                             portal.set_revision(evt.group_revision.timestamp))
 
     # endregion
     # region Google Chat API calls
