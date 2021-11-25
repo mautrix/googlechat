@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, AsyncIterable, cast,
-                    NamedTuple, TYPE_CHECKING)
+                    Tuple, Set, TYPE_CHECKING)
 import datetime
 import asyncio
 import time
@@ -303,7 +303,9 @@ class User(DBUser, BaseUser):
                 googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
             ]
         ))
-        return resp.members[0].user
+        user: googlechat.User = resp.members[0].user
+        self.users[user.user_id.id] = user
+        return user
 
     async def get_users(self, ids: List[str]) -> List[googlechat.User]:
         async with self.users_lock:
@@ -406,19 +408,24 @@ class User(DBUser, BaseUser):
         items: List[googlechat.WorldItemLite] = list(resp.world_items)
         items.sort(key=lambda item: item.sort_timestamp, reverse=True)
         max_sync = self.config["bridge.initial_chat_sync"]
+        portals_to_sync: List[Tuple[po.Portal, googlechat.WorldItemLite]] = []
+        prefetch_users: Set[str] = set()
         for index, item in enumerate(items):
             conv_id = maugclib.parsers.id_from_group_id(item.group_id)
             portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
+            if portal.mxid or index < max_sync:
+                if item.HasField("dm_members"):
+                    prefetch_users |= {member.id for member in item.dm_members.members}
+                portals_to_sync.append((portal, item))
+
+        # To avoid the portal sync sending individual get user requests for each DM portal,
+        # make all of them beforehand. Group chat portals will still request all group
+        # participants separately, but that's probably fine since they can be larger anyway.
+        await self.get_users(prefetch_users)
+
+        for portal, info in portals_to_sync:
             self.log.debug("Syncing %s", portal.gcid)
-            if portal.mxid:
-                await portal.update_matrix_room(self, item)
-                # TODO backfill
-                # if len(state.event) > 0 and not DBMessage.get_by_gid(state.event[0].event_id):
-                #     self.log.debug("Last message %s in chat %s not found in db, backfilling...",
-                #                    state.event[0].event_id, state.conversation_id.id)
-                #     await portal.backfill(self, is_initial=False)
-            elif index < max_sync:
-                await portal.create_matrix_room(self, item)
+            await portal.create_matrix_room(self, info)
         await self.update_direct_chats()
 
     async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:

@@ -330,10 +330,7 @@ class Portal(DBPortal, BasePortal):
     async def create_matrix_room(self, source: 'u.User', info: Optional[ChatInfo] = None
                                  ) -> RoomID:
         if self.mxid:
-            try:
-                await self._update_matrix_room(source, info)
-            except Exception:
-                self.log.exception("Failed to update portal")
+            await self.update_matrix_room(source, info)
             return self.mxid
         async with self._create_room_lock:
             try:
