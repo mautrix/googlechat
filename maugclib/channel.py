@@ -22,9 +22,12 @@ import codecs
 import json
 import logging
 import re
+import time
 
 import aiohttp
 import async_timeout
+
+from mautrix.util.opt_prometheus import Counter
 
 from . import googlechat_pb2, exceptions, event, http_utils
 
@@ -36,6 +39,13 @@ CHANNEL_URL_BASE = 'https://chat.google.com/webchannel/'
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
 MAX_READ_BYTES = 1024 * 1024
+
+LONG_POLLING_REQUESTS = Counter("bridge_gc_started_long_polls",
+                                "Number of long polling requests started")
+LONG_POLLING_ERRORS = Counter("bridge_gc_long_poll_errors", "Errors that stopped long polling",
+                              ["reason"])
+RECEIVED_CHUNKS = Counter("bridge_gc_received_chunk_bytes",
+                          "Received chunks from Google Chat long polling")
 
 
 class ChannelSessionError(exceptions.HangupsError):
@@ -160,6 +170,7 @@ class Channel:
         # Discovered parameters:
         self._sid_param = None
         self._csessionid_param = None
+        self._prev_stream_req = 0
 
         self._aid = 0
         self._ofs = 0  # used to track sent events
@@ -286,6 +297,7 @@ class Channel:
         }
         self._ofs += 1
 
+        self._prev_stream_req = time.time()
         res = await self._session.fetch_raw(
             'POST',
             CHANNEL_URL_BASE + 'events_encoded',
@@ -346,13 +358,16 @@ class Channel:
             })
 
         logger.debug('Opening new long-polling request')
+        LONG_POLLING_REQUESTS.inc()
         try:
             async with self._session.fetch_raw_ctx('GET', CHANNEL_URL_BASE + 'events_encoded',
                                                    params=params) as res:
 
                 if res.status != 200:
                     if res.status == 400 and res.reason == 'Unknown SID':
+                        LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
                         raise ChannelSessionError('SID became invalid')
+                    LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
                     raise exceptions.NetworkError("Request returned unexpected status: "
                                                   f"{res.status}: {res.reason}")
 
@@ -375,17 +390,23 @@ class Channel:
                     await self._on_push_data(chunk)
 
         except asyncio.TimeoutError:
+            LONG_POLLING_ERRORS.labels(reason="timeout").inc()
             raise exceptions.NetworkError('Request timed out')
         except aiohttp.ServerDisconnectedError as err:
+            LONG_POLLING_ERRORS.labels(reason="server disconnected").inc()
             raise exceptions.NetworkError(f'Server disconnected error: {err}')
         except aiohttp.ClientPayloadError:
+            LONG_POLLING_ERRORS.labels(reason="sid expiry").inc()
             raise ChannelSessionError('SID is about to expire')
         except aiohttp.ClientError as err:
+            LONG_POLLING_ERRORS.labels(reason="connection error").inc()
             raise exceptions.NetworkError(f'Request connection error: {err}')
+        LONG_POLLING_ERRORS.labels(reason="clean exit").inc()
 
     async def _on_push_data(self, data_bytes: bytes) -> None:
         """Parse push data and trigger events."""
         logger.debug('Received chunk:\n{}'.format(data_bytes))
+        RECEIVED_CHUNKS.inc(len(data_bytes))
         for chunk in self._chunk_parser.get_chunks(data_bytes):
 
             # Consider the channel connected once the first chunk is received.
