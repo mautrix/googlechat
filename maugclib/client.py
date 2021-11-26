@@ -676,6 +676,11 @@ class Client:
         await self._gc_request('list_topics', list_topics_request, response)
         return response
 
+    async def proto_send_stream_event(
+        self, stream_events_request: googlechat_pb2.StreamEventsRequest,
+    ) -> None:
+        await self._channel.send_stream_event(stream_events_request)
+
 
 UploadedImage = collections.namedtuple('UploadedImage', ['image_id', 'url'])
 """Details about an uploaded image.

@@ -253,7 +253,7 @@ class Channel:
 
         return ""
 
-    async def _send_stream_event(self, events_request: googlechat_pb2.StreamEventsRequest):
+    async def send_stream_event(self, events_request: googlechat_pb2.StreamEventsRequest):
         params = {
             'VER': 8,  # channel protocol version
             'RID': self._rid,  # request identifier
@@ -296,9 +296,7 @@ class Channel:
 
         return res
 
-    async def send_maps(self):
-        """Sends a request to the server containing maps (dicts)."""
-
+    async def _send_initial_ping(self):
         ping_event = googlechat_pb2.PingEvent(
             state=googlechat_pb2.PingEvent.State.ACTIVE,
             application_focus_state=googlechat_pb2.PingEvent.ApplicationFocusState.FOCUS_STATE_FOREGROUND,
@@ -306,45 +304,14 @@ class Channel:
             client_notifications_enabled=True,
         )
 
-        return await self._send_stream_event(googlechat_pb2.StreamEventsRequest(
+        logger.info("Sending initial ping request")
+        return await self.send_stream_event(googlechat_pb2.StreamEventsRequest(
             ping_event=ping_event,
         ))
 
     ##########################################################################
     # Private methods
     ##########################################################################
-
-    async def _fetch_channel_sid(self) -> None:
-        """Creates a new channel for receiving push data.
-
-        Sending an empty forward channel request will create a new channel on
-        the server.
-
-        There's a separate API to get the gsessionid alone that Hangouts for
-        Chrome uses, but if we don't send a gsessionid with this request, it
-        will return a gsessionid as well as the SID.
-
-        Raises hangups.NetworkError if the channel can not be created.
-        """
-        logger.info('Requesting new SID...')
-        self._sid_param = None
-
-        params = {
-            'VER': 8,  # channel protocol version
-            'RID': 0,  # request identifier
-            'CVER': 22,  # client type
-            'TYPE': 'init',  # type of request
-            '$req': 'count=0',  # noop request
-            'SID': 'null',
-            't': 1,  # trial
-        }
-
-        res = await self._session.fetch_raw(
-            'GET',
-            CHANNEL_URL_BASE + 'events_encoded',
-            params=params,
-        )
-        logger.info('New SID: {}'.format(self._sid_param))
 
     async def _longpoll_request(self) -> NoReturn:
         """Open a long-polling request and receive arrays.
@@ -397,7 +364,7 @@ class Channel:
                         self._aid = 0
                         self._ofs = 0
 
-                        await self.send_maps()
+                        await self._send_initial_ping()
 
                 while True:
                     async with async_timeout.timeout(PUSH_TIMEOUT):
