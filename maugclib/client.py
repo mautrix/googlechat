@@ -448,7 +448,8 @@ class Client:
                 if len(embedded_bodies) > 0:
                     resp.event.ClearField('bodies')
 
-                await self.on_stream_event.fire(resp.event)
+                if resp.event.HasField("body"):
+                    await self.on_stream_event.fire(resp.event)
 
                 for body in embedded_bodies:
                     resp_copy = googlechat_pb2.StreamEventsResponse()
