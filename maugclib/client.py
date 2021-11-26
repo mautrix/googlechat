@@ -20,7 +20,7 @@ from google.protobuf import message as proto
 from . import googlechat_pb2, exceptions, channel, http_utils, event, parsers
 
 logger = logging.getLogger(__name__)
-IMAGE_UPLOAD_URL = 'https://chat.google.com/uploads'
+UPLOAD_URL = 'https://chat.google.com/uploads'
 # Timeout to send for setactiveclient requests:
 ACTIVE_TIMEOUT_SECS = 120
 # Minimum timeout between subsequent setactiveclient requests:
@@ -201,34 +201,14 @@ class Client:
             data = await resp.read()
             return data, mime, filename
 
-    async def upload_image(self, image_file: IO, group_id: str, *,
-                           filename: Optional[str] = None) -> googlechat_pb2.UploadMetadata:
-        """Upload an image that can be later attached to a chat message.
-
-        Args:
-            image_file: A file-like object containing an image.
-            group_id: (str): The group id that this image is being uploaded for.
-            filename (str): (optional) Custom name for the uploaded file.
-
-        Raises:
-            hangups.NetworkError: If the upload request failed.
-
-        Returns:
-            :class:`googlechat_pb2.UploadMetadata` instance.
-        """
-        image_filename = filename or os.path.basename(image_file.name)
-        image_data = image_file.read()
-
-        mime_type, _ = mimetypes.guess_type(image_filename)
-        if mime_type is None:
-            mime_type = 'application/octet-stream'
-
+    async def upload_file(self, data: bytes, group_id: str, filename: str, mime_type: str,
+                          ) -> googlechat_pb2.UploadMetadata:
         headers = {
             'x-goog-upload-protocol': 'resumable',
             'x-goog-upload-command': 'start',
-            'x-goog-upload-content-length': f'{len(image_data)}',
+            'x-goog-upload-content-length': f'{len(data)}',
             'x-goog-upload-content-type': mime_type,
-            'x-goog-upload-file-name': image_filename,
+            'x-goog-upload-file-name': filename,
         }
 
         params = {
@@ -236,7 +216,7 @@ class Client:
         }
 
         # request an upload URL
-        res = await self._base_request(IMAGE_UPLOAD_URL, None, '', None,
+        res = await self._base_request(UPLOAD_URL, None, '', None,
                                        headers, params)
 
         try:
@@ -253,8 +233,7 @@ class Client:
             'x-goog-upload-offset': '0',
         }
 
-        res = await self._base_request(upload_url, None, '', image_data, headers=headers,
-                                       method='PUT')
+        res = await self._base_request(upload_url, None, '', data, headers=headers, method='PUT')
 
         try:
             upload_metadata = googlechat_pb2.UploadMetadata()
@@ -491,7 +470,7 @@ class Client:
         url: str,
         content_type: Optional[str],
         response_type: str,
-        data: Optional[str],
+        data: Optional[Union[str, bytes]],
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, str]] = None,
         method: str = 'POST'

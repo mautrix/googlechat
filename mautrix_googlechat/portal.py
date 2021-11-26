@@ -591,8 +591,8 @@ class Portal(DBPortal, BasePortal):
             try:
                 if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
                     resp = await self._handle_matrix_text(sender, message, thread_id, local_id)
-                elif message.msgtype == MessageType.IMAGE:
-                    resp = await self._handle_matrix_image(sender, message, thread_id, local_id)
+                elif message.msgtype.is_media:
+                    resp = await self._handle_matrix_media(sender, message, thread_id, local_id)
                 else:
                     raise ValueError(f"Unsupported msgtype {message.msgtype}")
             except Exception as e:
@@ -667,7 +667,7 @@ class Portal(DBPortal, BasePortal):
                                                 thread_id=thread_id, local_id=local_id)
         return self._get_send_response(resp)
 
-    async def _handle_matrix_image(self, sender: 'u.User', message: MediaMessageEventContent,
+    async def _handle_matrix_media(self, sender: 'u.User', message: MediaMessageEventContent,
                                    thread_id: str, local_id: str) -> SendResponse:
         if message.file and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
@@ -677,12 +677,12 @@ class Portal(DBPortal, BasePortal):
             data = await self.main_intent.download_media(message.url)
         else:
             raise Exception("Failed to download media from matrix")
-        image = await sender.client.upload_image(image_file=io.BytesIO(data),
-                                                 group_id=self.gcid_plain,
-                                                 filename=message.body)
+        mime = message.info.mimetype or magic.from_buffer(data, mime=True)
+        upload = await sender.client.upload_file(data=data, group_id=self.gcid_plain,
+                                                 filename=message.body, mime_type=mime)
         annotations = [googlechat.Annotation(
             type=googlechat.UPLOAD_METADATA,
-            upload_metadata=image,
+            upload_metadata=upload,
             chip_render_type=googlechat.Annotation.RENDER,
         )]
         resp = await sender.client.send_message(self.gcid, annotations=annotations,

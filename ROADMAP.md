@@ -5,9 +5,9 @@
     * [x] Text
     * [ ] Media
       * [ ] Stickers
-      * [ ] Files
+      * [x] Files
       * [ ] Voice messages
-      * [ ] Videos
+      * [x] Videos
       * [x] Images
       * [ ] Locations
     * [x] Formatting

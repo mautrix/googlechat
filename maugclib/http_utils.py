@@ -77,7 +77,8 @@ class Session:
         Raises:
             NetworkError: If the request fails.
         """
-        logger.debug('Sending request %s %s:\n%r', method, url, data)
+        logger.debug('Sending request %s %s:\n%r', method, url,
+                     data if not data or len(data) < 64 * 1024 else f"{len(data)} bytes")
         for retry_num in range(MAX_RETRIES):
             try:
                 async with self.fetch_raw_ctx(method, url, params=params,
