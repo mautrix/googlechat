@@ -20,7 +20,6 @@ import mimetypes
 import asyncio
 import random
 import time
-import io
 
 import magic
 from yarl import URL
@@ -62,6 +61,7 @@ StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 
 SendResponse = NamedTuple('SendResponse', gcid=str, timestamp=int)
+AttachmentURL = NamedTuple('AttachmentURL', url=URL, send_as_text=bool)
 ChatInfo = Union[googlechat.WorldItemLite, googlechat.GetGroupResponse]
 
 
@@ -845,15 +845,17 @@ class Portal(DBPortal, BasePortal):
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
             event_ids.append((event_id, MessageType.TEXT))
+
         attachment_urls = self._get_urls_from_annotations(evt.annotations)
         if attachment_urls:
             try:
                 async for event_id, msgtype in self.process_googlechat_attachments(
-                    source, attachment_urls, intent, reply_to=reply_to, timestamp=timestamp,
+                    source, attachment_urls, intent, reply_to=reply_to, ts=timestamp,
                 ):
                     event_ids.append((event_id, msgtype))
             except Exception:
                 self.log.exception("Failed to process attachments")
+
         if not event_ids:
             # TODO send notification
             self.log.debug("Unhandled Google Chat message %s", msg_id)
@@ -885,66 +887,91 @@ class Portal(DBPortal, BasePortal):
             return data, mime, filename
 
     @staticmethod
-    def _get_urls_from_annotations(annotations: List[googlechat.Annotation]) -> List[URL]:
+    def _get_urls_from_annotations(annotations: List[googlechat.Annotation]
+                                   ) -> List[AttachmentURL]:
         if not annotations:
             return []
         attachment_urls = []
         for annotation in annotations:
             if annotation.HasField('upload_metadata'):
-                attachment_urls.append(
-                    URL("https://chat.google.com/api/get_attachment_url").with_query({
-                        "url_type": "FIFE_URL",
-                        "attachment_token": annotation.upload_metadata.attachment_token,
-                    })
-                )
+                url = URL("https://chat.google.com/api/get_attachment_url").with_query({
+                    "url_type": "FIFE_URL",
+                    "attachment_token": annotation.upload_metadata.attachment_token,
+                })
+                attachment_urls.append(AttachmentURL(url=url, send_as_text=False))
             elif annotation.HasField('url_metadata'):
                 if annotation.url_metadata.should_not_render:
                     continue
                 if annotation.url_metadata.HasField('image_url'):
-                    attachment_urls.append(URL(annotation.url_metadata.image_url))
+                    url = URL(annotation.url_metadata.image_url)
                 elif annotation.url_metadata.HasField('url'):
-                    attachment_urls.append(URL(annotation.url_metadata.url.url))
+                    url = URL(annotation.url_metadata.url.url)
+                else:
+                    continue
+                attachment_urls.append(AttachmentURL(url=url, send_as_text=False))
+            elif annotation.HasField("video_call_metadata"):
+                attachment_urls.append(AttachmentURL(
+                    url=URL(annotation.video_call_metadata.meeting_space.meeting_url),
+                    send_as_text=True,
+                ))
         return attachment_urls
 
-    async def process_googlechat_attachments(self, source: 'u.User', urls: List[URL],
-                                             intent: IntentAPI, reply_to: DBMessage, timestamp: int
+    async def process_googlechat_attachments(self, source: 'u.User', urls: List[AttachmentURL],
+                                             intent: IntentAPI, reply_to: DBMessage, ts: int
                                              ) -> AsyncIterable[Tuple[EventID, MessageType]]:
-        max_size = self.matrix.media_config.upload_size
-        for url in urls:
-            try:
-                if url.host.endswith(".google.com"):
-                    data, mime, filename = await source.client.download_attachment(url, max_size)
-                else:
-                    data, mime, filename = await self._download_external_attachment(url, max_size)
-            except FileTooLargeError:
-                # TODO send error message
-                self.log.warning("Can't upload too large attachment")
-                continue
-            except aiohttp.ClientResponseError as e:
-                self.log.warning(f"Failed to download attachment: {e}")
-                continue
+        for url, send_as_text in urls:
+            if send_as_text:
+                content = TextMessageEventContent(msgtype=MessageType.TEXT, body=str(url))
+                if reply_to:
+                    content.set_reply(reply_to.mxid)
+                event_id = await self._send_message(intent, content, timestamp=ts)
+                yield event_id, MessageType.NOTICE
+            else:
+                resp = await self._process_googlechat_attachment(url, source, intent, reply_to, ts)
+                if resp:
+                    yield resp
 
-            msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
-            if msgtype == MessageType.TEXT:
-                msgtype = MessageType.FILE
-            if not filename or filename == "get_attachment_url":
-                filename = msgtype.value + mimetypes.guess_extension(mime)
-            upload_mime = mime
-            decryption_info = None
-            if self.encrypted and encrypt_attachment:
-                data, decryption_info = encrypt_attachment(data)
-                upload_mime = "application/octet-stream"
-            mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
-            if decryption_info:
-                decryption_info.url = mxc_url
-                mxc_url = None
-            content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
-                                               info=ImageInfo(size=len(data), mimetype=mime))
-            content.msgtype = msgtype
-            if reply_to:
-                content.set_reply(reply_to.mxid)
-            event_id = await self._send_message(intent, content, timestamp=timestamp)
-            yield event_id, content.msgtype
+    async def _process_googlechat_attachment(self, url: URL, source: 'u.User', intent: IntentAPI,
+                                             reply_to: Optional[DBMessage], ts: int
+                                             ) -> Optional[Tuple[EventID, MessageType]]:
+        max_size = self.matrix.media_config.upload_size
+        try:
+            if url.host.endswith(".google.com"):
+                data, mime, filename = await source.client.download_attachment(url, max_size)
+            else:
+                data, mime, filename = await self._download_external_attachment(url, max_size)
+        except FileTooLargeError:
+            # TODO send error message
+            self.log.warning("Can't upload too large attachment")
+            return None
+        except aiohttp.ClientResponseError as e:
+            self.log.warning(f"Failed to download attachment: {e}")
+            return None
+        if mime.startswith("text/html"):
+            self.log.debug(f"Ignoring HTML URL attachment {url}")
+            return None
+
+        msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
+        if msgtype == MessageType.TEXT:
+            msgtype = MessageType.FILE
+        if not filename or filename == "get_attachment_url":
+            filename = msgtype.value + (mimetypes.guess_extension(mime) or "")
+        upload_mime = mime
+        decryption_info = None
+        if self.encrypted and encrypt_attachment:
+            data, decryption_info = encrypt_attachment(data)
+            upload_mime = "application/octet-stream"
+        mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
+        if decryption_info:
+            decryption_info.url = mxc_url
+            mxc_url = None
+        content = MediaMessageEventContent(url=mxc_url, file=decryption_info, body=filename,
+                                           info=ImageInfo(size=len(data), mimetype=mime))
+        content.msgtype = msgtype
+        if reply_to:
+            content.set_reply(reply_to.mxid)
+        event_id = await self._send_message(intent, content, timestamp=ts)
+        return event_id, content.msgtype
 
     async def handle_googlechat_read_receipts(self, evt: googlechat.ReadReceiptChangedEvent
                                               ) -> None:

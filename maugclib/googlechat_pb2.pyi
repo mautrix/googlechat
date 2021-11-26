@@ -3053,6 +3053,7 @@ class Annotation(google.protobuf.message.Message):
     URL_METADATA_FIELD_NUMBER: builtins.int
     UPLOAD_METADATA_FIELD_NUMBER: builtins.int
     MEMBERSHIP_CHANGED_FIELD_NUMBER: builtins.int
+    VIDEO_CALL_METADATA_FIELD_NUMBER: builtins.int
     ROOM_UPDATED_FIELD_NUMBER: builtins.int
     type: global___AnnotationType.V = ...
     start_index: builtins.int = ...
@@ -3078,9 +3079,10 @@ class Annotation(google.protobuf.message.Message):
     @property
     def membership_changed(self) -> global___MembershipChangedMetadata: ...
     @property
+    def video_call_metadata(self) -> global___VideoCallMetadata: ...
+    @property
     def room_updated(self) -> global___RoomUpdatedMetadata:
-        """DYNProtoVideoCallMetadata video_call_metadata = 12;
-        DYNProtoGsuiteIntegrationMetadata gsuite_integration_metadata = 16;
+        """DYNProtoGsuiteIntegrationMetadata gsuite_integration_metadata = 16;
         DYNProtoGroupRetentionSettingsUpdatedMetaData group_retention_settings_updated = 17;
         DYNProtoBabelPlaceholderMetadata babel_placeholder_metadata = 18
         DYNProtoReadReceiptsSettingsUpdatedMetadata read_receipts_settings_metadata = 21;
@@ -3105,11 +3107,12 @@ class Annotation(google.protobuf.message.Message):
         url_metadata : typing.Optional[global___UrlMetadata] = ...,
         upload_metadata : typing.Optional[global___UploadMetadata] = ...,
         membership_changed : typing.Optional[global___MembershipChangedMetadata] = ...,
+        video_call_metadata : typing.Optional[global___VideoCallMetadata] = ...,
         room_updated : typing.Optional[global___RoomUpdatedMetadata] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["Metadata",b"Metadata"]) -> typing.Optional[typing_extensions.Literal["user_mention_metadata","format_metadata","slash_command_metadata","drive_metadata","url_metadata","upload_metadata","membership_changed","room_updated"]]: ...
+    def HasField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata","video_call_metadata",b"video_call_metadata"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata","video_call_metadata",b"video_call_metadata"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["Metadata",b"Metadata"]) -> typing.Optional[typing_extensions.Literal["user_mention_metadata","format_metadata","slash_command_metadata","drive_metadata","url_metadata","upload_metadata","membership_changed","video_call_metadata","room_updated"]]: ...
 global___Annotation = Annotation
 
 class TypingContext(google.protobuf.message.Message):

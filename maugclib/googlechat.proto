@@ -900,7 +900,7 @@ message Annotation {
 		UrlMetadata url_metadata = 7;
 		UploadMetadata upload_metadata = 10;
 		MembershipChangedMetadata membership_changed = 11;
-		//DYNProtoVideoCallMetadata video_call_metadata = 12;
+		VideoCallMetadata video_call_metadata = 12;
 		RoomUpdatedMetadata room_updated = 14;
 		//DYNProtoGsuiteIntegrationMetadata gsuite_integration_metadata = 16;
 		//DYNProtoGroupRetentionSettingsUpdatedMetaData group_retention_settings_updated = 17;
