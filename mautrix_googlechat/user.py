@@ -57,6 +57,7 @@ class User(DBUser, BaseUser):
     email: Optional[str]
     name_future: asyncio.Future
     connected: bool
+    connection_watchdog_task: Optional[asyncio.Task]
 
     groups: Dict[str, googlechat.GetGroupResponse]
     groups_lock: asyncio.Lock
@@ -81,6 +82,7 @@ class User(DBUser, BaseUser):
         self.users = {}
         self.users_lock = asyncio.Lock()
         self._intentional_disconnect = False
+        self.connection_watchdog_task = None
 
     # region Sessions
 
@@ -209,6 +211,8 @@ class User(DBUser, BaseUser):
     def login_complete(self, token_manager: TokenManager) -> None:
         self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
         asyncio.create_task(self.start())
+        if not self.connection_watchdog_task:
+            self.connection_watchdog_task = asyncio.create_task(self._connection_watchdog())
         self.client.on_stream_event.add_observer(self._in_background(self.on_stream_event))
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
@@ -226,6 +230,32 @@ class User(DBUser, BaseUser):
             asyncio.create_task(try_proxy(*args, **kwargs))
 
         return proxy
+
+    async def _connection_watchdog(self) -> None:
+        while True:
+            try:
+                await asyncio.sleep(20 * 60)
+                resp = await self.client.proto_catch_up_user(googlechat.CatchUpUserRequest(
+                    request_header=self.client.get_gc_request_header(),
+                    range=googlechat.CatchUpRange(
+                        from_revision_timestamp=self.revision,
+                    ),
+                    page_size=10,
+                    cutoff_size=1000,
+                ))
+                status_name = googlechat.CatchUpResponse.ResponseStatus.Name(resp.status)
+                if len(resp.events) > 0 or resp.status != googlechat.CatchUpResponse.COMPLETED:
+                    self.log.warning(f"Catchup request returned status {status_name} "
+                                     f"with {len(resp.events)} events!")
+                    await self.client._channel._send_initial_ping()
+                else:
+                    self.log.debug(f"Catchup request didn't return new events "
+                                   f"(status: {status_name})")
+            except asyncio.CancelledError:
+                self.log.debug("Connection watchdog cancelled")
+                break
+            except Exception:
+                self.log.exception("Exception in connection watchdog")
 
     async def start(self) -> None:
         last_disconnection = 0
@@ -265,6 +295,9 @@ class User(DBUser, BaseUser):
         if self.client:
             self._intentional_disconnect = True
             await self.client.disconnect()
+        if self.connection_watchdog_task:
+            self.connection_watchdog_task.cancel()
+            self.connection_watchdog_task = None
 
     async def logout(self) -> None:
         self._track_metric(METRIC_LOGGED_IN, False)
