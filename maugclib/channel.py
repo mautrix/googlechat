@@ -228,18 +228,15 @@ class Channel:
 
         while attempts < retries:
             if attempts > 0:
-                logger.debug(
-                    'retrying channel registration: attempt {}/{}'.format(
-                        attempts, retries))
+                logger.debug(f"retrying channel registration: attempt {attempts}/{retries}")
 
             headers = {'Content-Type': 'application/x-protobuf'}
             res = await self._session.fetch_raw('POST', CHANNEL_URL_BASE + 'register',
                                                 headers=headers)
 
             if res.status != 200:
-                raise exceptions.NetworkError(
-                    'Request return unexpected status: {}: {}'.format(
-                        res.status, res.reason))
+                raise exceptions.NetworkError(f"Request return unexpected status: {res.status}: "
+                                              f"{res.reason}")
 
             body = await res.read()
 

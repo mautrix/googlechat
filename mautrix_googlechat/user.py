@@ -425,7 +425,12 @@ class User(DBUser, BaseUser):
 
         for portal, info in portals_to_sync:
             self.log.debug("Syncing %s", portal.gcid)
-            await portal.create_matrix_room(self, info)
+            if portal.mxid:
+                await portal.update_matrix_room(self, info)
+                asyncio.create_task(portal.backfill(self))
+            else:
+                await portal.create_matrix_room(self, info)
+
         await self.update_direct_chats()
 
     async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:

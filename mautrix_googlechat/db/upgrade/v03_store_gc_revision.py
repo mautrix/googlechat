@@ -20,4 +20,5 @@ from . import upgrade_table
 @upgrade_table.register(description="Add revision column for users and portals")
 async def upgrade_v3(conn: Connection) -> None:
     await conn.execute("ALTER TABLE portal ADD COLUMN revision BIGINT")
+    await conn.execute("ALTER TABLE portal ADD COLUMN is_threaded BOOLEAN")
     await conn.execute('ALTER TABLE "user" ADD COLUMN revision BIGINT')

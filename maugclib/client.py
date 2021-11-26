@@ -483,7 +483,7 @@ class Client:
             raise exceptions.NetworkError(
                 'Failed to decode Protocol Buffer response: {}'.format(e)
             )
-        # logger.debug('Received Protocol Buffer response:\n%s', response_pb)
+        logger.debug('Received Protocol Buffer response:\n%s', response_pb)
 
     async def _base_request(
         self,
@@ -650,6 +650,30 @@ class Client:
         """Reacts to a message"""
         response = googlechat_pb2.SetTypingStateResponse()
         await self._gc_request('set_typing_state', set_typing_state_request, response)
+        return response
+
+    async def proto_catch_up_user(
+        self, catch_up_user_request: googlechat_pb2.CatchUpUserRequest,
+    ) -> googlechat_pb2.CatchUpResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.CatchUpResponse()
+        await self._gc_request('catch_up_user', catch_up_user_request, response)
+        return response
+
+    async def proto_catch_up_group(
+        self, catch_up_group_request: googlechat_pb2.CatchUpGroupRequest,
+    ) -> googlechat_pb2.CatchUpResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.CatchUpResponse()
+        await self._gc_request('catch_up_group', catch_up_group_request, response)
+        return response
+
+    async def proto_list_topics(
+        self, list_topics_request: googlechat_pb2.ListTopicsRequest,
+    ) -> googlechat_pb2.ListTopicsResponse:
+        """Reacts to a message"""
+        response = googlechat_pb2.ListTopicsResponse()
+        await self._gc_request('list_topics', list_topics_request, response)
         return response
 
 

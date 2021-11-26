@@ -34,7 +34,6 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
-from mautrix.util.simple_lock import SimpleLock
 from mautrix.errors import MatrixError, MForbidden
 
 from .config import Config
@@ -82,29 +81,28 @@ class Portal(DBPortal, BasePortal):
     _edit_dedup: Dict[str, int]
     _noop_lock: FakeLock = FakeLock()
     _typing: Set[UserID]
-    backfill_lock: SimpleLock
+    _backfill_lock: asyncio.Lock
 
     def __init__(self, gcid: str, gc_receiver: str, other_user_id: Optional[str] = None,
                  mxid: Optional[RoomID] = None, name: Optional[str] = None,
                  avatar_mxc: Optional[ContentURI] = None, name_set: bool = False,
-                 avatar_set: bool = False, encrypted: bool = False, revision: Optional[int] = None
-                 ) -> None:
+                 avatar_set: bool = False, encrypted: bool = False, revision: Optional[int] = None,
+                 is_threaded: Optional[bool] = None) -> None:
         super().__init__(gcid=gcid, gc_receiver=gc_receiver, other_user_id=other_user_id,
                          mxid=mxid, name=name, avatar_mxc=avatar_mxc, name_set=name_set,
-                         avatar_set=avatar_set, encrypted=encrypted, revision=revision)
+                         avatar_set=avatar_set, encrypted=encrypted, revision=revision,
+                         is_threaded=is_threaded)
         self.log = self.log.getChild(self.gcid_log)
 
         self._main_intent = None
         self._create_room_lock = asyncio.Lock()
+        self._backfill_lock = asyncio.Lock()
         self._last_bridged_mxid = None
         self._dedup = deque(maxlen=100)
         self._edit_dedup = {}
         self._local_dedup = set()
         self._send_locks = {}
         self._typing = set()
-
-        self.backfill_lock = SimpleLock("Waiting for backfilling to finish before handling %s",
-                                        log=self.log)
 
     @classmethod
     def init_cls(cls, bridge: 'GoogleChatBridge') -> None:
@@ -166,7 +164,14 @@ class Portal(DBPortal, BasePortal):
                           ) -> ChatInfo:
         if not info or (not self.is_dm and isinstance(info, googlechat.WorldItemLite)):
             info = await source.get_group(self.gcid)
-        changed = await self._update_participants(source, info)
+
+        changed = False
+        is_threaded = (info if isinstance(info, googlechat.WorldItemLite)
+                       else info.group).HasField("threaded_group")
+        if is_threaded != self.is_threaded:
+            self.is_threaded = is_threaded
+            changed = True
+        changed = await self._update_participants(source, info) or changed
         changed = await self._update_name(info) or changed
         if changed:
             await self.save()
@@ -227,6 +232,19 @@ class Portal(DBPortal, BasePortal):
             await puppet.intent_for(self).ensure_joined(self.mxid)
 
     # endregion
+
+    async def backfill(self, source: 'u.User', is_initial: bool = False) -> None:
+        try:
+            async with self._backfill_lock:
+                await self._backfill(source, is_initial=is_initial)
+        except Exception:
+            self.log.exception(f"Fatal error while backfilling ({is_initial=})")
+
+    async def _backfill(self, source: 'u.User', is_initial: bool = False) -> None:
+        if not is_initial and not self.revision:
+            # self.log.warning("Can't do catch-up backfill on portal with no known last revision")
+            return
+
 
     # async def _load_messages(self, source: 'u.User', limit: int = 100,
     #                          token: Any = None
@@ -356,6 +374,7 @@ class Portal(DBPortal, BasePortal):
             "channel": {
                 "id": self.gcid,
                 "displayname": self.name,
+                "fi.mau.googlechat.is_threaded": self.is_threaded,
             }
         }
 
@@ -407,44 +426,42 @@ class Portal(DBPortal, BasePortal):
             })
             if self.is_direct:
                 invites.append(self.az.bot_mxid)
-        # We lock backfill lock here so any messages that come between the room being created
-        # and the initial backfill finishing wouldn't be bridged before the backfill messages.
-        with self.backfill_lock:
-            creation_content = {}
-            if not self.config["bridge.federate_rooms"]:
-                creation_content["m.federate"] = False
-            self.mxid = await self.main_intent.create_room(
-                name=self.name if self.encrypted or not self.is_direct else None,
-                is_direct=self.is_direct,
-                initial_state=initial_state,
-                invitees=invites,
-                creation_content=creation_content,
-            )
-            if not self.mxid:
-                raise Exception("Failed to create room: no mxid returned")
-            if self.encrypted and self.matrix.e2ee and self.is_direct:
-                try:
-                    await self.az.intent.ensure_joined(self.mxid)
-                except Exception:
-                    self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
-            await self.save()
-            self.log.debug(f"Matrix room created: {self.mxid}")
-            self.by_mxid[self.mxid] = self
-            await self._update_participants(source, info)
 
-            puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
-            await self.main_intent.invite_user(self.mxid, source.mxid,
-                                               extra_content=self._get_invite_content(puppet))
-            if puppet:
-                try:
-                    if self.is_direct:
-                        await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
-                    await puppet.intent.join_room_by_id(self.mxid)
-                except MatrixError:
-                    self.log.debug("Failed to join custom puppet into newly created portal",
-                                   exc_info=True)
+        creation_content = {}
+        if not self.config["bridge.federate_rooms"]:
+            creation_content["m.federate"] = False
+        self.mxid = await self.main_intent.create_room(
+            name=self.name if self.encrypted or not self.is_direct else None,
+            is_direct=self.is_direct,
+            initial_state=initial_state,
+            invitees=invites,
+            creation_content=creation_content,
+        )
+        if not self.mxid:
+            raise Exception("Failed to create room: no mxid returned")
+        if self.encrypted and self.matrix.e2ee and self.is_direct:
+            try:
+                await self.az.intent.ensure_joined(self.mxid)
+            except Exception:
+                self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
+        await self.save()
+        self.log.debug(f"Matrix room created: {self.mxid}")
+        self.by_mxid[self.mxid] = self
+        await self._update_participants(source, info)
 
-            # await self.backfill(source, is_initial=True)
+        puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
+        await self.main_intent.invite_user(self.mxid, source.mxid,
+                                           extra_content=self._get_invite_content(puppet))
+        if puppet:
+            try:
+                if self.is_direct:
+                    await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
+                await puppet.intent.join_room_by_id(self.mxid)
+            except MatrixError:
+                self.log.debug("Failed to join custom puppet into newly created portal",
+                               exc_info=True)
+
+        asyncio.create_task(self.backfill(source, is_initial=True))
 
         return self.mxid
 

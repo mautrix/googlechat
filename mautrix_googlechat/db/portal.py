@@ -38,6 +38,7 @@ class Portal:
     avatar_set: bool
     encrypted: bool
     revision: Optional[int]
+    is_threaded: Optional[bool]
 
     @classmethod
     def _from_row(cls, row: Optional[Record]) -> Optional['Portal']:
@@ -48,7 +49,7 @@ class Portal:
     @classmethod
     async def get_by_gcid(cls, gcid: str, gc_receiver: str) -> Optional['Portal']:
         q = ("SELECT gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-             "       name_set, avatar_set, encrypted, revision "
+             "       name_set, avatar_set, encrypted, revision, is_threaded "
              "FROM portal WHERE gcid=$1 AND gc_receiver=$2")
         row = await cls.db.fetchrow(q, gcid, gc_receiver)
         return cls._from_row(row)
@@ -56,7 +57,7 @@ class Portal:
     @classmethod
     async def get_by_mxid(cls, mxid: RoomID) -> Optional['Portal']:
         q = ("SELECT gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-             "       name_set, avatar_set, encrypted, revision "
+             "       name_set, avatar_set, encrypted, revision, is_threaded "
              "FROM portal WHERE mxid=$1")
         row = await cls.db.fetchrow(q, mxid)
         return cls._from_row(row)
@@ -64,7 +65,7 @@ class Portal:
     @classmethod
     async def get_all_by_receiver(cls, gc_receiver: str) -> List['Portal']:
         q = ("SELECT gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-             "       name_set, avatar_set, encrypted, revision "
+             "       name_set, avatar_set, encrypted, revision, is_threaded "
              "FROM portal WHERE gc_receiver=$1 AND gcid LIKE 'dm:%'")
         rows = await cls.db.fetch(q, gc_receiver)
         return [cls._from_row(row) for row in rows]
@@ -72,18 +73,18 @@ class Portal:
     @classmethod
     async def all(cls) -> List['Portal']:
         q = ("SELECT gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-             "       name_set, avatar_set, encrypted, revision "
+             "       name_set, avatar_set, encrypted, revision, is_threaded "
              "FROM portal")
         rows = await cls.db.fetch(q)
         return [cls._from_row(row) for row in rows]
 
     async def insert(self) -> None:
         q = ("INSERT INTO portal (gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-             "                    name_set, avatar_set, encrypted, revision) "
-             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
+             "                    name_set, avatar_set, encrypted, revision, is_threaded) "
+             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)")
         await self.db.execute(q, self.gcid, self.gc_receiver, self.other_user_id, self.mxid,
                               self.name, self.avatar_mxc, self.name_set, self.avatar_set,
-                              self.encrypted, self.revision)
+                              self.encrypted, self.revision, self.is_threaded)
 
     async def delete(self) -> None:
         q = "DELETE FROM portal WHERE gcid=$1 AND gc_receiver=$2"
@@ -92,11 +93,11 @@ class Portal:
     async def save(self) -> None:
         await self.db.execute("UPDATE portal SET mxid=$3, name=$4, avatar_mxc=$5,"
                               "                  name_set=$6, avatar_set=$7, encrypted=$8,"
-                              "                  other_user_id=$9, revision=$10 "
+                              "                  other_user_id=$9, revision=$10, is_threaded=$11 "
                               "WHERE gcid=$1 AND gc_receiver=$2",
                               self.gcid, self.gc_receiver, self.mxid, self.name, self.avatar_mxc,
                               self.name_set, self.avatar_set, self.encrypted, self.other_user_id,
-                              self.revision)
+                              self.revision, self.is_threaded)
 
     async def set_revision(self, revision: int) -> None:
         if self.revision and self.revision >= revision > 0:
