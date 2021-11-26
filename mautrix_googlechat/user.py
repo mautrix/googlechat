@@ -238,15 +238,21 @@ class User(DBUser, BaseUser):
                 resp = await self.client.proto_catch_up_user(googlechat.CatchUpUserRequest(
                     request_header=self.client.get_gc_request_header(),
                     range=googlechat.CatchUpRange(
-                        from_revision_timestamp=self.revision,
+                        from_revision_timestamp=self.revision or int(time.time() * 1_000_000),
                     ),
-                    page_size=10,
-                    cutoff_size=1000,
+                    page_size=100,
+                    cutoff_size=500,
                 ))
                 status_name = googlechat.CatchUpResponse.ResponseStatus.Name(resp.status)
                 if len(resp.events) > 0 or resp.status != googlechat.CatchUpResponse.COMPLETED:
-                    self.log.warning(f"Catchup request returned status {status_name} "
-                                     f"with {len(resp.events)} events!")
+                    if len(resp.events) > 0:
+                        self.log.warning(f"Catchup request returned status {status_name} "
+                                         f"with {len(resp.events)} events!")
+                        await self.set_revision(resp.events[-1].user_revision.timestamp)
+                    else:
+                        self.log.warning(f"Catchup request returned status {status_name} "
+                                         f"with no events! (setting revision to current time)")
+                        await self.set_revision(int(time.time() * 1_000_000))
                     await self.client._channel._send_initial_ping()
                 else:
                     self.log.debug(f"Catchup request didn't return new events "
