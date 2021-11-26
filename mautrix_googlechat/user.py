@@ -26,7 +26,7 @@ from maugclib import (googlechat_pb2 as googlechat, Client, RefreshTokenCache, T
 from mautrix.types import UserID, RoomID, MessageType
 from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
-from mautrix.util.opt_prometheus import Gauge, Summary, async_time
+from mautrix.util.opt_prometheus import Gauge, Histogram, async_time
 
 from .config import Config
 from .db import User as DBUser
@@ -35,10 +35,9 @@ from . import puppet as pu, portal as po
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
 
-METRIC_SYNC = Summary('bridge_sync', 'calls to sync')
-METRIC_TYPING = Summary('bridge_on_typing', 'calls to on_typing')
-METRIC_EVENT = Summary('bridge_on_event', 'calls to on_event')
-METRIC_RECEIPT = Summary('bridge_on_receipt', 'calls to on_receipt')
+METRIC_SYNC = Histogram('bridge_sync', 'calls to sync')
+METRIC_STREAM_EVENT = Histogram('bridge_on_stream_event', 'calls to on_stream_event',
+                                ['event_type'])
 METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the bridge')
 METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Google Chat')
 
@@ -449,6 +448,7 @@ class User(DBUser, BaseUser):
         conv_id = maugclib.parsers.id_from_group_id(group_id)
         if not conv_id:
             return
+        start = time.time()
         portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
         type_name = googlechat.Event.EventType.Name(evt.type)
         if evt.body.HasField("message_posted"):
@@ -472,6 +472,7 @@ class User(DBUser, BaseUser):
             self.log.debug(f"Unhandled event type {type_name}")
         await asyncio.gather(self.set_revision(evt.user_revision.timestamp),
                              portal.set_revision(evt.group_revision.timestamp))
+        METRIC_STREAM_EVENT.labels(event_type=type_name).observe(time.time() - start)
 
     # endregion
     # region Google Chat API calls
