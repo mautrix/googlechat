@@ -54,6 +54,7 @@ class User(DBUser, BaseUser):
     _notice_room_lock: asyncio.Lock
     _intentional_disconnect: bool
     name: Optional[str]
+    email: Optional[str]
     name_future: asyncio.Future
     connected: bool
 
@@ -72,6 +73,7 @@ class User(DBUser, BaseUser):
         self.is_whitelisted, self.is_admin, self.level = self.config.get_permissions(mxid)
         self.client = None
         self.name = None
+        self.email = None
         self.name_future = self.loop.create_future()
         self.connected = False
         self.groups = {}
@@ -277,6 +279,7 @@ class User(DBUser, BaseUser):
         self.groups = {}
 
         self.name = None
+        self.email = None
         if not self.name_future.done():
             self.name_future.set_exception(Exception("logged out"))
         self.name_future = self.loop.create_future()
@@ -360,6 +363,7 @@ class User(DBUser, BaseUser):
         await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
 
         self.name = self_info.name or self_info.first_name
+        self.email = self_info.email
         self.log.debug(f"Found own name: {self.name}")
         if not self.name_future.done():
             self.name_future.set_result(self.name)

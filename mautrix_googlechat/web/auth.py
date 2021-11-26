@@ -151,6 +151,7 @@ class GoogleChatAuthServer:
             "mxid": user.mxid,
             "googlechat": {
                 "name": user.name,
+                "email": user.email,
                 "id": user.gcid,
                 "connected": user.connected,
             } if user.client else None,
@@ -175,9 +176,11 @@ class GoogleChatAuthServer:
         user_id = self.verify_token(request)
         user = await u.User.get_by_mxid(user_id)
         if user.client:
+            await user.name_future
             return web.json_response({
                 "status": "success",
-                "name": await user.name_future,
+                "name": user.name,
+                "email": user.email,
             })
         return web.json_response({
             "next_step": "authorization",
@@ -188,9 +191,11 @@ class GoogleChatAuthServer:
         user_id = self.verify_token(request, allow_expired=True)
         user = await u.User.get_by_mxid(user_id)
         if user.client:
+            await user.name_future
             return web.json_response({
                 "status": "success",
-                "name": await user.name_future,
+                "name": user.name,
+                "email": user.email,
             })
         data = await request.json()
         if not data:
@@ -217,7 +222,9 @@ class GoogleChatAuthServer:
             }, status=500)
         else:
             user.login_complete(token_mgr)
+            await user.name_future
             return web.json_response({
                 "status": "success",
-                "name": await user.name_future,
+                "name": user.name,
+                "email": user.email,
             })
