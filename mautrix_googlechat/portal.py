@@ -580,7 +580,8 @@ class Portal(DBPortal, BasePortal):
             await self.handle_matrix_edit(sender, message, event_id)
             return
         reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
-        thread_id = (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
+        thread_id = ((reply_to.gc_parent_id or reply_to.gcid)
+                     if reply_to and self.is_threaded else None)
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
         self._local_dedup.add(local_id)
 
