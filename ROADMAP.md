@@ -17,7 +17,7 @@
   * [x] Message editing (text only)
   * [ ] Presence
   * [x] Typing notifications
-  * [ ] Read receipts
+  * [x] Read receipts
   * [ ] Membership actions
     * [ ] Invite
     * [ ] Join (accept invite)

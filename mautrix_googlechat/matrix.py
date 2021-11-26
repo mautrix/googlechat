@@ -93,8 +93,7 @@ class MatrixHandler(BaseMatrixHandler):
 
     async def handle_read_receipt(self, user: 'u.User', portal: 'po.Portal', event_id: EventID,
                                   data: SingleReceiptEventContent) -> None:
-        # TODO we could probably get a timestamp from somewhere and use that
-        await user.mark_read(portal.gcid)
+        await user.mark_read(portal.gcid, data.ts)
 
     async def handle_ephemeral_event(self, evt: Event) -> None:
         if evt.type == EventType.PRESENCE:

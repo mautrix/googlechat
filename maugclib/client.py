@@ -606,7 +606,7 @@ class Client:
     async def proto_create_topic(
         self, create_topic_request: googlechat_pb2.CreateTopicRequest,
     ) -> googlechat_pb2.CreateTopicResponse:
-        """Creates a top (sends a message)"""
+        """Creates a topic (sends a message)"""
         response = googlechat_pb2.CreateTopicResponse()
         await self._gc_request('create_topic', create_topic_request, response)
         return response
@@ -631,7 +631,6 @@ class Client:
     async def proto_delete_message(
         self, delete_message_request: googlechat_pb2.DeleteMessageRequest,
     ) -> googlechat_pb2.DeleteMessageResponse:
-        """Reacts to a message"""
         response = googlechat_pb2.DeleteMessageResponse()
         await self._gc_request('delete_message', delete_message_request, response)
         return response
@@ -639,7 +638,6 @@ class Client:
     async def proto_edit_message(
         self, edit_message_request: googlechat_pb2.EditMessageRequest,
     ) -> googlechat_pb2.EditMessageResponse:
-        """Reacts to a message"""
         response = googlechat_pb2.EditMessageResponse()
         await self._gc_request('edit_message', edit_message_request, response)
         return response
@@ -647,7 +645,6 @@ class Client:
     async def proto_set_typing_state(
         self, set_typing_state_request: googlechat_pb2.SetTypingStateRequest,
     ) -> googlechat_pb2.SetTypingStateResponse:
-        """Reacts to a message"""
         response = googlechat_pb2.SetTypingStateResponse()
         await self._gc_request('set_typing_state', set_typing_state_request, response)
         return response
@@ -655,7 +652,6 @@ class Client:
     async def proto_catch_up_user(
         self, catch_up_user_request: googlechat_pb2.CatchUpUserRequest,
     ) -> googlechat_pb2.CatchUpResponse:
-        """Reacts to a message"""
         response = googlechat_pb2.CatchUpResponse()
         await self._gc_request('catch_up_user', catch_up_user_request, response)
         return response
@@ -663,7 +659,6 @@ class Client:
     async def proto_catch_up_group(
         self, catch_up_group_request: googlechat_pb2.CatchUpGroupRequest,
     ) -> googlechat_pb2.CatchUpResponse:
-        """Reacts to a message"""
         response = googlechat_pb2.CatchUpResponse()
         await self._gc_request('catch_up_group', catch_up_group_request, response)
         return response
@@ -671,7 +666,6 @@ class Client:
     async def proto_list_topics(
         self, list_topics_request: googlechat_pb2.ListTopicsRequest,
     ) -> googlechat_pb2.ListTopicsResponse:
-        """Reacts to a message"""
         response = googlechat_pb2.ListTopicsResponse()
         await self._gc_request('list_topics', list_topics_request, response)
         return response

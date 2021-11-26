@@ -481,18 +481,12 @@ class User(DBUser, BaseUser):
         self.log.debug(f"set_typing({conversation_id}, {typing})")
         await self.client.mark_typing(conversation_id, typing=typing)
 
-    async def mark_read(self, conversation_id: str,
-                        timestamp: Optional[Union[datetime.datetime, int]] = None) -> None:
-        pass
-        # if isinstance(timestamp, datetime.datetime):
-        #     timestamp = hangups.parsers.to_timestamp(timestamp)
-        # elif not timestamp:
-        #     timestamp = int(time.time() * 1_000_000)
-        # await self.client.update_watermark(hangouts.UpdateWatermarkRequest(
-        #     request_header=self.client.get_request_header(),
-        #     conversation_id=hangouts.ConversationId(id=conversation_id),
-        #     last_read_timestamp=timestamp,
-        # ))
+    async def mark_read(self, conversation_id: str, timestamp: int) -> None:
+        await self.client.proto_mark_group_read_state(googlechat.MarkGroupReadstateRequest(
+            request_header=self.client.get_gc_request_header(),
+            id=maugclib.parsers.group_id_from_id(conversation_id),
+            last_read_time=int((timestamp or (time.time() * 1000)) * 1000),
+        ))
 
     # endregion
 
