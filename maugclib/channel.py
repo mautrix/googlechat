@@ -39,6 +39,7 @@ CHANNEL_URL_BASE = 'https://chat.google.com/webchannel/'
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
 MAX_READ_BYTES = 1024 * 1024
+MAX_REGISTER_INTERVAL = 8 * 60 * 60
 
 LONG_POLLING_REQUESTS = Counter("bridge_gc_started_long_polls",
                                 "Number of long polling requests started")
@@ -190,6 +191,7 @@ class Channel:
         retries = 0  # Number of retries attempted so far
 
         self._csessionid_param = await self._register()
+        register_time = time.monotonic()
 
         while retries <= self._max_retries:
             # After the first failed retry, back off exponentially longer after
@@ -198,6 +200,11 @@ class Channel:
                 backoff_seconds = self._retry_backoff_base ** retries
                 logger.info('Backing off for %s seconds', backoff_seconds)
                 await asyncio.sleep(backoff_seconds)
+            elif register_time + MAX_REGISTER_INTERVAL < time.monotonic():
+                logger.info(f"Getting new channel registration as over {MAX_REGISTER_INTERVAL} has"
+                            " passed since the last registration")
+                self._csessionid_param = await self._register()
+                register_time = time.monotonic()
 
             # Clear any previous push data, since if there was an error it
             # could contain garbage.
@@ -208,6 +215,7 @@ class Channel:
                 logger.debug('Long-polling interrupted: %s', err)
 
                 self._csessionid_param = await self._register()
+                register_time = time.monotonic()
                 retries = 0
                 continue
             except exceptions.NetworkError as err:
