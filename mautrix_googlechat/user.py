@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, AsyncIterable, cast,
                     Tuple, Set, Iterable, TYPE_CHECKING)
-import datetime
 import asyncio
 import time
 
@@ -234,29 +233,34 @@ class User(DBUser, BaseUser):
     async def _connection_watchdog(self) -> None:
         while True:
             try:
-                await asyncio.sleep(20 * 60)
-                resp = await self.client.proto_catch_up_user(googlechat.CatchUpUserRequest(
+                await asyncio.sleep(60 * 60)
+                resp = await self.client.proto_paginated_world(googlechat.PaginatedWorldRequest(
                     request_header=self.client.get_gc_request_header(),
-                    range=googlechat.CatchUpRange(
-                        from_revision_timestamp=self.revision or int(time.time() * 1_000_000),
-                    ),
-                    page_size=100,
-                    cutoff_size=500,
+                    world_section_requests=[googlechat.WorldSectionRequest(
+                        page_size=5,
+                    )],
+                    fetch_from_user_spaces=True,
+                    fetch_options=[
+                        googlechat.PaginatedWorldRequest.EXCLUDE_GROUP_LITE,
+                    ],
                 ))
-                status_name = googlechat.CatchUpResponse.ResponseStatus.Name(resp.status)
-                if len(resp.events) > 0 or resp.status != googlechat.CatchUpResponse.COMPLETED:
-                    if len(resp.events) > 0:
-                        self.log.warning(f"Catchup request returned status {status_name} "
-                                         f"with {len(resp.events)} events!")
-                        await self.set_revision(resp.events[-1].user_revision.timestamp)
-                    else:
-                        self.log.warning(f"Catchup request returned status {status_name} "
-                                         f"with no events! (setting revision to current time)")
-                        await self.set_revision(int(time.time() * 1_000_000))
-                    await self.client._channel._send_initial_ping()
+                all_ok = True
+                item: googlechat.WorldItemLite
+                for item in resp.world_items:
+                    conv_id = maugclib.parsers.id_from_group_id(item.group_id)
+                    portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
+                    if portal.revision and portal.revision < item.group_revision.timestamp:
+                        self.log.warning(
+                            f"Catchup request returned {item.group_revision.timestamp} for "
+                            f"{portal.gcid}, but the portal is on {portal.revision}!"
+                        )
+                        all_ok = False
+                        # TODO backfill instead of setting revision directly
+                        await portal.set_revision(item.group_revision.timestamp)
+                if all_ok:
+                    self.log.debug("Catchup request didn't find new revisions")
                 else:
-                    self.log.debug(f"Catchup request didn't return new events "
-                                   f"(status: {status_name})")
+                    await self.client.disconnect()
             except asyncio.CancelledError:
                 self.log.debug("Connection watchdog cancelled")
                 break
@@ -467,6 +471,8 @@ class User(DBUser, BaseUser):
 
         for portal, info in portals_to_sync:
             self.log.debug("Syncing %s", portal.gcid)
+            # TODO backfill instead of setting revision directly
+            await portal.set_revision(info.group_revision.timestamp)
             if portal.mxid:
                 await portal.update_matrix_room(self, info)
                 asyncio.create_task(portal.backfill(self))
