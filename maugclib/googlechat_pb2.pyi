@@ -4560,6 +4560,41 @@ class GroupViewedEvent(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["group_id",b"group_id","view_time",b"view_time"]) -> None: ...
 global___GroupViewedEvent = GroupViewedEvent
 
+class GroupUpdatedEvent(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    class GroupInfo(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+        GROUP_ID_FIELD_NUMBER: builtins.int
+        ROOM_NAME_FIELD_NUMBER: builtins.int
+        AVATAR_URL_FIELD_NUMBER: builtins.int
+        @property
+        def group_id(self) -> global___GroupId: ...
+        room_name: typing.Text = ...
+        avatar_url: typing.Text = ...
+        def __init__(self,
+            *,
+            group_id : typing.Optional[global___GroupId] = ...,
+            room_name : typing.Optional[typing.Text] = ...,
+            avatar_url : typing.Optional[typing.Text] = ...,
+            ) -> None: ...
+        def HasField(self, field_name: typing_extensions.Literal["avatar_url",b"avatar_url","group_id",b"group_id","room_name",b"room_name"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["avatar_url",b"avatar_url","group_id",b"group_id","room_name",b"room_name"]) -> None: ...
+
+    NEW_FIELD_NUMBER: builtins.int
+    OLD_FIELD_NUMBER: builtins.int
+    @property
+    def new(self) -> global___GroupUpdatedEvent.GroupInfo: ...
+    @property
+    def old(self) -> global___GroupUpdatedEvent.GroupInfo: ...
+    def __init__(self,
+        *,
+        new : typing.Optional[global___GroupUpdatedEvent.GroupInfo] = ...,
+        old : typing.Optional[global___GroupUpdatedEvent.GroupInfo] = ...,
+        ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["new",b"new","old",b"old"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["new",b"new","old",b"old"]) -> None: ...
+global___GroupUpdatedEvent = GroupUpdatedEvent
+
 class WebPushNotificationEvent(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
     class DispatchApproachType(_DispatchApproachType, metaclass=_DispatchApproachTypeEnumTypeWrapper):
@@ -4974,6 +5009,7 @@ class Event(google.protobuf.message.Message):
     class EventBody(google.protobuf.message.Message):
         DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
         GROUP_VIEWED_FIELD_NUMBER: builtins.int
+        GROUP_UPDATED_FIELD_NUMBER: builtins.int
         MESSAGE_POSTED_FIELD_NUMBER: builtins.int
         WEB_PUSH_NOTIFICATION_FIELD_NUMBER: builtins.int
         MEMBERSHIP_CHANGED_FIELD_NUMBER: builtins.int
@@ -4987,11 +5023,11 @@ class Event(google.protobuf.message.Message):
         @property
         def group_viewed(self) -> global___GroupViewedEvent: ...
         @property
-        def message_posted(self) -> global___MessageEvent:
-            """TopicViewedEvent topic_viewed = 4;
-            GroupUpdatedEvent group_updated = 5;
-            """
+        def group_updated(self) -> global___GroupUpdatedEvent:
+            """TopicViewedEvent topic_viewed = 4;"""
             pass
+        @property
+        def message_posted(self) -> global___MessageEvent: ...
         @property
         def web_push_notification(self) -> global___WebPushNotificationEvent:
             """TopicMuteChangedEvent topic_mute_changed = 7;
@@ -5050,6 +5086,7 @@ class Event(google.protobuf.message.Message):
         def __init__(self,
             *,
             group_viewed : typing.Optional[global___GroupViewedEvent] = ...,
+            group_updated : typing.Optional[global___GroupUpdatedEvent] = ...,
             message_posted : typing.Optional[global___MessageEvent] = ...,
             web_push_notification : typing.Optional[global___WebPushNotificationEvent] = ...,
             membership_changed : typing.Optional[global___MembershipChangedEvent] = ...,
@@ -5061,9 +5098,9 @@ class Event(google.protobuf.message.Message):
             event_type : typing.Optional[global___Event.EventType.V] = ...,
             trace_id : typing.Optional[builtins.int] = ...,
             ) -> None: ...
-        def HasField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed",b"typing_state_changed","user_status_updated",b"user_status_updated","web_push_notification",b"web_push_notification"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed",b"typing_state_changed","user_status_updated",b"user_status_updated","web_push_notification",b"web_push_notification"]) -> None: ...
-        def WhichOneof(self, oneof_group: typing_extensions.Literal["Type",b"Type"]) -> typing.Optional[typing_extensions.Literal["group_viewed","message_posted","web_push_notification","membership_changed","message_deleted","message_reaction","user_status_updated","typing_state_changed","read_receipt_changed"]]: ...
+        def HasField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_updated",b"group_updated","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed",b"typing_state_changed","user_status_updated",b"user_status_updated","web_push_notification",b"web_push_notification"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["Type",b"Type","event_type",b"event_type","group_updated",b"group_updated","group_viewed",b"group_viewed","membership_changed",b"membership_changed","message_deleted",b"message_deleted","message_posted",b"message_posted","message_reaction",b"message_reaction","read_receipt_changed",b"read_receipt_changed","trace_id",b"trace_id","typing_state_changed",b"typing_state_changed","user_status_updated",b"user_status_updated","web_push_notification",b"web_push_notification"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing_extensions.Literal["Type",b"Type"]) -> typing.Optional[typing_extensions.Literal["group_viewed","group_updated","message_posted","web_push_notification","membership_changed","message_deleted","message_reaction","user_status_updated","typing_state_changed","read_receipt_changed"]]: ...
 
     GROUP_ID_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int

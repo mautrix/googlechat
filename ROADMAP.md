@@ -48,7 +48,7 @@
     * [ ] Join via link
     * [ ] Remove member
     * [ ] Leave
-  * [ ] Chat metadata (title) changes
+  * [x] Chat metadata (title) changes
   * [x] Initial chat metadata (title)
   * [x] Initial user metadata
     * [x] Name

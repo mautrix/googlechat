@@ -1419,6 +1419,19 @@ message GroupViewedEvent {
 	optional int64 view_time = 2;
 }
 
+message GroupUpdatedEvent {
+	optional Group new = 1;
+	optional Group old = 2;
+	enum UpdateType {
+		UPDATE_TYPE_UNKNOWN = 0;
+		CREATED = 1;
+		UPDATED = 2;
+		DELETED = 3;
+		UNDELETED = 4;
+	}
+	optional UpdateType update_type = 4;
+}
+
 message WebPushNotificationEvent {
 	enum DispatchApproachType {
 		DISPATCH_APPROACH_TYPE_UNSPECIFIED = 0;
@@ -1630,7 +1643,7 @@ message Event {
 		oneof Type {
 			GroupViewedEvent group_viewed = 3;
 			//TopicViewedEvent topic_viewed = 4;
-			//GroupUpdatedEvent group_updated = 5;
+			GroupUpdatedEvent group_updated = 5;
 			MessageEvent message_posted = 6;
 			//TopicMuteChangedEvent topic_mute_changed = 7;
 			//UserSettingsChangedEvent user_settings_changed = 8;

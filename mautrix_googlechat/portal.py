@@ -33,7 +33,7 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
-from mautrix.errors import MatrixError, MForbidden
+from mautrix.errors import MatrixError, MForbidden, IntentError
 
 from .config import Config
 from .db import Portal as DBPortal, Message as DBMessage, Reaction as DBReaction
@@ -810,6 +810,20 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handled Google Chat edit of %s at %s -> %s", msg_id, edit_ts, event_id)
         await self._send_delivery_receipt(event_id)
 
+    async def handle_googlechat_update(self, sender: 'p.Puppet',
+                                       update: googlechat.RoomUpdatedMetadata) -> bool:
+        if update.HasField("rename_metadata") and update.rename_metadata.new_name:
+            if self.name != update.rename_metadata.new_name:
+                self.name = update.rename_metadata.new_name
+                try:
+                    await sender.intent_for(self).set_room_name(self.mxid, self.name)
+                except (MForbidden, IntentError):
+                    await self.main_intent.set_room_name(self.mxid, self.name)
+                await self.update_bridge_info()
+            return True
+        else:
+            return False
+
     async def handle_googlechat_message(self, source: 'u.User', evt: googlechat.Message) -> None:
         sender = await p.Puppet.get_by_gcid(evt.creator.user_id.id)
         msg_id = evt.id.message_id
@@ -828,6 +842,10 @@ class Portal(DBPortal, BasePortal):
                 return
         if not await self._bridge_own_message_pm(source, sender, f"message {msg_id}"):
             return
+        if len(evt.annotations) == 1 and evt.annotations[0].type == googlechat.ROOM_UPDATED:
+            self.log.debug("Handling Google Chat room update message %s", msg_id)
+            if await self.handle_googlechat_update(sender, evt.annotations[0].room_updated):
+                return
         intent = sender.intent_for(self)
         self.log.debug("Handling Google Chat message %s", msg_id)
 
