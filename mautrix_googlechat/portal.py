@@ -33,6 +33,7 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
+from mautrix.util import variation_selector
 from mautrix.errors import MatrixError, MForbidden, IntentError
 
 from .config import Config
@@ -492,7 +493,7 @@ class Portal(DBPortal, BasePortal):
 
     async def handle_matrix_reaction(self, sender: 'u.User', reaction_id: EventID,
                                      target_id: EventID, reaction: str) -> None:
-        reaction = reaction.rstrip("\ufe0f")
+        reaction = variation_selector.remove(reaction)
 
         target = await DBMessage.get_by_mxid(target_id, self.mxid)
         if not target:
@@ -739,11 +740,7 @@ class Portal(DBPortal, BasePortal):
                 # Duplicate reaction
                 return
             timestamp = evt.timestamp // 1000
-            matrix_reaction = evt.emoji.unicode
-            # TODO there are probably other emojis that need variation selectors
-            #      mautrix-facebook also needs improved logic for this, so put it in mautrix-python
-            if matrix_reaction in ("\u2764", "\U0001f44d", "\U0001f44e"):
-                matrix_reaction += "\ufe0f"
+            matrix_reaction = variation_selector.add(evt.emoji.unicode)
             event_id = await sender.intent_for(self).react(target.mx_room, target.mxid,
                                                            matrix_reaction, timestamp=timestamp)
             await DBReaction(mxid=event_id, mx_room=target.mx_room, emoji=evt.emoji.unicode,
