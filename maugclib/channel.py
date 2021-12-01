@@ -189,6 +189,7 @@ class Channel:
         error.
         """
         retries = 0  # Number of retries attempted so far
+        skip_backoff = False
 
         self._csessionid_param = await self._register()
         register_time = time.monotonic()
@@ -196,15 +197,16 @@ class Channel:
         while retries <= self._max_retries:
             # After the first failed retry, back off exponentially longer after
             # each attempt.
-            if retries > 0:
+            if retries > 0 and not skip_backoff:
                 backoff_seconds = self._retry_backoff_base ** retries
-                logger.info('Backing off for %s seconds', backoff_seconds)
+                logger.info(f"Backing off for {backoff_seconds} seconds")
                 await asyncio.sleep(backoff_seconds)
             elif register_time + MAX_REGISTER_INTERVAL < time.monotonic():
-                logger.info(f"Getting new channel registration as over {MAX_REGISTER_INTERVAL} has"
-                            " passed since the last registration")
+                logger.info(f"Getting new channel registration as over {MAX_REGISTER_INTERVAL}s"
+                            " has passed since the last registration")
                 self._csessionid_param = await self._register()
                 register_time = time.monotonic()
+            skip_backoff = False
 
             # Clear any previous push data, since if there was an error it
             # could contain garbage.
@@ -216,7 +218,9 @@ class Channel:
 
                 self._csessionid_param = await self._register()
                 register_time = time.monotonic()
-                retries = 0
+
+                retries += 1
+                skip_backoff = True
                 continue
             except exceptions.NetworkError as err:
                 logger.warning('Long-polling request failed: %s', err)
@@ -368,13 +372,19 @@ class Channel:
         logger.debug('Opening new long-polling request')
         LONG_POLLING_REQUESTS.inc()
         try:
+            res: aiohttp.ClientResponse
             async with self._session.fetch_raw_ctx('GET', CHANNEL_URL_BASE + 'events_encoded',
                                                    params=params) as res:
-
                 if res.status != 200:
-                    if res.status == 400 and res.reason == 'Unknown SID':
-                        LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
-                        raise ChannelSessionError('SID became invalid')
+                    if res.status == 400:
+                        logger.info("400 %s response text: %s", res.reason, await res.text())
+                        if res.reason == 'Unknown SID':
+                            LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
+                            raise ChannelSessionError('SID became invalid')
+                        else:
+                            LONG_POLLING_ERRORS.labels(reason="sid probably invalid").inc()
+                            raise ChannelSessionError(f'SID probably became invalid: '
+                                                      f'HTTP {res.status}: {res.reason}')
                     LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
                     raise exceptions.NetworkError("Request returned unexpected status: "
                                                   f"{res.status}: {res.reason}")
