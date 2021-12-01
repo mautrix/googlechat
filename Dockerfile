@@ -1,4 +1,4 @@
-FROM docker.io/alpine:3.14
+FROM docker.io/alpine:3.15
 
 RUN apk add --no-cache \
       python3 py3-pip py3-setuptools py3-wheel \
@@ -36,7 +36,7 @@ RUN apk add --virtual .build-deps python3-dev libffi-dev build-base \
  && apk del .build-deps
 
 COPY . /opt/mautrix-googlechat
-RUN pip3 install .[e2be] \
+RUN pip3 install .[all] \
   # This doesn't make the image smaller, but it's needed so that the `version` command works properly
   && cp mautrix_googlechat/example-config.yaml . && rm -rf mautrix_googlechat
 
