@@ -39,7 +39,7 @@ CHANNEL_URL_BASE = 'https://chat.google.com/webchannel/'
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
 MAX_READ_BYTES = 1024 * 1024
-MAX_REGISTER_INTERVAL = 8 * 60 * 60
+MAX_REGISTER_INTERVAL = 2 * 60 * 60
 
 LONG_POLLING_REQUESTS = Counter("bridge_gc_started_long_polls",
                                 "Number of long polling requests started")

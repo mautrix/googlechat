@@ -152,13 +152,16 @@ bridge:
         # invited to private chats when backfilling history from Google Chat. This is
         # usually needed to prevent rate limits and to allow timestamp massaging.
         invite_own_puppet: true
-        # Maximum number of messages to backfill initially.
-        # Set to 0 to disable backfilling when creating portal.
-        initial_limit: 0
-        # Maximum number of messages to backfill if messages were missed while
-        # the bridge was disconnected.
-        # Set to 0 to disable backfilling missed messages.
-        missed_limit: 100
+        # Number of threads to backfill in threaded spaces in initial backfill.
+        initial_thread_limit: 10
+        # Number of replies to backfill in each thread in initial backfill.
+        initial_thread_reply_limit: 500
+        # Number of messages to backfill in non-threaded spaces and DMs in initial backfill.
+        initial_nonthread_limit: 100
+        # Number of events to backfill in catchup backfill.
+        missed_event_limit: 5000
+        # How many events to request from Google Chat at once in catchup backfill?
+        missed_event_page_size: 100
         # If using double puppeting, should notifications be disabled
         # while the initial backfill is in progress?
         disable_notifications: false

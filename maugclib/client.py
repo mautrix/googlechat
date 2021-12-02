@@ -1,6 +1,6 @@
 """Abstract class for writing chat clients."""
 
-from typing import Tuple, Optional, IO, Dict, Union, List
+from typing import Tuple, Optional, Iterator, Dict, Union, List
 import asyncio
 import base64
 import binascii
@@ -422,20 +422,25 @@ class Client:
                 # around with the class by swapping the embedded bodies into
                 # the top level body field and fire the event like it was the
                 # toplevel body.
+                for evt in self.split_event_bodies(resp.event):
+                    await self.on_stream_event.fire(evt)
 
-                embedded_bodies = resp.event.bodies
-                if len(embedded_bodies) > 0:
-                    resp.event.ClearField('bodies')
+    @staticmethod
+    def split_event_bodies(evt: googlechat_pb2.Event) -> Iterator[googlechat_pb2.Event]:
+        embedded_bodies = evt.bodies
+        if len(embedded_bodies) > 0:
+            evt.ClearField('bodies')
 
-                if resp.event.HasField("body"):
-                    await self.on_stream_event.fire(resp.event)
+        if evt.HasField("body"):
+            yield evt
 
-                for body in embedded_bodies:
-                    resp_copy = googlechat_pb2.StreamEventsResponse()
-                    resp_copy.CopyFrom(resp)
-                    resp_copy.event.body.CopyFrom(body)
-                    resp_copy.event.type = body.event_type
-                    await self.on_stream_event.fire(resp_copy.event)
+        body: googlechat_pb2.Event.EventBody
+        for body in embedded_bodies:
+            evt_copy = googlechat_pb2.Event()
+            evt_copy.CopyFrom(evt)
+            evt_copy.body.CopyFrom(body)
+            evt_copy.type = body.event_type
+            yield evt_copy
 
     async def _gc_request(self, endpoint, request_pb: proto.Message, response_pb: proto.Message
                           ) -> None:
@@ -648,6 +653,13 @@ class Client:
     ) -> googlechat_pb2.ListTopicsResponse:
         response = googlechat_pb2.ListTopicsResponse()
         await self._gc_request('list_topics', list_topics_request, response)
+        return response
+
+    async def proto_list_messages(
+        self, list_messages_request: googlechat_pb2.ListMessagesRequest,
+    ) -> googlechat_pb2.ListMessagesResponse:
+        response = googlechat_pb2.ListMessagesResponse()
+        await self._gc_request('list_messages', list_messages_request, response)
         return response
 
     async def proto_send_stream_event(

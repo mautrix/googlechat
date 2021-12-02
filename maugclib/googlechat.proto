@@ -1292,6 +1292,22 @@ message ListTopicsRequest {
 	//optional DYNProtoListTopicsRequest_SortOption sort_option = 11;
 }
 
+message ListMessagesRequest {
+	optional RequestHeader request_header = 100;
+	optional MessageParentId parent_id = 1;
+	optional int32 page_size = 2;
+	//optional ReferenceRevision not_older_than = ?;
+	//optional bool is_search = ?;
+	//optional Filter filter = ?;
+}
+
+message ListMessagesResponse {
+	repeated Message messages = 1;
+	optional ReadRevision group_revision = 2;
+	//optional bool contains_first_message = 3;
+	//optional bool contains_last_message = 4;
+}
+
 message ListMembersRequest {
 	optional RequestHeader request_header = 100;
 	optional SpaceId space_id = 1;

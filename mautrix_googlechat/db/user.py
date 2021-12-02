@@ -78,5 +78,5 @@ class User:
         if self.revision and self.revision >= revision > 0:
             return
         self.revision = revision
-        await self.db.execute('UPDATE "user" SET revision=$1 WHERE mxid=$2',
-                              self.revision, self.mxid)
+        q = 'UPDATE "user" SET revision=$1 WHERE mxid=$2 AND (revision IS NULL OR revision<$1)'
+        await self.db.execute(q, self.revision, self.mxid)

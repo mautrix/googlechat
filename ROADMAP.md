@@ -38,7 +38,7 @@
   * [x] Message deletions
   * [x] Message reactions
   * [x] Message editing (text only)
-  * [ ] Message history
+  * [x] Message history
   * [ ] Presence
   * [ ] Typing notifications
   * [x] Read receipts

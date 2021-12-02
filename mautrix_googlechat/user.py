@@ -56,7 +56,7 @@ class User(DBUser, BaseUser):
     email: Optional[str]
     name_future: asyncio.Future
     connected: bool
-    connection_watchdog_task: Optional[asyncio.Task]
+    periodic_sync_task: Optional[asyncio.Task]
 
     groups: Dict[str, googlechat.GetGroupResponse]
     groups_lock: asyncio.Lock
@@ -81,7 +81,7 @@ class User(DBUser, BaseUser):
         self.users = {}
         self.users_lock = asyncio.Lock()
         self._intentional_disconnect = False
-        self.connection_watchdog_task = None
+        self.periodic_sync_task = None
 
     # region Sessions
 
@@ -210,8 +210,8 @@ class User(DBUser, BaseUser):
     def login_complete(self, token_manager: TokenManager) -> None:
         self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
         asyncio.create_task(self.start())
-        if not self.connection_watchdog_task:
-            self.connection_watchdog_task = asyncio.create_task(self._connection_watchdog())
+        if not self.periodic_sync_task:
+            self.periodic_sync_task = asyncio.create_task(self._periodic_sync())
         self.client.on_stream_event.add_observer(self._in_background(self.on_stream_event))
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
@@ -229,43 +229,6 @@ class User(DBUser, BaseUser):
             asyncio.create_task(try_proxy(*args, **kwargs))
 
         return proxy
-
-    async def _connection_watchdog(self) -> None:
-        while True:
-            try:
-                await asyncio.sleep(60 * 60)
-                resp = await self.client.proto_paginated_world(googlechat.PaginatedWorldRequest(
-                    request_header=self.client.get_gc_request_header(),
-                    world_section_requests=[googlechat.WorldSectionRequest(
-                        page_size=5,
-                    )],
-                    fetch_from_user_spaces=True,
-                    fetch_options=[
-                        googlechat.PaginatedWorldRequest.EXCLUDE_GROUP_LITE,
-                    ],
-                ))
-                all_ok = True
-                item: googlechat.WorldItemLite
-                for item in resp.world_items:
-                    conv_id = maugclib.parsers.id_from_group_id(item.group_id)
-                    portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
-                    if portal.revision and portal.revision < item.group_revision.timestamp:
-                        self.log.warning(
-                            f"Catchup request returned {item.group_revision.timestamp} for "
-                            f"{portal.gcid}, but the portal is on {portal.revision}!"
-                        )
-                        all_ok = False
-                        # TODO backfill instead of setting revision directly
-                        await portal.set_revision(item.group_revision.timestamp)
-                if all_ok:
-                    self.log.debug("Catchup request didn't find new revisions")
-                else:
-                    await self.client.disconnect()
-            except asyncio.CancelledError:
-                self.log.debug("Connection watchdog cancelled")
-                break
-            except Exception:
-                self.log.exception("Exception in connection watchdog")
 
     async def start(self) -> None:
         last_disconnection = 0
@@ -305,9 +268,9 @@ class User(DBUser, BaseUser):
         if self.client:
             self._intentional_disconnect = True
             await self.client.disconnect()
-        if self.connection_watchdog_task:
-            self.connection_watchdog_task.cancel()
-            self.connection_watchdog_task = None
+        if self.periodic_sync_task:
+            self.periodic_sync_task.cancel()
+            self.periodic_sync_task = None
 
     async def logout(self) -> None:
         self._track_metric(METRIC_LOGGED_IN, False)
@@ -441,16 +404,34 @@ class User(DBUser, BaseUser):
         await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT,
                                      error="googlechat-disconnected")
 
+    async def _periodic_sync(self) -> None:
+        while True:
+            try:
+                await asyncio.sleep(60 * 60)
+                backfilled_count = await self.sync(limit=5)
+                if backfilled_count:
+                    self.log.debug(f"Periodic sync backfilled {backfilled_count} chats")
+                else:
+                    self.log.debug("Periodic sync didn't backfill anything")
+            except asyncio.CancelledError:
+                self.log.debug("Periodic sync cancelled")
+                break
+            except Exception:
+                self.log.exception("Exception in periodic sync")
+
     @async_time(METRIC_SYNC)
-    async def sync(self) -> None:
+    async def sync(self, limit: Optional[int] = None) -> int:
         self.log.debug("Fetching first page of the world")
-        resp = await self.client.proto_paginated_world(googlechat.PaginatedWorldRequest(
+        req = googlechat.PaginatedWorldRequest(
             request_header=self.client.get_gc_request_header(),
             fetch_from_user_spaces=True,
             fetch_options=[
                 googlechat.PaginatedWorldRequest.EXCLUDE_GROUP_LITE,
             ],
-        ))
+        )
+        if limit:
+            req.world_section_requests.append(googlechat.WorldSectionRequest(page_size=limit))
+        resp = await self.client.proto_paginated_world(req)
         items: List[googlechat.WorldItemLite] = list(resp.world_items)
         items.sort(key=lambda item: item.sort_timestamp, reverse=True)
         max_sync = self.config["bridge.initial_chat_sync"]
@@ -469,17 +450,21 @@ class User(DBUser, BaseUser):
         # participants separately, but that's probably fine since they can be larger anyway.
         await self.get_users(prefetch_users)
 
+        backfilled_count = 0
         for portal, info in portals_to_sync:
             self.log.debug("Syncing %s", portal.gcid)
-            # TODO backfill instead of setting revision directly
-            await portal.set_revision(info.group_revision.timestamp)
             if portal.mxid:
-                await portal.update_matrix_room(self, info)
-                asyncio.create_task(portal.backfill(self))
+                if limit is None:
+                    await portal.update_matrix_room(self, info)
+                if portal.revision and info.group_revision.timestamp > portal.revision:
+                    asyncio.create_task(portal.backfill(self, info.group_revision.timestamp))
+                    backfilled_count += 1
             else:
                 await portal.create_matrix_room(self, info)
+                backfilled_count += 1
 
         await self.update_direct_chats()
+        return backfilled_count
 
     async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
         return {
@@ -488,47 +473,21 @@ class User(DBUser, BaseUser):
             if portal.mxid
         }
 
-    # region Google Chat event handling
-
     async def on_stream_event(self, evt: googlechat.Event) -> None:
         group_id = evt.group_id
         if evt.type == googlechat.Event.TYPING_STATE_CHANGED:
             group_id = evt.body.typing_state_changed.context.group_id
-        conv_id = maugclib.parsers.id_from_group_id(group_id)
-        if not conv_id:
+        portal = await po.Portal.get_by_group_id(group_id, self.gcid)
+        if not portal:
             return
-        start = time.time()
-        portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
         type_name = googlechat.Event.EventType.Name(evt.type)
-        if evt.body.HasField("message_posted"):
-            # await portal.backfill_lock.wait(event.id_)
-            if evt.type == googlechat.Event.MESSAGE_UPDATED:
-                await portal.handle_googlechat_edit(self, evt.body.message_posted.message)
-            else:
-                await portal.handle_googlechat_message(self, evt.body.message_posted.message)
-        elif evt.body.HasField("message_reaction"):
-            await portal.handle_googlechat_reaction(evt.body.message_reaction)
-        elif evt.body.HasField("message_deleted"):
-            await portal.handle_googlechat_redaction(evt.body.message_deleted)
-        elif evt.body.HasField("read_receipt_changed"):
-            await portal.handle_googlechat_read_receipts(evt.body.read_receipt_changed)
-        elif evt.body.HasField("typing_state_changed"):
-            await portal.handle_googlechat_typing(self, evt.body.typing_state_changed.user_id.id,
-                                                  evt.body.typing_state_changed.state)
-        elif evt.body.HasField("group_viewed"):
-            await portal.mark_read(self.gcid, evt.body.group_viewed.view_time)
-        else:
+        start = time.time()
+        handled = await portal.handle_event(self, evt)
+        if not handled:
             self.log.debug(f"Unhandled event type {type_name}")
-        await asyncio.gather(self.set_revision(evt.user_revision.timestamp),
-                             portal.set_revision(evt.group_revision.timestamp))
         METRIC_STREAM_EVENT.labels(event_type=type_name).observe(time.time() - start)
-
-    # endregion
-    # region Google Chat API calls
-
-    async def set_typing(self, conversation_id: str, typing: bool) -> None:
-        self.log.debug(f"set_typing({conversation_id}, {typing})")
-        await self.client.mark_typing(conversation_id, typing=typing)
+        if evt.HasField("user_revision"):
+            await self.set_revision(evt.user_revision.timestamp)
 
     async def mark_read(self, conversation_id: str, timestamp: int) -> None:
         await self.client.proto_mark_group_read_state(googlechat.MarkGroupReadstateRequest(
@@ -536,8 +495,6 @@ class User(DBUser, BaseUser):
             id=maugclib.parsers.group_id_from_id(conversation_id),
             last_read_time=int((timestamp or (time.time() * 1000)) * 1000),
         ))
-
-    # endregion
 
 
 class UserRefreshTokenCache(RefreshTokenCache):

@@ -25,6 +25,7 @@ import magic
 from yarl import URL
 import aiohttp
 
+import maugclib.parsers
 from maugclib import googlechat_pb2 as googlechat, FileTooLargeError
 
 from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, EventType, ImageInfo,
@@ -33,6 +34,7 @@ from mautrix.types import (RoomID, MessageEventContent, EventID, MessageType, Ev
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
+from mautrix.util.simple_lock import SimpleLock
 from mautrix.util import variation_selector
 from mautrix.errors import MatrixError, MForbidden, IntentError
 
@@ -82,7 +84,7 @@ class Portal(DBPortal, BasePortal):
     _edit_dedup: Dict[str, int]
     _noop_lock: FakeLock = FakeLock()
     _typing: Set[UserID]
-    _backfill_lock: asyncio.Lock
+    backfill_lock: SimpleLock
 
     def __init__(self, gcid: str, gc_receiver: str, other_user_id: Optional[str] = None,
                  mxid: Optional[RoomID] = None, name: Optional[str] = None,
@@ -97,13 +99,14 @@ class Portal(DBPortal, BasePortal):
 
         self._main_intent = None
         self._create_room_lock = asyncio.Lock()
-        self._backfill_lock = asyncio.Lock()
         self._last_bridged_mxid = None
         self._dedup = deque(maxlen=100)
         self._edit_dedup = {}
         self._local_dedup = set()
         self._send_locks = {}
         self._typing = set()
+        self.backfill_lock = SimpleLock("Waiting for backfilling to finish before handling %s",
+                                        log=self.log)
 
     @classmethod
     def init_cls(cls, bridge: 'GoogleChatBridge') -> None:
@@ -130,6 +133,10 @@ class Portal(DBPortal, BasePortal):
         if self.is_direct:
             return f"{self.gcid}-{self.gc_receiver}"
         return self.gcid
+
+    @property
+    def gc_group_id(self) -> googlechat.GroupId:
+        return maugclib.parsers.group_id_from_id(self.gcid)
 
     # region DB conversion
 
@@ -233,97 +240,143 @@ class Portal(DBPortal, BasePortal):
             await puppet.intent_for(self).ensure_joined(self.mxid)
 
     # endregion
+    # region Backfill
 
-    async def backfill(self, source: 'u.User', is_initial: bool = False) -> None:
+    async def backfill(self, source: 'u.User', latest_revision: int, is_initial: bool = False
+                       ) -> None:
         try:
-            async with self._backfill_lock:
-                await self._backfill(source, is_initial=is_initial)
+            with self.backfill_lock:
+                async with NotificationDisabler(self.mxid, source):
+                    if is_initial:
+                        await self._initial_backfill(source)
+                    else:
+                        await self._catchup_backfill(source, latest_revision)
+                await self.set_revision(latest_revision)
         except Exception:
-            self.log.exception(f"Fatal error while backfilling ({is_initial=})")
+            self.log.exception(f"Failed to backfill portal ({latest_revision=}, {is_initial=})")
 
-    async def _backfill(self, source: 'u.User', is_initial: bool = False) -> None:
-        if not is_initial and not self.revision:
-            # self.log.warning("Can't do catch-up backfill on portal with no known last revision")
+    async def _initial_backfill(self, source: 'u.User') -> None:
+        self.log.debug(f"Fetching topics through {source.mxid} for initial backfill")
+        req = googlechat.ListTopicsRequest(
+            request_header=source.client.get_gc_request_header(),
+            page_size_for_topics=(self.config["bridge.backfill.initial_thread_limit"]
+                                  if self.is_threaded
+                                  else self.config["bridge.backfill.initial_nonthread_limit"]),
+            group_id=self.gc_group_id,
+        )
+        resp = await source.client.proto_list_topics(req)
+        self.log.debug(f"Got {len(resp.topics)} topics from server "
+                       f"(up to revision {resp.group_revision.timestamp})")
+        if self.is_threaded:
+            # Store the group revision already now, we can't continue from the middle anyway.
+            await self.set_revision(resp.group_revision.timestamp)
+        topic: googlechat.Topic
+        message_count = 0
+        # The reversed list is probably already sorted properly, but re-sort it just in case
+        sorted_topics = sorted(reversed(resp.topics), key=lambda topic: topic.sort_time)
+        for topic in sorted_topics:
+            await self.handle_googlechat_message(source, topic.replies[0])
+            message_count += 1
+            if self.is_threaded:
+                msg_req = googlechat.ListMessagesRequest(
+                    request_header=source.client.get_gc_request_header(),
+                    parent_id=googlechat.MessageParentId(topic_id=topic.id),
+                    page_size=self.config["bridge.backfill.initial_thread_reply_limit"],
+                )
+                msg_resp = await source.client.proto_list_messages(msg_req)
+                self.log.debug(f"Fetched {len(msg_resp.messages)} replies to {topic.id.topic_id}")
+                for msg in msg_resp.messages:
+                    await self.handle_googlechat_message(source, msg)
+                    message_count += 1
+            else:
+                await self.set_revision(topic.replies[0].create_time)
+        self.log.info(f"Initial backfill complete, handled {message_count} messages in total")
+        if not self.is_threaded:
+            await self.set_revision(resp.group_revision.timestamp)
+
+    async def _catchup_backfill(self, source: 'u.User', latest_revision: int) -> None:
+        if not self.revision:
+            self.log.debug("Can't do catch-up backfill on portal with no known last revision")
             return
 
+        has_more_pages = True
+        total_handled = 0
+        while has_more_pages:
+            self.log.debug(f"Making catchup request through {source.mxid} "
+                           f"from {self.revision} to {latest_revision}")
+            resp = await source.client.proto_catch_up_group(googlechat.CatchUpGroupRequest(
+                request_header=source.client.get_gc_request_header(),
+                group_id=self.gc_group_id,
+                range=googlechat.CatchUpRange(
+                    from_revision_timestamp=self.revision,
+                    to_revision_timestamp=latest_revision,
+                ),
+                page_size=self.config["bridge.backfill.missed_event_page_size"],
+                cutoff_size=self.config["bridge.backfill.missed_event_limit"],
+            ))
+            status_name = googlechat.CatchUpResponse.ResponseStatus.Name(resp.status)
+            if resp.status not in (googlechat.CatchUpResponse.PAGINATED,
+                                   googlechat.CatchUpResponse.COMPLETED):
+                self.log.warning(f"Failed to backfill: got {status_name} in response to catchup")
+                return
+            has_more_pages = resp.status == googlechat.CatchUpResponse.PAGINATED
+            self.log.debug(f"Got {len(resp.events)} events from catchup request "
+                           f"(response status: {status_name})")
+            handled_count = await self._handle_backfill_events(source, resp.events)
+            total_handled += handled_count
+            self.log.debug(f"Handled {handled_count} events in catchup chunk")
+        self.log.info(f"Catchup backfill complete, handled {total_handled} events in total")
 
-    # async def _load_messages(self, source: 'u.User', limit: int = 100,
-    #                          token: Any = None
-    #                          ) -> Tuple[List[ChatMessageEvent], Any]:
-    #     resp = await source.client.get_conversation(hangouts.GetConversationRequest(
-    #         request_header=source.client.get_request_header(),
-    #         conversation_spec=hangouts.ConversationSpec(
-    #             conversation_id=hangouts.ConversationId(id=self.gid),
-    #         ),
-    #         include_conversation_metadata=False,
-    #         include_event=True,
-    #         max_events_per_conversation=limit,
-    #         event_continuation_token=token
-    #     ))
-    #     return ([HangoutsChat._wrap_event(evt) for evt in resp.conversation_state.event],
-    #             resp.conversation_state.event_continuation_token)
-    #     return [], None
-    #
-    # async def _load_many_messages(self, source: 'u.User', is_initial: bool
-    #                               ) -> List[ChatMessageEvent]:
-    #     limit = (self.config["bridge.backfill.initial_limit"] if is_initial
-    #              else self.config["bridge.backfill.missed_limit"])
-    #     if limit <= 0:
-    #         return []
-    #     messages = []
-    #     self.log.debug("Fetching up to %d messages through %s", limit, source.gcid)
-    #     token = None
-    #     while limit > 0:
-    #         chunk_limit = min(limit, 100)
-    #         chunk, token = await self._load_messages(source, chunk_limit, token)
-    #         for message in reversed(chunk):
-    #             if await DBMessage.get_by_gcid(message.msg_id, self.gc_receiver):
-    #                 self.log.debug("Stopping backfilling at %s (ts: %s) "
-    #                                "as message was already bridged",
-    #                                message.msg_id, message.timestamp)
-    #                 break
-    #             messages.append(message)
-    #         if len(chunk) < chunk_limit:
-    #             break
-    #         limit -= len(chunk)
-    #     return messages
-    #
-    # async def backfill(self, source: 'u.User', is_initial: bool = False) -> None:
-    #     if not TYPE_CHECKING:
-    #         self.log.debug("Backfill is not yet implemented")
-    #         return
-    #     try:
-    #         with self.backfill_lock:
-    #             await self._backfill(source, is_initial)
-    #     except Exception:
-    #         self.log.exception("Failed to backfill portal")
-    #
-    # async def _backfill(self, source: 'u.User', is_initial: bool = False) -> None:
-    #     self.log.debug("Backfilling history through %s", source.mxid)
-    #     messages = await self._load_many_messages(source, is_initial)
-    #     if not messages:
-    #         self.log.debug("Didn't get any messages from server")
-    #         return
-    #     self.log.debug("Got %d messages from server", len(messages))
-    #     backfill_leave = set()
-    #     if self.config["bridge.backfill.invite_own_puppet"]:
-    #         self.log.debug("Adding %s's default puppet to room for backfilling", source.mxid)
-    #         sender = await p.Puppet.get_by_gcid(source.gcid)
-    #         await self.main_intent.invite_user(self.mxid, sender.default_mxid)
-    #         await sender.default_mxid_intent.join_room_by_id(self.mxid)
-    #         backfill_leave.add(sender.default_mxid_intent)
-    #     async with NotificationDisabler(self.mxid, source):
-    #         for message in reversed(messages):
-    #             if isinstance(message, ChatMessageEvent):
-    #                 puppet = await p.Puppet.get_by_gcid(message.user_id)
-    #                 await self.handle_googlechat_message(source, puppet, message)
-    #             else:
-    #                 self.log.trace("Unhandled event type %s while backfilling", type(message))
-    #     for intent in backfill_leave:
-    #         self.log.trace("Leaving room with %s post-backfill", intent.mxid)
-    #         await intent.leave_room(self.mxid)
-    #     self.log.info("Backfilled %d messages through %s", len(messages), source.mxid)
+    async def _handle_backfill_events(self, source: 'u.User', events: List[googlechat.Event]
+                                      ) -> int:
+        handled_count = 0
+        for multi_evt in events:
+            for evt in source.client.split_event_bodies(multi_evt):
+                handled = await self.handle_event(source, evt, is_backfill=True)
+                if not handled:
+                    type_name = googlechat.Event.EventType.Name(evt.type)
+                    self.log.debug(f"Unhandled event type {type_name} in backfill")
+                else:
+                    handled_count += 1
+            if multi_evt.HasField("group_revision"):
+                await self.set_revision(multi_evt.group_revision.timestamp)
+        return handled_count
 
+    async def handle_event(self, source: 'u.User', evt: googlechat.Event,
+                           is_backfill: bool = False) -> bool:
+        if evt.body.HasField("message_posted"):
+            if not is_backfill:
+                await self.backfill_lock.wait(evt.body.message_posted.message.id.message_id)
+            if evt.type == googlechat.Event.MESSAGE_UPDATED:
+                await self.handle_googlechat_edit(source, evt.body.message_posted.message)
+            else:
+                await self.handle_googlechat_message(source, evt.body.message_posted.message)
+        elif evt.body.HasField("message_reaction"):
+            if not is_backfill:
+                target_id = evt.body.message_reaction.message_id.message_id
+                await self.backfill_lock.wait(f"reaction to {target_id}")
+            await self.handle_googlechat_reaction(evt.body.message_reaction)
+        elif evt.body.HasField("message_deleted"):
+            if not is_backfill:
+                target_id = evt.body.message_deleted.message_id.message_id
+                await self.backfill_lock.wait(f"deletion of {target_id}")
+            await self.handle_googlechat_redaction(evt.body.message_deleted)
+        elif evt.body.HasField("read_receipt_changed"):
+            if not is_backfill:
+                await self.backfill_lock.wait("read receipt change")
+            await self.handle_googlechat_read_receipts(evt.body.read_receipt_changed)
+        elif evt.body.HasField("typing_state_changed"):
+            await self.handle_googlechat_typing(source, evt.body.typing_state_changed.user_id.id,
+                                                evt.body.typing_state_changed.state)
+        elif evt.body.HasField("group_viewed"):
+            if not is_backfill:
+                await self.backfill_lock.wait("group view event")
+            await self.mark_read(source.gcid, evt.body.group_viewed.view_time)
+        else:
+            return False
+        return True
+
+    # endregion
     # region Matrix room creation
 
     async def _update_matrix_room(self, source: 'u.User', info: Optional[ChatInfo] = None) -> None:
@@ -334,11 +387,6 @@ class Portal(DBPortal, BasePortal):
             did_join = await puppet.intent.ensure_joined(self.mxid)
             if did_join and self.is_direct:
                 await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
-
-        await self.main_intent.invite_user(self.mxid, source.mxid, check_cache=True)
-        puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
-        if puppet:
-            await puppet.intent.ensure_joined(self.mxid)
         await self.update_info(source, info)
 
     async def update_matrix_room(self, source: 'u.User', info: Optional[ChatInfo] = None) -> None:
@@ -379,17 +427,19 @@ class Portal(DBPortal, BasePortal):
             }
         }
 
-    async def update_bridge_info(self) -> None:
+    async def update_bridge_info(self, timestamp: Optional[int] = None) -> None:
         if not self.mxid:
             self.log.debug("Not updating bridge info: no Matrix room created")
             return
         try:
             self.log.debug("Updating bridge info...")
             await self.main_intent.send_state_event(self.mxid, StateBridge,
-                                                    self.bridge_info, self.bridge_info_state_key)
+                                                    self.bridge_info, self.bridge_info_state_key,
+                                                    timestamp=timestamp)
             # TODO remove this once https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
             await self.main_intent.send_state_event(self.mxid, StateHalfShotBridge,
-                                                    self.bridge_info, self.bridge_info_state_key)
+                                                    self.bridge_info, self.bridge_info_state_key,
+                                                    timestamp=timestamp)
         except Exception:
             self.log.warning("Failed to update bridge info", exc_info=True)
 
@@ -431,38 +481,43 @@ class Portal(DBPortal, BasePortal):
         creation_content = {}
         if not self.config["bridge.federate_rooms"]:
             creation_content["m.federate"] = False
-        self.mxid = await self.main_intent.create_room(
-            name=self.name if self.encrypted or not self.is_direct else None,
-            is_direct=self.is_direct,
-            initial_state=initial_state,
-            invitees=invites,
-            creation_content=creation_content,
-        )
-        if not self.mxid:
-            raise Exception("Failed to create room: no mxid returned")
-        if self.encrypted and self.matrix.e2ee and self.is_direct:
-            try:
-                await self.az.intent.ensure_joined(self.mxid)
-            except Exception:
-                self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
-        await self.save()
-        self.log.debug(f"Matrix room created: {self.mxid}")
-        self.by_mxid[self.mxid] = self
-        await self._update_participants(source, info)
 
-        puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
-        await self.main_intent.invite_user(self.mxid, source.mxid,
-                                           extra_content=self._get_invite_content(puppet))
-        if puppet:
-            try:
-                if self.is_direct:
-                    await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
-                await puppet.intent.join_room_by_id(self.mxid)
-            except MatrixError:
-                self.log.debug("Failed to join custom puppet into newly created portal",
-                               exc_info=True)
+        # We lock backfill lock here so any messages that come between the room being created
+        # and the initial backfill finishing wouldn't be bridged before the backfill messages.
+        with self.backfill_lock:
+            self.mxid = await self.main_intent.create_room(
+                name=self.name if self.encrypted or not self.is_direct else None,
+                is_direct=self.is_direct,
+                initial_state=initial_state,
+                invitees=invites,
+                creation_content=creation_content,
+            )
+            if not self.mxid:
+                raise Exception("Failed to create room: no mxid returned")
+            if self.encrypted and self.matrix.e2ee and self.is_direct:
+                try:
+                    await self.az.intent.ensure_joined(self.mxid)
+                except Exception:
+                    self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
+            await self.save()
+            self.log.debug(f"Matrix room created: {self.mxid}")
+            self.by_mxid[self.mxid] = self
+            await self._update_participants(source, info)
 
-        asyncio.create_task(self.backfill(source, is_initial=True))
+            puppet = await p.Puppet.get_by_custom_mxid(source.mxid)
+            await self.main_intent.invite_user(self.mxid, source.mxid,
+                                               extra_content=self._get_invite_content(puppet))
+            if puppet:
+                try:
+                    if self.is_direct:
+                        await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
+                    await puppet.intent.join_room_by_id(self.mxid)
+                except MatrixError:
+                    self.log.debug("Failed to join custom puppet into newly created portal",
+                                   exc_info=True)
+
+            await self.backfill(source, latest_revision=info.group_revision.timestamp,
+                                is_initial=True)
 
         return self.mxid
 
@@ -663,7 +718,7 @@ class Portal(DBPortal, BasePortal):
     async def _handle_matrix_text(self, sender: 'u.User', message: TextMessageEventContent,
                                   thread_id: str, local_id: str) -> SendResponse:
         text, annotations = await fmt.matrix_to_googlechat(message)
-        await sender.set_typing(self.gcid, typing=False)
+        await sender.client.mark_typing(self.gcid, typing=False)
         resp = await sender.client.send_message(self.gcid, text=text, annotations=annotations,
                                                 thread_id=thread_id, local_id=local_id)
         return self._get_send_response(resp)
@@ -700,10 +755,10 @@ class Portal(DBPortal, BasePortal):
 
     async def handle_matrix_typing(self, users: Set[UserID]) -> None:
         user_map = {mxid: await u.User.get_by_mxid(mxid, create=False) for mxid in users}
-        stopped_typing = [user_map[mxid].set_typing(self.gcid, False)
+        stopped_typing = [user_map[mxid].client.mark_typing(self.gcid, typing=False)
                           for mxid in self._typing - users
                           if user_map.get(mxid)]
-        started_typing = [user_map[mxid].set_typing(self.gcid, True)
+        started_typing = [user_map[mxid].client.mark_typing(self.gcid, typing=True)
                           for mxid in users - self._typing
                           if user_map.get(mxid)]
         self._typing = users
@@ -807,16 +862,17 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handled Google Chat edit of %s at %s -> %s", msg_id, edit_ts, event_id)
         await self._send_delivery_receipt(event_id)
 
-    async def handle_googlechat_update(self, sender: 'p.Puppet',
+    async def handle_googlechat_update(self, sender: 'p.Puppet',timestamp: int,
                                        update: googlechat.RoomUpdatedMetadata) -> bool:
         if update.HasField("rename_metadata") and update.rename_metadata.new_name:
             if self.name != update.rename_metadata.new_name:
                 self.name = update.rename_metadata.new_name
                 try:
-                    await sender.intent_for(self).set_room_name(self.mxid, self.name)
+                    await sender.intent_for(self).set_room_name(self.mxid, self.name,
+                                                                timestamp=timestamp)
                 except (MForbidden, IntentError):
-                    await self.main_intent.set_room_name(self.mxid, self.name)
-                await self.update_bridge_info()
+                    await self.main_intent.set_room_name(self.mxid, self.name, timestamp=timestamp)
+                await self.update_bridge_info(timestamp=timestamp)
             return True
         else:
             return False
@@ -839,15 +895,18 @@ class Portal(DBPortal, BasePortal):
                 return
         if not await self._bridge_own_message_pm(source, sender, f"message {msg_id}"):
             return
+
+        # Google Chat timestamps are in microseconds, Matrix wants milliseconds
+        timestamp = evt.create_time // 1000
+
         if len(evt.annotations) == 1 and evt.annotations[0].type == googlechat.ROOM_UPDATED:
             self.log.debug("Handling Google Chat room update message %s", msg_id)
-            if await self.handle_googlechat_update(sender, evt.annotations[0].room_updated):
+            if await self.handle_googlechat_update(sender, update=evt.annotations[0].room_updated,
+                                                   timestamp=timestamp):
                 return
         intent = sender.intent_for(self)
         self.log.debug("Handling Google Chat message %s", msg_id)
 
-        # Google Chat timestamps are in microseconds, Matrix wants milliseconds
-        timestamp = evt.create_time // 1000
         reply_to = None
         parent_id = evt.id.parent_id.topic_id.topic_id
         if parent_id:
@@ -917,9 +976,9 @@ class Portal(DBPortal, BasePortal):
             elif annotation.HasField('url_metadata'):
                 if annotation.url_metadata.should_not_render:
                     continue
-                if annotation.url_metadata.HasField('image_url'):
+                if annotation.url_metadata.image_url:
                     url = URL(annotation.url_metadata.image_url)
-                elif annotation.url_metadata.HasField('url'):
+                elif annotation.url_metadata.url:
                     url = URL(annotation.url_metadata.url.url)
                 else:
                     continue
@@ -1040,8 +1099,16 @@ class Portal(DBPortal, BasePortal):
         return None
 
     @classmethod
+    async def get_by_group_id(cls, group_id: googlechat.GroupId, receiver: Optional[str] = None
+                              ) -> Optional['Portal']:
+        conv_id = maugclib.parsers.id_from_group_id(group_id)
+        if not conv_id:
+            return None
+        return await cls.get_by_gcid(conv_id, receiver)
+
+    @classmethod
     @async_getter_lock
-    async def get_by_gcid(cls, gcid: str, receiver: Optional[str] = None) -> Optional['Portal']:
+    async def get_by_gcid(cls, gcid: str, receiver: Optional[str] = None) -> 'Portal':
         receiver = "" if gcid.startswith("space:") else receiver
         try:
             return cls.by_gcid[(gcid, receiver)]

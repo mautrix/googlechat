@@ -4191,6 +4191,52 @@ class ListTopicsRequest(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["fetch_options",b"fetch_options","group_id",b"group_id","group_not_older_than",b"group_not_older_than","page_size_for_read_replies",b"page_size_for_read_replies","page_size_for_replies",b"page_size_for_replies","page_size_for_topics",b"page_size_for_topics","page_size_for_unread_replies",b"page_size_for_unread_replies","request_header",b"request_header","user_not_older_than",b"user_not_older_than"]) -> None: ...
 global___ListTopicsRequest = ListTopicsRequest
 
+class ListMessagesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    REQUEST_HEADER_FIELD_NUMBER: builtins.int
+    PARENT_ID_FIELD_NUMBER: builtins.int
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    @property
+    def request_header(self) -> global___RequestHeader: ...
+    @property
+    def parent_id(self) -> global___MessageParentId: ...
+    page_size: builtins.int = ...
+    """optional ReferenceRevision not_older_than = ?;
+    optional bool is_search = ?;
+    optional Filter filter = ?;
+    """
+
+    def __init__(self,
+        *,
+        request_header : typing.Optional[global___RequestHeader] = ...,
+        parent_id : typing.Optional[global___MessageParentId] = ...,
+        page_size : typing.Optional[builtins.int] = ...,
+        ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["page_size",b"page_size","parent_id",b"parent_id","request_header",b"request_header"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["page_size",b"page_size","parent_id",b"parent_id","request_header",b"request_header"]) -> None: ...
+global___ListMessagesRequest = ListMessagesRequest
+
+class ListMessagesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    MESSAGES_FIELD_NUMBER: builtins.int
+    GROUP_REVISION_FIELD_NUMBER: builtins.int
+    @property
+    def messages(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Message]: ...
+    @property
+    def group_revision(self) -> global___ReadRevision:
+        """optional bool contains_first_message = 3;
+        optional bool contains_last_message = 4;
+        """
+        pass
+    def __init__(self,
+        *,
+        messages : typing.Optional[typing.Iterable[global___Message]] = ...,
+        group_revision : typing.Optional[global___ReadRevision] = ...,
+        ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["group_revision",b"group_revision"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["group_revision",b"group_revision","messages",b"messages"]) -> None: ...
+global___ListMessagesResponse = ListMessagesResponse
+
 class ListMembersRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
     REQUEST_HEADER_FIELD_NUMBER: builtins.int
@@ -4562,37 +4608,40 @@ global___GroupViewedEvent = GroupViewedEvent
 
 class GroupUpdatedEvent(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
-    class GroupInfo(google.protobuf.message.Message):
-        DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
-        GROUP_ID_FIELD_NUMBER: builtins.int
-        ROOM_NAME_FIELD_NUMBER: builtins.int
-        AVATAR_URL_FIELD_NUMBER: builtins.int
-        @property
-        def group_id(self) -> global___GroupId: ...
-        room_name: typing.Text = ...
-        avatar_url: typing.Text = ...
-        def __init__(self,
-            *,
-            group_id : typing.Optional[global___GroupId] = ...,
-            room_name : typing.Optional[typing.Text] = ...,
-            avatar_url : typing.Optional[typing.Text] = ...,
-            ) -> None: ...
-        def HasField(self, field_name: typing_extensions.Literal["avatar_url",b"avatar_url","group_id",b"group_id","room_name",b"room_name"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing_extensions.Literal["avatar_url",b"avatar_url","group_id",b"group_id","room_name",b"room_name"]) -> None: ...
+    class UpdateType(_UpdateType, metaclass=_UpdateTypeEnumTypeWrapper):
+        pass
+    class _UpdateType:
+        V = typing.NewType('V', builtins.int)
+    class _UpdateTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_UpdateType.V], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
+        UPDATE_TYPE_UNKNOWN = GroupUpdatedEvent.UpdateType.V(0)
+        CREATED = GroupUpdatedEvent.UpdateType.V(1)
+        UPDATED = GroupUpdatedEvent.UpdateType.V(2)
+        DELETED = GroupUpdatedEvent.UpdateType.V(3)
+        UNDELETED = GroupUpdatedEvent.UpdateType.V(4)
+
+    UPDATE_TYPE_UNKNOWN = GroupUpdatedEvent.UpdateType.V(0)
+    CREATED = GroupUpdatedEvent.UpdateType.V(1)
+    UPDATED = GroupUpdatedEvent.UpdateType.V(2)
+    DELETED = GroupUpdatedEvent.UpdateType.V(3)
+    UNDELETED = GroupUpdatedEvent.UpdateType.V(4)
 
     NEW_FIELD_NUMBER: builtins.int
     OLD_FIELD_NUMBER: builtins.int
+    UPDATE_TYPE_FIELD_NUMBER: builtins.int
     @property
-    def new(self) -> global___GroupUpdatedEvent.GroupInfo: ...
+    def new(self) -> global___Group: ...
     @property
-    def old(self) -> global___GroupUpdatedEvent.GroupInfo: ...
+    def old(self) -> global___Group: ...
+    update_type: global___GroupUpdatedEvent.UpdateType.V = ...
     def __init__(self,
         *,
-        new : typing.Optional[global___GroupUpdatedEvent.GroupInfo] = ...,
-        old : typing.Optional[global___GroupUpdatedEvent.GroupInfo] = ...,
+        new : typing.Optional[global___Group] = ...,
+        old : typing.Optional[global___Group] = ...,
+        update_type : typing.Optional[global___GroupUpdatedEvent.UpdateType.V] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["new",b"new","old",b"old"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["new",b"new","old",b"old"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["new",b"new","old",b"old","update_type",b"update_type"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["new",b"new","old",b"old","update_type",b"update_type"]) -> None: ...
 global___GroupUpdatedEvent = GroupUpdatedEvent
 
 class WebPushNotificationEvent(google.protobuf.message.Message):
