@@ -887,6 +887,9 @@ class Portal(DBPortal, BasePortal):
             elif msg_id in self._dedup:
                 self.log.debug(f"Dropping message {msg_id} (found in dedup queue)")
                 return
+            elif await DBMessage.get_by_gcid(msg_id, self.gcid, self.gc_receiver):
+                self.log.debug(f"Dropping message {msg_id} (found in database)")
+                return
             self._dedup.appendleft(msg_id)
         if not self.mxid:
             mxid = await self.create_matrix_room(source)
