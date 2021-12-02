@@ -411,6 +411,7 @@ class User(DBUser, BaseUser):
                 backfilled_count = await self.sync(limit=5)
                 if backfilled_count:
                     self.log.debug(f"Periodic sync backfilled {backfilled_count} chats")
+                    self.client.force_reregister()
                 else:
                     self.log.debug("Periodic sync didn't backfill anything")
             except asyncio.CancelledError:

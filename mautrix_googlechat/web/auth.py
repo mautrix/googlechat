@@ -160,11 +160,8 @@ class GoogleChatAuthServer:
     async def debug(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
         user = await u.User.get_by_mxid(user_id)
-        prev_ping = user.client._channel._prev_stream_req
-        await user.client._channel._send_initial_ping()
-        return web.json_response({
-            "prev_ping": prev_ping,
-        })
+        user.client.force_reregister()
+        return web.json_response({})
 
     async def debug2(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)

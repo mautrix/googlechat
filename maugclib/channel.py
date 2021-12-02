@@ -171,6 +171,7 @@ class Channel:
         # Discovered parameters:
         self._sid_param = None
         self._csessionid_param = None
+        self.force_reregister = False
         self._prev_stream_req = 0
 
         self._aid = 0
@@ -192,6 +193,7 @@ class Channel:
         skip_backoff = False
 
         self._csessionid_param = await self._register()
+        self.force_reregister = False
         register_time = time.monotonic()
 
         while retries <= self._max_retries:
@@ -201,11 +203,15 @@ class Channel:
                 backoff_seconds = self._retry_backoff_base ** retries
                 logger.info(f"Backing off for {backoff_seconds} seconds")
                 await asyncio.sleep(backoff_seconds)
-            elif register_time + MAX_REGISTER_INTERVAL < time.monotonic():
-                logger.info(f"Getting new channel registration as over {MAX_REGISTER_INTERVAL}s"
-                            " has passed since the last registration")
+            elif register_time + MAX_REGISTER_INTERVAL < time.monotonic() or self.force_reregister:
+                if self.force_reregister:
+                    logger.info("Externally forced getting new channel registration")
+                else:
+                    logger.info("Getting new channel registration as over "
+                                f"{MAX_REGISTER_INTERVAL}s has passed since the last registration")
                 self._csessionid_param = await self._register()
                 register_time = time.monotonic()
+                self.force_reregister = False
             skip_backoff = False
 
             # Clear any previous push data, since if there was an error it
@@ -218,6 +224,7 @@ class Channel:
 
                 self._csessionid_param = await self._register()
                 register_time = time.monotonic()
+                self.force_reregister = False
 
                 retries += 1
                 skip_backoff = True
@@ -267,9 +274,11 @@ class Channel:
             logger.debug(f'morsel: {morsel}')
             if morsel is None:
                 logger.debug(f'res: {body}')
-                logger.warning('failed to register')
+                logger.warning("Failed to register channel (didn't get COMPASS cookie)")
                 attempts = attempts + 1
                 continue
+            else:
+                logger.info("Registered new channel successfully")
 
             if morsel.value.startswith("dynamite="):
                 return morsel.value[len("dynamite="):]

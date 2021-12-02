@@ -148,6 +148,9 @@ class Client:
         finally:
             await self._session.close()
 
+    def force_reregister(self) -> None:
+        self._channel.force_reregister = True
+
     async def disconnect(self) -> None:
         """Gracefully disconnect from the server.
 
