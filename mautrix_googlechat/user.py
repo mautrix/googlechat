@@ -489,6 +489,8 @@ class User(DBUser, BaseUser):
         METRIC_STREAM_EVENT.labels(event_type=type_name).observe(time.time() - start)
         if evt.HasField("user_revision"):
             await self.set_revision(evt.user_revision.timestamp)
+        if evt.HasField("group_revision"):
+            await portal.set_revision(evt.group_revision.timestamp)
 
     async def mark_read(self, conversation_id: str, timestamp: int) -> None:
         await self.client.proto_mark_group_read_state(googlechat.MarkGroupReadstateRequest(
