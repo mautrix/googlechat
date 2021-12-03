@@ -348,7 +348,8 @@ class User(DBUser, BaseUser):
                     self.users[member.user.user_id.id] = member.user
         return [self.users[user_id] for user_id in ids]
 
-    async def get_group(self, id: Union[googlechat.GroupId, str]) -> googlechat.GetGroupResponse:
+    async def get_group(self, id: Union[googlechat.GroupId, str], revision: int
+                        ) -> googlechat.GetGroupResponse:
         if isinstance(id, str):
             group_id = maugclib.parsers.group_id_from_id(id)
             conv_id = id
@@ -356,16 +357,22 @@ class User(DBUser, BaseUser):
             group_id = id
             conv_id = maugclib.parsers.id_from_group_id(id)
         try:
-            return self.groups[conv_id]
+            group = self.groups[conv_id]
         except KeyError:
             pass
+        else:
+            if group.group_revision.timestamp >= revision:
+                return group
 
         async with self.groups_lock:
             # Try again in case the fetch succeeded while waiting for the lock
             try:
-                return self.groups[conv_id]
+                group = self.groups[conv_id]
             except KeyError:
                 pass
+            else:
+                if group.group_revision.timestamp >= revision:
+                    return group
             self.log.debug(f"Fetching info of chat {conv_id}")
             resp = await self.client.proto_get_group(googlechat.GetGroupRequest(
                 request_header=self.client.get_gc_request_header(),

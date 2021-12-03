@@ -171,7 +171,8 @@ class Portal(DBPortal, BasePortal):
     async def update_info(self, source: Optional['u.User'] = None, info: Optional[ChatInfo] = None
                           ) -> ChatInfo:
         if not info or (not self.is_dm and isinstance(info, googlechat.WorldItemLite)):
-            info = await source.get_group(self.gcid)
+            info = await source.get_group(self.gcid, (info.group_revision.timestamp
+                                                      if info else self.revision))
 
         changed = False
         is_threaded = (info if isinstance(info, googlechat.WorldItemLite)
