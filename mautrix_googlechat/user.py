@@ -474,6 +474,13 @@ class User(DBUser, BaseUser):
         prefetch_users: Set[str] = set()
         for index, item in enumerate(items):
             conv_id = maugclib.parsers.id_from_group_id(item.group_id)
+            if (
+                item.read_state.blocked
+                or item.read_state.hide_timestamp > 0
+                or item.read_state.membership_state != googlechat.MEMBER_JOINED
+            ):
+                self.log.trace(f"Skipping unwanted chat %s", conv_id)
+                continue
             portal = await po.Portal.get_by_gcid(conv_id, self.gcid)
             if portal.mxid or index < max_sync:
                 if item.HasField("dm_members"):
