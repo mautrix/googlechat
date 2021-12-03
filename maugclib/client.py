@@ -112,7 +112,7 @@ class Client:
     # Public methods
     ##########################################################################
 
-    async def connect(self) -> None:
+    async def connect(self, max_age: float) -> None:
         """Establish a connection to the chat server.
 
         Returns when an error has occurred, or :func:`disconnect` has been
@@ -132,7 +132,7 @@ class Client:
             self._channel.on_receive_array.add_observer(self._on_receive_array)
 
             # Wrap the coroutine in a Future so it can be cancelled.
-            self._listen_future = asyncio.ensure_future(self._channel.listen())
+            self._listen_future = asyncio.ensure_future(self._channel.listen(max_age))
             # Listen for StateUpdate messages from the Channel until it
             # disconnects.
             try:
@@ -148,10 +148,7 @@ class Client:
         finally:
             await self._session.close()
 
-    def force_reregister(self) -> None:
-        self._channel.force_reregister = True
-
-    async def disconnect(self) -> None:
+    def disconnect(self) -> None:
         """Gracefully disconnect from the server.
 
         When disconnection is complete, :func:`connect` will return.

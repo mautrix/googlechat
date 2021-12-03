@@ -243,19 +243,21 @@ class Portal(DBPortal, BasePortal):
     # region Backfill
 
     async def backfill(self, source: 'u.User', latest_revision: int, is_initial: bool = False
-                       ) -> None:
+                       ) -> int:
         try:
             with self.backfill_lock:
                 async with NotificationDisabler(self.mxid, source):
                     if is_initial:
-                        await self._initial_backfill(source)
+                        total_handled = await self._initial_backfill(source)
                     else:
-                        await self._catchup_backfill(source, latest_revision)
+                        total_handled = await self._catchup_backfill(source, latest_revision)
                 await self.set_revision(latest_revision)
+            return total_handled
         except Exception:
             self.log.exception(f"Failed to backfill portal ({latest_revision=}, {is_initial=})")
+            return 0
 
-    async def _initial_backfill(self, source: 'u.User') -> None:
+    async def _initial_backfill(self, source: 'u.User') -> int:
         self.log.debug(f"Fetching topics through {source.mxid} for initial backfill")
         req = googlechat.ListTopicsRequest(
             request_header=source.client.get_gc_request_header(),
@@ -293,11 +295,12 @@ class Portal(DBPortal, BasePortal):
         self.log.info(f"Initial backfill complete, handled {message_count} messages in total")
         if not self.is_threaded:
             await self.set_revision(resp.group_revision.timestamp)
+        return message_count
 
-    async def _catchup_backfill(self, source: 'u.User', latest_revision: int) -> None:
+    async def _catchup_backfill(self, source: 'u.User', latest_revision: int) -> int:
         if not self.revision:
             self.log.debug("Can't do catch-up backfill on portal with no known last revision")
-            return
+            return 0
 
         has_more_pages = True
         total_handled = 0
@@ -318,7 +321,7 @@ class Portal(DBPortal, BasePortal):
             if resp.status not in (googlechat.CatchUpResponse.PAGINATED,
                                    googlechat.CatchUpResponse.COMPLETED):
                 self.log.warning(f"Failed to backfill: got {status_name} in response to catchup")
-                return
+                return total_handled
             has_more_pages = resp.status == googlechat.CatchUpResponse.PAGINATED
             self.log.debug(f"Got {len(resp.events)} events from catchup request "
                            f"(response status: {status_name})")
@@ -326,6 +329,7 @@ class Portal(DBPortal, BasePortal):
             total_handled += handled_count
             self.log.debug(f"Handled {handled_count} events in catchup chunk")
         self.log.info(f"Catchup backfill complete, handled {total_handled} events in total")
+        return total_handled
 
     async def _handle_backfill_events(self, source: 'u.User', events: List[googlechat.Event]
                                       ) -> int:

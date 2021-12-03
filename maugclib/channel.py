@@ -39,7 +39,6 @@ CHANNEL_URL_BASE = 'https://chat.google.com/webchannel/'
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
 MAX_READ_BYTES = 1024 * 1024
-MAX_REGISTER_INTERVAL = 2 * 60 * 60
 
 LONG_POLLING_REQUESTS = Counter("bridge_gc_started_long_polls",
                                 "Number of long polling requests started")
@@ -171,7 +170,6 @@ class Channel:
         # Discovered parameters:
         self._sid_param = None
         self._csessionid_param = None
-        self.force_reregister = False
 
         self._aid = 0
         self._ofs = 0  # used to track sent events
@@ -182,7 +180,7 @@ class Channel:
         """Whether the channel is currently connected."""
         return self._is_connected
 
-    async def listen(self) -> None:
+    async def listen(self, max_age: float) -> None:
         """Listen for messages on the backwards channel.
 
         This method only returns when the connection has been closed due to an
@@ -192,23 +190,17 @@ class Channel:
         skip_backoff = False
 
         self._csessionid_param = await self._register()
-        register_time = time.monotonic()
+        start = time.monotonic()
 
         while retries <= self._max_retries:
+            if start + max_age < time.monotonic():
+                raise exceptions.ChannelLifetimeExpired()
             # After the first failed retry, back off exponentially longer after
             # each attempt.
             if retries > 0 and not skip_backoff:
                 backoff_seconds = self._retry_backoff_base ** retries
                 logger.info(f"Backing off for {backoff_seconds} seconds")
                 await asyncio.sleep(backoff_seconds)
-            elif register_time + MAX_REGISTER_INTERVAL < time.monotonic() or self.force_reregister:
-                if self.force_reregister:
-                    logger.info("Externally forced getting new channel registration")
-                else:
-                    logger.info("Getting new channel registration as over "
-                                f"{MAX_REGISTER_INTERVAL}s has passed since the last registration")
-                self._csessionid_param = await self._register()
-                register_time = time.monotonic()
             skip_backoff = False
 
             # Clear any previous push data, since if there was an error it
@@ -220,7 +212,6 @@ class Channel:
                 logger.debug('Long-polling interrupted: %s', err)
 
                 self._csessionid_param = await self._register()
-                register_time = time.monotonic()
 
                 retries += 1
                 skip_backoff = True
@@ -248,7 +239,6 @@ class Channel:
         # we need to clear our cookies because registering with a valid cookie
         # invalidates our cookie and doesn't get a new one sent back.
         self._session.clear_cookies()
-        self.force_reregister = False
         self._sid_param = None
         self._aid = 0
         self._ofs = 0

@@ -86,8 +86,7 @@ class GoogleChatAuthServer:
         self.app.router.add_post("/api/start", self.start_login)
         self.app.router.add_post("/api/logout", self.logout)
         self.app.router.add_post("/api/authorization", self.do_login)
-        self.app.router.add_post("/api/debug", self.debug)
-        self.app.router.add_post("/api/debug2", self.debug2)
+        self.app.router.add_post("/api/reconnect", self.reconnect)
         self.app.router.add_get("/api/whoami", self.whoami)
         self.app.router.add_get("", self.redirect_index)
         self.app.router.add_get("/", self.get_index)
@@ -157,16 +156,10 @@ class GoogleChatAuthServer:
             } if user.client else None,
         })
 
-    async def debug(self, request: web.Request) -> web.Response:
+    async def reconnect(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
         user = await u.User.get_by_mxid(user_id)
-        user.client.force_reregister()
-        return web.json_response({})
-
-    async def debug2(self, request: web.Request) -> web.Response:
-        user_id = self.verify_token(request)
-        user = await u.User.get_by_mxid(user_id)
-        await user.client.disconnect()
+        user.reconnect()
         return web.json_response({})
 
     async def start_login(self, request: web.Request) -> web.Response:

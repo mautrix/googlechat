@@ -20,7 +20,7 @@ import time
 
 import maugclib.parsers
 from maugclib import (googlechat_pb2 as googlechat, Client, RefreshTokenCache, TokenManager,
-                      GoogleAuthError)
+                      GoogleAuthError, ChannelLifetimeExpired)
 
 from mautrix.types import UserID, RoomID, MessageType
 from mautrix.bridge import BaseUser, async_getter_lock
@@ -56,6 +56,9 @@ class User(DBUser, BaseUser):
     email: Optional[str]
     name_future: asyncio.Future
     connected: bool
+    _skip_backoff: bool
+    _skip_on_connect: bool
+    _prev_sync: float
     periodic_sync_task: Optional[asyncio.Task]
 
     groups: Dict[str, googlechat.GetGroupResponse]
@@ -76,6 +79,9 @@ class User(DBUser, BaseUser):
         self.email = None
         self.name_future = self.loop.create_future()
         self.connected = False
+        self._skip_backoff = False
+        self._skip_on_connect = False
+        self._prev_sync = 0
         self.groups = {}
         self.groups_lock = asyncio.Lock()
         self.users = {}
@@ -238,14 +244,22 @@ class User(DBUser, BaseUser):
         self._intentional_disconnect = False
         while True:
             try:
-                await self.client.connect()
+                await self.client.connect(max_age=4 * 60 * 60)
                 self._track_metric(METRIC_CONNECTED, False)
                 if self._intentional_disconnect:
                     self.log.info("Client connection finished")
                     return
+                elif self._skip_backoff:
+                    self._skip_backoff = False
+                    self.log.debug("Client connection was terminated for reconnection")
+                    continue
                 else:
                     self.log.warning("Client connection finished unexpectedly")
                     error_msg = "Client connection finished unexpectedly"
+            except ChannelLifetimeExpired:
+                self.log.debug("Client connection was terminated after being alive too long")
+                self._skip_on_connect = True
+                continue
             except Exception as e:
                 self._track_metric(METRIC_CONNECTED, False)
                 self.log.exception("Exception in connection")
@@ -267,7 +281,7 @@ class User(DBUser, BaseUser):
     async def stop(self) -> None:
         if self.client:
             self._intentional_disconnect = True
-            await self.client.disconnect()
+            self.client.disconnect()
         if self.periodic_sync_task:
             self.periodic_sync_task.cancel()
             self.periodic_sync_task = None
@@ -292,8 +306,12 @@ class User(DBUser, BaseUser):
 
     async def on_connect(self) -> None:
         self.connected = True
-        asyncio.create_task(self.on_connect_later())
-        await self.send_bridge_notice("Connected to Google Chat")
+        if not self._skip_on_connect:
+            asyncio.create_task(self.on_connect_later())
+            await self.send_bridge_notice("Connected to Google Chat")
+        else:
+            self._skip_on_connect = False
+            await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
     async def get_self(self) -> googlechat.User:
         if not self.gcid:
@@ -404,14 +422,22 @@ class User(DBUser, BaseUser):
         await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT,
                                      error="googlechat-disconnected")
 
+    def reconnect(self) -> None:
+        self._skip_backoff = True
+        self.client.disconnect()
+
     async def _periodic_sync(self) -> None:
         while True:
             try:
                 await asyncio.sleep(60 * 60)
-                backfilled_count = await self.sync(limit=5)
+                if self._prev_sync + 3 * 60 > time.monotonic():
+                    self.log.debug("Skipping periodic sync, less than 3 minutes since last sync")
+                    continue
+                # Low limit here since the manual reconnect will trigger a full sync
+                backfilled_count = await self.sync(limit=3)
                 if backfilled_count:
                     self.log.debug(f"Periodic sync backfilled {backfilled_count} chats")
-                    self.client.force_reregister()
+                    self.reconnect()
                 else:
                     self.log.debug("Periodic sync didn't backfill anything")
             except asyncio.CancelledError:
@@ -422,6 +448,7 @@ class User(DBUser, BaseUser):
 
     @async_time(METRIC_SYNC)
     async def sync(self, limit: Optional[int] = None) -> int:
+        self._prev_sync = time.monotonic()
         self.log.debug("Fetching first page of the world")
         req = googlechat.PaginatedWorldRequest(
             request_header=self.client.get_gc_request_header(),
@@ -458,8 +485,9 @@ class User(DBUser, BaseUser):
                 if limit is None:
                     await portal.update_matrix_room(self, info)
                 if portal.revision and info.group_revision.timestamp > portal.revision:
-                    asyncio.create_task(portal.backfill(self, info.group_revision.timestamp))
-                    backfilled_count += 1
+                    msg_count = await portal.backfill(self, info.group_revision.timestamp)
+                    if msg_count > 0:
+                        backfilled_count += 1
             else:
                 await portal.create_matrix_room(self, info)
                 backfilled_count += 1

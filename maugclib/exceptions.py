@@ -13,5 +13,8 @@ class ConversationTypeError(HangupsError):
     """An action was performed on a conversation that doesn't support it."""
 
 
+class ChannelLifetimeExpired(HangupsError):
+    pass
+
 class FileTooLargeError(HangupsError):
     pass

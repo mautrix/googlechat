@@ -4,4 +4,5 @@
 # Keep version in a separate file so setup.py can import it separately.
 from .client import Client
 from .auth import GoogleAuthError, RefreshTokenCache, TokenManager
-from .exceptions import HangupsError, NetworkError, ConversationTypeError, FileTooLargeError
+from .exceptions import (HangupsError, NetworkError, ConversationTypeError, FileTooLargeError,
+                         ChannelLifetimeExpired)
