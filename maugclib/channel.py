@@ -172,7 +172,6 @@ class Channel:
         self._sid_param = None
         self._csessionid_param = None
         self.force_reregister = False
-        self._prev_stream_req = 0
 
         self._aid = 0
         self._ofs = 0  # used to track sent events
@@ -193,7 +192,6 @@ class Channel:
         skip_backoff = False
 
         self._csessionid_param = await self._register()
-        self.force_reregister = False
         register_time = time.monotonic()
 
         while retries <= self._max_retries:
@@ -211,7 +209,6 @@ class Channel:
                                 f"{MAX_REGISTER_INTERVAL}s has passed since the last registration")
                 self._csessionid_param = await self._register()
                 register_time = time.monotonic()
-                self.force_reregister = False
             skip_backoff = False
 
             # Clear any previous push data, since if there was an error it
@@ -224,7 +221,6 @@ class Channel:
 
                 self._csessionid_param = await self._register()
                 register_time = time.monotonic()
-                self.force_reregister = False
 
                 retries += 1
                 skip_backoff = True
@@ -252,6 +248,10 @@ class Channel:
         # we need to clear our cookies because registering with a valid cookie
         # invalidates our cookie and doesn't get a new one sent back.
         self._session.clear_cookies()
+        self.force_reregister = False
+        self._sid_param = None
+        self._aid = 0
+        self._ofs = 0
 
         retries = 3
         attempts = 0
@@ -283,7 +283,7 @@ class Channel:
             if morsel.value.startswith("dynamite="):
                 return morsel.value[len("dynamite="):]
 
-        return ""
+        raise ChannelSessionError("Failed to register new channel (ran out of retries)")
 
     async def send_stream_event(self, events_request: googlechat_pb2.StreamEventsRequest):
         params = {
@@ -318,7 +318,6 @@ class Channel:
         }
         self._ofs += 1
 
-        self._prev_stream_req = time.time()
         res = await self._session.fetch_raw(
             'POST',
             CHANNEL_URL_BASE + 'events_encoded',
@@ -386,14 +385,11 @@ class Channel:
                                                    params=params) as res:
                 if res.status != 200:
                     if res.status == 400:
-                        logger.info("400 %s response text: %s", res.reason, await res.text())
-                        if res.reason == 'Unknown SID':
+                        text = await res.text()
+                        logger.info("400 %s response text: %s", res.reason, text)
+                        if res.reason == "Unknown SID" or "Unknown SID" in text:
                             LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
                             raise ChannelSessionError('SID became invalid')
-                        else:
-                            LONG_POLLING_ERRORS.labels(reason="sid probably invalid").inc()
-                            raise ChannelSessionError(f'SID probably became invalid: '
-                                                      f'HTTP {res.status}: {res.reason}')
                     LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
                     raise exceptions.NetworkError("Request returned unexpected status: "
                                                   f"{res.status}: {res.reason}")
