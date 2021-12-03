@@ -58,6 +58,7 @@ appservice:
 
 hangouts:
     # Device name shown in Google account settings
+    # (probably doesn't actually work anymore)
     device_name: Mautrix-Google Chat bridge
 
 # Prometheus telemetry config. Requires prometheus-client to be installed.
@@ -183,7 +184,7 @@ bridge:
             # The prefix below is not implicitly added. This URL and all subpaths should be proxied
             # or otherwise pointed to the appservice's webserver to the path specified below (prefix).
             # This path should usually include a trailing slash.
-            public: http://example.com/login/
+            public: https://example.com/login/
             # Internal prefix in the appservice web server for the login endpoints.
             prefix: /login
             # Shared secret for integration managers such as mautrix-manager.
