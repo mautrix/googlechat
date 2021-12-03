@@ -213,14 +213,18 @@ class Portal(DBPortal, BasePortal):
         return invite_content
 
     async def _update_participants(self, source: 'u.User', info: ChatInfo) -> None:
-        if (
-            self.is_dm and isinstance(info, googlechat.WorldItemLite)
-            and info.HasField("dm_members")
-        ):
-            user_ids = [member.id for member in info.dm_members.members]
+        bots = user_ids = []
+        if self.is_dm and isinstance(info, googlechat.WorldItemLite):
+            if len(info.read_state.joined_users) > 0:
+                user_ids = [user.id for user in info.read_state.joined_users
+                            if user.type == googlechat.HUMAN]
+                bots = [user.id for user in info.read_state.joined_users
+                        if user.type == googlechat.BOT]
+            else:
+                user_ids = [member.id for member in info.dm_members.members]
         elif isinstance(info, googlechat.GetGroupResponse):
             user_ids = [member.id.member_id.user_id.id for member in info.memberships]
-        else:
+        if not user_ids:
             raise ValueError("No participants found :(")
         if self.is_dm and len(user_ids) == 2:
             user_ids.remove(source.gcid)
@@ -231,14 +235,14 @@ class Portal(DBPortal, BasePortal):
             await self.save()
         if not self.mxid and not self.is_direct:
             return
-        users = await source.get_users(user_ids)
+        users = await source.get_users(user_ids + bots)
         await asyncio.gather(*[self._update_participant(source, user) for user in users])
 
     async def _update_participant(self, source: 'u.User', user: googlechat.User) -> None:
         puppet = await p.Puppet.get_by_gcid(user.user_id.id)
         await puppet.update_info(source=source, info=user)
         if self.mxid:
-            await puppet.intent_for(self).ensure_joined(self.mxid)
+            await puppet.intent_for(self).ensure_joined(self.mxid, bot=self.main_intent)
 
     # endregion
     # region Backfill
@@ -867,7 +871,7 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handled Google Chat edit of %s at %s -> %s", msg_id, edit_ts, event_id)
         await self._send_delivery_receipt(event_id)
 
-    async def handle_googlechat_update(self, sender: 'p.Puppet',timestamp: int,
+    async def handle_googlechat_update(self, sender: 'p.Puppet', timestamp: int,
                                        update: googlechat.RoomUpdatedMetadata) -> bool:
         if update.HasField("rename_metadata") and update.rename_metadata.new_name:
             if self.name != update.rename_metadata.new_name:
