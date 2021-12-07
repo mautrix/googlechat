@@ -285,6 +285,7 @@ class User(DBUser, BaseUser):
         if self.periodic_sync_task:
             self.periodic_sync_task.cancel()
             self.periodic_sync_task = None
+        await self.save()
 
     async def logout(self) -> None:
         self._track_metric(METRIC_LOGGED_IN, False)

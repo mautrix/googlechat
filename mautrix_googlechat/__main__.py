@@ -17,8 +17,6 @@ from typing import Dict, Any
 
 from mautrix.bridge import Bridge
 from mautrix.types import RoomID, UserID
-from mautrix.bridge.state_store.asyncpg import PgBridgeStateStore
-from mautrix.util.async_db import Database
 
 from .config import Config
 from .db import init as init_db, upgrade_table
@@ -42,19 +40,14 @@ class GoogleChatBridge(Bridge):
     markdown_version = linkified_version
     config_class = Config
     matrix_class = MatrixHandler
+    upgrade_table = upgrade_table
 
-    db: Database
     config: Config
     matrix: MatrixHandler
     auth_server: GoogleChatAuthServer
-    state_store: PgBridgeStateStore
-
-    def make_state_store(self) -> None:
-        self.state_store = PgBridgeStateStore(self.db, self.get_puppet, self.get_double_puppet)
 
     def prepare_db(self) -> None:
-        self.db = Database.create(self.config["appservice.database"], upgrade_table=upgrade_table,
-                                  db_args=self.config["appservice.database_opts"])
+        super().prepare_db()
         init_db(self.db)
 
     def prepare_bridge(self) -> None:
@@ -72,23 +65,12 @@ class GoogleChatBridge(Bridge):
         self.log.info("Finished re-sending bridge info state events")
 
     def prepare_stop(self) -> None:
-        self.shutdown_actions = (user.stop() for user in User.by_mxid.values())
+        self.add_shutdown_actions(user.stop() for user in User.by_mxid.values())
         self.log.debug("Stopping puppet syncers")
         for puppet in Puppet.by_custom_mxid.values():
             puppet.stop()
 
-    async def stop(self) -> None:
-        await super().stop()
-        self.log.debug("Saving user sessions")
-        for user in User.by_mxid.values():
-            await user.save()
-        await self.db.stop()
-
     async def start(self) -> None:
-        await self.db.start()
-        await self.state_store.upgrade_table.upgrade(self.db)
-        if self.matrix.e2ee:
-            self.matrix.e2ee.crypto_db.override_pool(self.db)
         self.add_startup_actions(User.init_cls(self))
         self.add_startup_actions(Puppet.init_cls(self))
         Portal.init_cls(self)

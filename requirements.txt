@@ -5,5 +5,5 @@ ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 python-magic>=0.4,<0.5
 protobuf>=3,<4
-mautrix>=0.12.5,<0.13
+mautrix>=0.13rc1,<0.14
 setuptools
