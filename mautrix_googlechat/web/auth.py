@@ -137,8 +137,6 @@ class GoogleChatAuthServer:
     async def logout(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
         user = await u.User.get_by_mxid(user_id)
-        if not await user.is_logged_in():
-            raise ErrorResponse(400, "You're not logged in", "M_FORBIDDEN")
         await user.logout()
         return web.json_response({})
 

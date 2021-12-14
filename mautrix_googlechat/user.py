@@ -289,11 +289,11 @@ class User(DBUser, BaseUser):
 
     async def logout(self) -> None:
         self._track_metric(METRIC_LOGGED_IN, False)
-        await self.stop()
-        self.client = None
         self.by_gcid.pop(self.gcid, None)
         self.gcid = None
         self.refresh_token = None
+        await self.stop()
+        self.client = None
         self.connected = False
 
         self.users = {}
