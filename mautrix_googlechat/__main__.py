@@ -35,7 +35,6 @@ class GoogleChatBridge(Bridge):
     command = "python -m mautrix-googlechat"
     description = "A Matrix-Google Chat puppeting bridge."
     repo_url = "https://github.com/mautrix/googlechat"
-    real_user_content_key = "net.maunium.googlechat.puppet"
     version = version
     markdown_version = linkified_version
     config_class = Config
