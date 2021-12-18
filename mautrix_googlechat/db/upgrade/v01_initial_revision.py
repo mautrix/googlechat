@@ -61,7 +61,7 @@ async def upgrade_v1(conn: Connection) -> None:
         gc_parent_id TEXT,
         index        SMALLINT NOT NULL,
         timestamp    BIGINT   NOT NULL,
-        PRIMARY KEY (gcid, gc_receiver, index),
+        PRIMARY KEY (gcid, gc_chat, gc_receiver, index),
         FOREIGN KEY (gc_chat, gc_receiver) REFERENCES portal(gcid, gc_receiver)
             ON UPDATE CASCADE ON DELETE CASCADE,
         UNIQUE (mxid, mx_room)

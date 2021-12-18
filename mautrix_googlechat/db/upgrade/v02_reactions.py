@@ -18,10 +18,12 @@ from . import upgrade_table
 
 
 @upgrade_table.register(description="Add reaction table and update message table")
-async def upgrade_v2(conn: Connection) -> None:
-    await conn.execute("ALTER TABLE message"
-                       "  DROP CONSTRAINT message_pkey,"
-                       "  ADD PRIMARY KEY (gcid, gc_chat, gc_receiver, index)")
+async def upgrade_v2(conn: Connection, dialect: str) -> None:
+    if dialect != "sqlite":
+        # This change was backported to the v1 db schema before SQLite support was added
+        await conn.execute("ALTER TABLE message"
+                           "  DROP CONSTRAINT message_pkey,"
+                           "  ADD PRIMARY KEY (gcid, gc_chat, gc_receiver, index)")
     await conn.execute("ALTER TABLE message ADD COLUMN msgtype TEXT")
     await conn.execute("ALTER TABLE message ADD COLUMN gc_sender TEXT")
     await conn.execute("""CREATE TABLE reaction (
