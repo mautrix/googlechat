@@ -53,16 +53,13 @@ class GCEntityType(Enum):
     URL = auto()
     EMAIL = auto()
     USER_MENTION = GCUserMentionType.MENTION
-    ROOM_MENTION = auto()
     PREFORMATTED = GCFormatType.MONOSPACE_BLOCK
     INLINE_CODE = GCFormatType.MONOSPACE
-    BLOCKQUOTE = auto()
-    HEADER = auto()
+    COLOR = GCFormatType.FONT_COLOR
 
     # Google Chat specific types, not present in mautrix-python's EntityType
     LIST = GCFormatType.BULLETED_LIST
     LIST_ITEM = GCFormatType.BULLETED_LIST_ITEM
-    FONT_COLOR = GCFormatType.FONT_COLOR
     HIDDEN = GCFormatType.HIDDEN
 
 
@@ -116,7 +113,7 @@ class GCEntity(SemiAbstractEntity):
 
     def copy(self) -> Optional['GCEntity']:
         extra_info = {}
-        if self.type == GCEntityType.FONT_COLOR:
+        if self.type == GCEntityType.COLOR:
             extra_info["font_color"] = self.internal.format_metadata.font_color
         elif self.type == GCEntityType.USER_MENTION:
             extra_info["user_id"] = self.internal.user_mention_metadata.id.id

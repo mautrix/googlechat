@@ -22,7 +22,9 @@ async def matrix_to_googlechat(content: TextMessageEventContent) -> ParsedMessag
     if content.format != Format.HTML or not content.formatted_body:
         return content.body, None
     try:
-        text, entities = parse_html(add_surrogate(content.formatted_body))
+        text, entities = await parse_html(add_surrogate(content.formatted_body))
         return del_surrogate(text), entities
     except Exception as e:
         raise FormatError(f"Failed to convert Matrix format") from e
+
+__all__ = ["matrix_to_googlechat"]
