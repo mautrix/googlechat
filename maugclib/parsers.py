@@ -1,11 +1,8 @@
 """Parsing helper functions."""
 
 import datetime
-import logging
 
 from . import googlechat_pb2
-
-logger = logging.getLogger(__name__)
 
 
 ##############################################################################

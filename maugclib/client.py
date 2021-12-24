@@ -7,9 +7,7 @@ import asyncio
 import base64
 import binascii
 import cgi
-import collections
 import datetime
-import json
 import logging
 import os
 import random
@@ -85,11 +83,11 @@ class Client:
         # Future for Channel.listen (populated by .connect()):
         self._listen_future = None
 
-        self._gc_request_header = googlechat_pb2.RequestHeader(
+        self.gc_request_header = googlechat_pb2.RequestHeader(
             client_type=googlechat_pb2.RequestHeader.ClientType.IOS,
             client_version=2440378181258,
             client_feature_capabilities=googlechat_pb2.ClientFeatureCapabilities(
-                spam_room_invites_level=googlechat_pb2.ClientFeatureCapabilities.CapabilityLevel.FULLY_SUPPORTED,
+                spam_room_invites_level=googlechat_pb2.ClientFeatureCapabilities.FULLY_SUPPORTED,
             ),
         )
 
@@ -152,18 +150,6 @@ class Client:
         # Cancel the listen task. We don't need an additional yield because
         # listen cancels immediately.
         self._listen_future.cancel()
-
-    def get_gc_request_header(self) -> googlechat_pb2.RequestHeader:
-        return self._gc_request_header
-
-    @staticmethod
-    def get_client_generated_id() -> int:
-        """Return ``client_generated_id`` for use when constructing requests.
-
-        Returns:
-            Client generated ID.
-        """
-        return random.randint(0, 2 ** 32)
 
     async def download_attachment(self, url: str | URL, max_size: int) -> tuple[bytes, str, str]:
         """
@@ -249,7 +235,7 @@ class Client:
         try:
             await self.proto_mark_group_read_state(
                 googlechat_pb2.MarkGroupReadstateRequest(
-                    request_header=self.get_gc_request_header(),
+                    request_header=self.gc_request_header,
                     id=parsers.group_id_from_id(conversation_id),
                     last_read_time=parsers.to_timestamp(read_timestamp),
                 )
@@ -268,7 +254,7 @@ class Client:
     ) -> None:
         await self.proto_update_reaction(
             googlechat_pb2.UpdateReactionRequest(
-                request_header=self.get_gc_request_header(),
+                request_header=self.gc_request_header,
                 emoji=googlechat_pb2.Emoji(unicode=emoji),
                 message_id=googlechat_pb2.MessageId(
                     parent_id=googlechat_pb2.MessageParentId(
@@ -292,7 +278,7 @@ class Client:
     ) -> googlechat_pb2.DeleteMessageResponse:
         return await self.proto_delete_message(
             googlechat_pb2.DeleteMessageRequest(
-                request_header=self.get_gc_request_header(),
+                request_header=self.gc_request_header,
                 message_id=googlechat_pb2.MessageId(
                     parent_id=googlechat_pb2.MessageParentId(
                         topic_id=googlechat_pb2.TopicId(
@@ -315,7 +301,7 @@ class Client:
     ) -> googlechat_pb2.EditMessageResponse:
         return await self.proto_edit_message(
             googlechat_pb2.EditMessageRequest(
-                request_header=self.get_gc_request_header(),
+                request_header=self.gc_request_header,
                 message_id=googlechat_pb2.MessageId(
                     parent_id=googlechat_pb2.MessageParentId(
                         topic_id=googlechat_pb2.TopicId(
@@ -345,7 +331,7 @@ class Client:
             local_id = local_id or f"hangups%{random.randint(0, 0xffffffffffffffff)}"
             if thread_id:
                 request = googlechat_pb2.CreateMessageRequest(
-                    request_header=self.get_gc_request_header(),
+                    request_header=self.gc_request_header,
                     parent_id=googlechat_pb2.MessageParentId(
                         topic_id=googlechat_pb2.TopicId(
                             group_id=parsers.group_id_from_id(conversation_id),
@@ -362,7 +348,7 @@ class Client:
                 return await self.proto_create_message(request)
             else:
                 request = googlechat_pb2.CreateTopicRequest(
-                    request_header=self.get_gc_request_header(),
+                    request_header=self.gc_request_header,
                     group_id=parsers.group_id_from_id(conversation_id),
                     local_id=local_id,
                     text_body=text,
@@ -392,7 +378,7 @@ class Client:
             context = googlechat_pb2.TypingContext(group_id=group_id)
         resp = await self.proto_set_typing_state(
             googlechat_pb2.SetTypingStateRequest(
-                request_header=self.get_gc_request_header(),
+                request_header=self.gc_request_header,
                 state=googlechat_pb2.TYPING if typing else googlechat_pb2.STOPPED,
                 context=context,
             )
@@ -402,31 +388,6 @@ class Client:
     ##########################################################################
     # Private methods
     ##########################################################################
-
-    @staticmethod
-    def _get_upload_session_status(res) -> str:
-        """Parse the image upload response to obtain status.
-
-        Args:
-            res: http_utils.FetchResponse instance, the upload response
-
-        Returns:
-            dict, sessionStatus of the response
-
-        Raises:
-            hangups.NetworkError: If the upload request failed.
-        """
-        response = json.loads(res.body.decode())
-        if "sessionStatus" not in response:
-            try:
-                info = response["errorMessage"]["additionalInfo"][
-                    "uploader_service.GoogleRupioAdditionalInfo"
-                ]["completionInfo"]["customerSpecificInfo"]
-                reason = "{} : {}".format(info["status"], info["message"])
-            except KeyError:
-                reason = "unknown reason"
-            raise exceptions.NetworkError("image upload failed: {}".format(reason))
-        return response["sessionStatus"]
 
     async def _on_receive_array(self, array: list) -> None:
         """Parse channel array and call the appropriate events."""
@@ -689,12 +650,3 @@ class Client:
         self, stream_events_request: googlechat_pb2.StreamEventsRequest
     ) -> None:
         await self._channel.send_stream_event(stream_events_request)
-
-
-UploadedImage = collections.namedtuple("UploadedImage", ["image_id", "url"])
-"""Details about an uploaded image.
-
-Args:
-    image_id (str): Image ID of uploaded image.
-    url (str): URL of uploaded image.
-"""

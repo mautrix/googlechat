@@ -265,7 +265,7 @@ class Portal(DBPortal, BasePortal):
     async def _initial_backfill(self, source: 'u.User') -> int:
         self.log.debug(f"Fetching topics through {source.mxid} for initial backfill")
         req = googlechat.ListTopicsRequest(
-            request_header=source.client.get_gc_request_header(),
+            request_header=source.client.gc_request_header,
             page_size_for_topics=(self.config["bridge.backfill.initial_thread_limit"]
                                   if self.is_threaded
                                   else self.config["bridge.backfill.initial_nonthread_limit"]),
@@ -286,7 +286,7 @@ class Portal(DBPortal, BasePortal):
             message_count += 1
             if self.is_threaded:
                 msg_req = googlechat.ListMessagesRequest(
-                    request_header=source.client.get_gc_request_header(),
+                    request_header=source.client.gc_request_header,
                     parent_id=googlechat.MessageParentId(topic_id=topic.id),
                     page_size=self.config["bridge.backfill.initial_thread_reply_limit"],
                 )
@@ -313,7 +313,7 @@ class Portal(DBPortal, BasePortal):
             self.log.debug(f"Making catchup request through {source.mxid} "
                            f"from {self.revision} to {latest_revision}")
             resp = await source.client.proto_catch_up_group(googlechat.CatchUpGroupRequest(
-                request_header=source.client.get_gc_request_header(),
+                request_header=source.client.gc_request_header,
                 group_id=self.gc_group_id,
                 range=googlechat.CatchUpRange(
                     from_revision_timestamp=self.revision,

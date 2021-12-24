@@ -332,6 +332,10 @@ class Channel:
 
         return res
 
+    ##########################################################################
+    # Private methods
+    ##########################################################################
+
     async def _send_initial_ping(self):
         ping_event = googlechat_pb2.PingEvent(
             state=googlechat_pb2.PingEvent.State.ACTIVE,
@@ -346,10 +350,6 @@ class Channel:
                 ping_event=ping_event,
             )
         )
-
-    ##########################################################################
-    # Private methods
-    ##########################################################################
 
     async def _longpoll_request(self) -> None:
         """Open a long-polling request and receive arrays.

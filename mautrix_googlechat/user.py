@@ -318,14 +318,14 @@ class User(DBUser, BaseUser):
         if not self.gcid:
             info = await self.client.proto_get_self_user_status(
                 googlechat.GetSelfUserStatusRequest(
-                    request_header=self.client.get_gc_request_header()
+                    request_header=self.client.gc_request_header
                 )
             )
             self.gcid = info.user_status.user_id.id
             self.by_gcid[self.gcid] = self
 
         resp = await self.client.proto_get_members(googlechat.GetMembersRequest(
-            request_header=self.client.get_gc_request_header(),
+            request_header=self.client.gc_request_header,
             member_ids=[
                 googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
             ]
@@ -341,7 +341,7 @@ class User(DBUser, BaseUser):
             if req_ids:
                 self.log.debug(f"Fetching info of users {[user.user_id.id for user in req_ids]}")
                 resp = await self.client.proto_get_members(googlechat.GetMembersRequest(
-                    request_header=self.client.get_gc_request_header(),
+                    request_header=self.client.gc_request_header,
                     member_ids=req_ids,
                 ))
                 member: googlechat.Member
@@ -376,7 +376,7 @@ class User(DBUser, BaseUser):
                     return group
             self.log.debug(f"Fetching info of chat {conv_id}")
             resp = await self.client.proto_get_group(googlechat.GetGroupRequest(
-                request_header=self.client.get_gc_request_header(),
+                request_header=self.client.gc_request_header,
                 group_id=group_id,
                 fetch_options=[
                     googlechat.GetGroupRequest.MEMBERS,
@@ -459,7 +459,7 @@ class User(DBUser, BaseUser):
         self._prev_sync = time.monotonic()
         self.log.debug("Fetching first page of the world")
         req = googlechat.PaginatedWorldRequest(
-            request_header=self.client.get_gc_request_header(),
+            request_header=self.client.gc_request_header,
             fetch_from_user_spaces=True,
             fetch_options=[
                 googlechat.PaginatedWorldRequest.EXCLUDE_GROUP_LITE,
@@ -537,7 +537,7 @@ class User(DBUser, BaseUser):
 
     async def mark_read(self, conversation_id: str, timestamp: int) -> None:
         await self.client.proto_mark_group_read_state(googlechat.MarkGroupReadstateRequest(
-            request_header=self.client.get_gc_request_header(),
+            request_header=self.client.gc_request_header,
             id=maugclib.parsers.group_id_from_id(conversation_id),
             last_read_time=int((timestamp or (time.time() * 1000)) * 1000),
         ))

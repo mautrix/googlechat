@@ -47,7 +47,7 @@ class Session:
 
         self._token_manager = token_manager
 
-    def get_cookie(self, url: URL, name: str) -> Morsel[str]:
+    def get_cookie(self, url: URL | str, name: str) -> Morsel[str]:
         filtered = self._cookie_jar.filter_cookies(url)
 
         return cast(Morsel, filtered.get(name, None))
