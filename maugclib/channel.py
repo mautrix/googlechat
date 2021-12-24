@@ -14,6 +14,7 @@ https://github.com/google/closure-library/blob/master/closure/goog/net/browserch
 Unofficial protocol documentation is available here:
 https://web.archive.org/web/20121226064550/http://code.google.com/p/libevent-browserchannel-server/wiki/BrowserChannelProtocol
 """
+from __future__ import annotations
 
 from typing import Iterator, NoReturn
 import asyncio
@@ -29,23 +30,30 @@ import async_timeout
 
 from mautrix.util.opt_prometheus import Counter
 
-from . import googlechat_pb2, exceptions, event, http_utils
+from . import event, exceptions, googlechat_pb2, http_utils
 
 logger = logging.getLogger(__name__)
-Utf8IncrementalDecoder = codecs.getincrementaldecoder('utf-8')
-LEN_REGEX = re.compile(r'([0-9]+)\n', re.MULTILINE)
-CHANNEL_URL_BASE = 'https://chat.google.com/webchannel/'
+Utf8IncrementalDecoder = codecs.getincrementaldecoder("utf-8")
+LEN_REGEX = re.compile(r"([0-9]+)\n", re.MULTILINE)
+CHANNEL_URL_BASE = "https://chat.google.com/webchannel/"
 # Long-polling requests send heartbeats every 15-30 seconds, so if we miss two
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
 MAX_READ_BYTES = 1024 * 1024
 
-LONG_POLLING_REQUESTS = Counter("bridge_gc_started_long_polls",
-                                "Number of long polling requests started")
-LONG_POLLING_ERRORS = Counter("bridge_gc_long_poll_errors", "Errors that stopped long polling",
-                              ["reason"])
-RECEIVED_CHUNKS = Counter("bridge_gc_received_chunk_bytes",
-                          "Received chunks from Google Chat long polling")
+LONG_POLLING_REQUESTS = Counter(
+    name="bridge_gc_started_long_polls",
+    documentation="Number of long polling requests started",
+)
+LONG_POLLING_ERRORS = Counter(
+    name="bridge_gc_long_poll_errors",
+    documentation="Errors that stopped long polling",
+    labelnames=["reason"],
+)
+RECEIVED_CHUNKS = Counter(
+    name="bridge_gc_received_chunk_bytes",
+    documentation="Received chunks from Google Chat long polling",
+)
 
 
 class ChannelSessionError(exceptions.HangupsError):
@@ -69,7 +77,7 @@ class ChunkParser:
 
     def __init__(self) -> None:
         # Buffer for bytes containing utf-8 text:
-        self._buf = b''
+        self._buf = b""
 
     def get_chunks(self, new_data_bytes: bytes) -> Iterator[str]:
         """Yield chunks generated from received data.
@@ -91,7 +99,7 @@ class ChunkParser:
         while True:
 
             buf_decoded = _best_effort_decode(self._buf)
-            buf_utf16 = buf_decoded.encode('utf-16')[2:]
+            buf_utf16 = buf_decoded.encode("utf-16")[2:]
 
             length_str_match = LEN_REGEX.match(buf_decoded)
             if length_str_match is None:
@@ -102,16 +110,17 @@ class ChunkParser:
                 # The length of the submission:
                 length = int(length_str) * 2
                 # The length of the submission length and newline:
-                length_length = len((length_str + '\n').encode('utf-16')[2:])
+                length_length = len((length_str + "\n").encode("utf-16")[2:])
                 if len(buf_utf16) - length_length < length:
                     break
 
-                submission = buf_utf16[length_length:length_length + length]
-                yield submission.decode('utf-16')
+                submission = buf_utf16[length_length : length_length + length]
+                yield submission.decode("utf-16")
                 # Drop the length and the submission itself from the beginning
                 # of the buffer.
-                drop_length = (len((length_str + '\n').encode()) +
-                               len(submission.decode('utf-16').encode()))
+                drop_length = len((length_str + "\n").encode()) + len(
+                    submission.decode("utf-16").encode()
+                )
                 self._buf = self._buf[drop_length:]
 
 
@@ -135,8 +144,9 @@ class Channel:
     # Public methods
     ##########################################################################
 
-    def __init__(self, session: http_utils.Session, max_retries: int, retry_backoff_base: int
-                 ) -> None:
+    def __init__(
+        self, session: http_utils.Session, max_retries: int, retry_backoff_base: int
+    ) -> None:
         """Create a new channel.
 
         Args:
@@ -147,13 +157,13 @@ class Channel:
         """
 
         # Event fired when channel connects with arguments ():
-        self.on_connect = event.Event('Channel.on_connect')
+        self.on_connect = event.Event("Channel.on_connect")
         # Event fired when channel reconnects with arguments ():
-        self.on_reconnect = event.Event('Channel.on_reconnect')
+        self.on_reconnect = event.Event("Channel.on_reconnect")
         # Event fired when channel disconnects with arguments ():
-        self.on_disconnect = event.Event('Channel.on_disconnect')
+        self.on_disconnect = event.Event("Channel.on_disconnect")
         # Event fired when an array is received with arguments (array):
-        self.on_receive_array = event.Event('Channel.on_receive_array')
+        self.on_receive_array = event.Event("Channel.on_receive_array")
 
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
@@ -209,7 +219,7 @@ class Channel:
             try:
                 await self._longpoll_request()
             except ChannelSessionError as err:
-                logger.debug('Long-polling interrupted: %s', err)
+                logger.debug("Long-polling interrupted: %s", err)
 
                 self._csessionid_param = await self._register()
 
@@ -217,7 +227,7 @@ class Channel:
                 skip_backoff = True
                 continue
             except exceptions.NetworkError as err:
-                logger.warning('Long-polling request failed: %s', err)
+                logger.warning("Long-polling request failed: %s", err)
             else:
                 # The connection closed successfully, so reset the number of
                 # retries.
@@ -225,7 +235,7 @@ class Channel:
                 continue
 
             retries += 1
-            logger.info('retry attempt count is now %s', retries)
+            logger.info("retry attempt count is now %s", retries)
             if self._is_connected:
                 self._is_connected = False
                 await self.on_disconnect.fire()
@@ -233,7 +243,7 @@ class Channel:
             # If the request ended with an error, the client must account for
             # messages being dropped during this time.
 
-        logger.error('Ran out of retries for long-polling request')
+        logger.error("Ran out of retries for long-polling request")
 
     async def _register(self) -> str:
         # we need to clear our cookies because registering with a valid cookie
@@ -250,20 +260,22 @@ class Channel:
             if attempts > 0:
                 logger.debug(f"retrying channel registration: attempt {attempts}/{retries}")
 
-            headers = {'Content-Type': 'application/x-protobuf'}
-            res = await self._session.fetch_raw('POST', CHANNEL_URL_BASE + 'register',
-                                                headers=headers)
+            headers = {"Content-Type": "application/x-protobuf"}
+            res = await self._session.fetch_raw(
+                "POST", CHANNEL_URL_BASE + "register", headers=headers
+            )
 
             if res.status != 200:
-                raise exceptions.NetworkError(f"Request return unexpected status: {res.status}: "
-                                              f"{res.reason}")
+                raise exceptions.NetworkError(
+                    f"Request return unexpected status: {res.status}: {res.reason}"
+                )
 
             body = await res.read()
 
-            morsel = self._session.get_cookie(CHANNEL_URL_BASE, 'COMPASS')
-            logger.debug(f'morsel: {morsel}')
+            morsel = self._session.get_cookie(CHANNEL_URL_BASE, "COMPASS")
+            logger.debug(f"morsel: {morsel}")
             if morsel is None:
-                logger.debug(f'res: {body}')
+                logger.debug(f"res: {body}")
                 logger.warning("Failed to register channel (didn't get COMPASS cookie)")
                 attempts = attempts + 1
                 continue
@@ -271,46 +283,48 @@ class Channel:
                 logger.info("Registered new channel successfully")
 
             if morsel.value.startswith("dynamite="):
-                return morsel.value[len("dynamite="):]
+                return morsel.value[len("dynamite=") :]
 
         raise ChannelSessionError("Failed to register new channel (ran out of retries)")
 
     async def send_stream_event(self, events_request: googlechat_pb2.StreamEventsRequest):
         params = {
-            'VER': 8,  # channel protocol version
-            'RID': self._rid,  # request identifier
-            't': 1,  # trial
-            'SID': self._sid_param,  # session ID
-            'AID': self._aid,  # last acknowledged id
-            'CI': 0,  # 0 if streaming/chunked requests should be used
+            "VER": 8,  # channel protocol version
+            "RID": self._rid,  # request identifier
+            "t": 1,  # trial
+            "SID": self._sid_param,  # session ID
+            "AID": self._aid,  # last acknowledged id
+            "CI": 0,  # 0 if streaming/chunked requests should be used
         }
 
         self._rid += 1
 
         if self._csessionid_param is not None:
-            params['csessionid'] = self._csessionid_param
+            params["csessionid"] = self._csessionid_param
 
         headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/x-www-form-urlencoded",
         }
 
         # base64 the raw protobuf
         b64_bytes = base64.b64encode(events_request.SerializeToString())
 
-        json_body = json.dumps({
-            'data': b64_bytes.decode('ascii'),
-        })
+        json_body = json.dumps(
+            {
+                "data": b64_bytes.decode("ascii"),
+            }
+        )
 
         data = {
-            'count': 1,
-            'ofs': self._ofs,
-            'req0___data__': json_body,
+            "count": 1,
+            "ofs": self._ofs,
+            "req0___data__": json_body,
         }
         self._ofs += 1
 
         res = await self._session.fetch_raw(
-            'POST',
-            CHANNEL_URL_BASE + 'events_encoded',
+            "POST",
+            CHANNEL_URL_BASE + "events_encoded",
             headers=headers,
             params=params,
             data=data,
@@ -327,15 +341,17 @@ class Channel:
         )
 
         logger.info("Sending initial ping request")
-        return await self.send_stream_event(googlechat_pb2.StreamEventsRequest(
-            ping_event=ping_event,
-        ))
+        return await self.send_stream_event(
+            googlechat_pb2.StreamEventsRequest(
+                ping_event=ping_event,
+            )
+        )
 
     ##########################################################################
     # Private methods
     ##########################################################################
 
-    async def _longpoll_request(self) -> NoReturn:
+    async def _longpoll_request(self) -> None:
         """Open a long-polling request and receive arrays.
 
         This method uses keep-alive to make re-opening the request faster, but
@@ -344,47 +360,53 @@ class Channel:
         Raises hangups.NetworkError or ChannelSessionError.
         """
         params = {
-            'VER': 8,  # channel protocol version
-            'CVER': 22,  # client type
-            'AID': self._aid,
-            't': 1,  # trial
+            "VER": 8,  # channel protocol version
+            "CVER": 22,  # client type
+            "AID": self._aid,
+            "t": 1,  # trial
         }
 
         self._rid += 1
 
         if self._sid_param is None:
-            params.update({
-                '$req': 'count=0',  # noop request
-                'RID': '0',
-                'SID': 'null',
-                'TYPE': 'init',  # type of request
-            })
+            params.update(
+                {
+                    "$req": "count=0",  # noop request
+                    "RID": "0",
+                    "SID": "null",
+                    "TYPE": "init",  # type of request
+                }
+            )
         else:
-            params.update({
-                'CI': 0,
-                'RID': 'rpc',
-                'SID': self._sid_param,
-                'TYPE': 'xmlhttp',
-            })
+            params.update(
+                {
+                    "CI": 0,
+                    "RID": "rpc",
+                    "SID": self._sid_param,
+                    "TYPE": "xmlhttp",
+                }
+            )
 
-        logger.debug('Opening new long-polling request')
+        logger.debug("Opening new long-polling request")
         LONG_POLLING_REQUESTS.inc()
         try:
             res: aiohttp.ClientResponse
-            async with self._session.fetch_raw_ctx('GET', CHANNEL_URL_BASE + 'events_encoded',
-                                                   params=params) as res:
+            async with self._session.fetch_raw_ctx(
+                "GET", CHANNEL_URL_BASE + "events_encoded", params=params
+            ) as res:
                 if res.status != 200:
                     if res.status == 400:
                         text = await res.text()
                         logger.info("400 %s response text: %s", res.reason, text)
                         if res.reason == "Unknown SID" or "Unknown SID" in text:
                             LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
-                            raise ChannelSessionError('SID became invalid')
+                            raise ChannelSessionError("SID became invalid")
                     LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
-                    raise exceptions.NetworkError("Request returned unexpected status: "
-                                                  f"{res.status}: {res.reason}")
+                    raise exceptions.NetworkError(
+                        "Request returned unexpected status: " f"{res.status}: {res.reason}"
+                    )
 
-                initial_response = res.headers.get('X-HTTP-Initial-Response', None)
+                initial_response = res.headers.get("X-HTTP-Initial-Response", None)
                 if initial_response:
                     sid = _parse_sid_response(initial_response)
                     if self._sid_param != sid:
@@ -404,21 +426,21 @@ class Channel:
 
         except asyncio.TimeoutError:
             LONG_POLLING_ERRORS.labels(reason="timeout").inc()
-            raise exceptions.NetworkError('Request timed out')
+            raise exceptions.NetworkError("Request timed out")
         except aiohttp.ServerDisconnectedError as err:
             LONG_POLLING_ERRORS.labels(reason="server disconnected").inc()
-            raise exceptions.NetworkError(f'Server disconnected error: {err}')
+            raise exceptions.NetworkError(f"Server disconnected error: {err}")
         except aiohttp.ClientPayloadError:
             LONG_POLLING_ERRORS.labels(reason="sid expiry").inc()
-            raise ChannelSessionError('SID is about to expire')
+            raise ChannelSessionError("SID is about to expire")
         except aiohttp.ClientError as err:
             LONG_POLLING_ERRORS.labels(reason="connection error").inc()
-            raise exceptions.NetworkError(f'Request connection error: {err}')
+            raise exceptions.NetworkError(f"Request connection error: {err}")
         LONG_POLLING_ERRORS.labels(reason="clean exit").inc()
 
     async def _on_push_data(self, data_bytes: bytes) -> None:
         """Parse push data and trigger events."""
-        logger.debug('Received chunk:\n{}'.format(data_bytes))
+        logger.debug("Received chunk:\n{}".format(data_bytes))
         RECEIVED_CHUNKS.inc(len(data_bytes))
         for chunk in self._chunk_parser.get_chunks(data_bytes):
 
@@ -439,8 +461,7 @@ class Channel:
                 # inner_array always contains 2 elements, the array_id and the
                 # data_array.
                 array_id, data_array = inner_array
-                logger.debug('Chunk contains data array with id %r:\n%r',
-                             array_id, data_array)
+                logger.debug("Chunk contains data array with id %r:\n%r", array_id, data_array)
                 await self.on_receive_array.fire(data_array)
 
                 # update our last array id after we're done processing it

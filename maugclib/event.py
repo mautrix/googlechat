@@ -16,11 +16,11 @@ class Event:
         name (str): Name of the new event.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self._name = str(name)
         self._observers = []
 
-    def add_observer(self, callback):
+    def add_observer(self, callback) -> None:
         """Add an observer to this event.
 
         Args:
@@ -31,11 +31,10 @@ class Event:
             ValueError: If the callback has already been added.
         """
         if callback in self._observers:
-            raise ValueError('{} is already an observer of {}'
-                             .format(callback, self))
+            raise ValueError("{} is already an observer of {}".format(callback, self))
         self._observers.append(callback)
 
-    def remove_observer(self, callback):
+    def remove_observer(self, callback) -> None:
         """Remove an observer from this event.
 
         Args:
@@ -46,17 +45,16 @@ class Event:
             ValueError: If the callback is not an observer of this event.
         """
         if callback not in self._observers:
-            raise ValueError('{} is not an observer of {}'
-                             .format(callback, self))
+            raise ValueError("{} is not an observer of {}".format(callback, self))
         self._observers.remove(callback)
 
-    async def fire(self, *args, **kwargs):
+    async def fire(self, *args, **kwargs) -> None:
         """Fire this event, calling all observers with the same arguments."""
-        logger.debug('Fired {}'.format(self))
+        logger.debug("Fired {}".format(self))
         for observer in self._observers:
             gen = observer(*args, **kwargs)
             if asyncio.iscoroutinefunction(observer):
                 await gen
 
-    def __repr__(self):
-        return 'Event(\'{}\')'.format(self._name)
+    def __repr__(self) -> str:
+        return "Event('{}')".format(self._name)

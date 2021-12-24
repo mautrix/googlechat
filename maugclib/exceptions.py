@@ -16,5 +16,6 @@ class ConversationTypeError(HangupsError):
 class ChannelLifetimeExpired(HangupsError):
     pass
 
+
 class FileTooLargeError(HangupsError):
     pass

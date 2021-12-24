@@ -40,15 +40,14 @@ def group_id_from_id(conversation_id: str) -> googlechat_pb2.GroupId:
     if conversation_id.startswith("dm:"):
         return googlechat_pb2.GroupId(
             dm_id=googlechat_pb2.DmId(
-                dm_id=conversation_id[len("dm:"):],
+                dm_id=conversation_id[len("dm:") :],
             )
         )
     elif conversation_id.startswith("space:"):
         return googlechat_pb2.GroupId(
             space_id=googlechat_pb2.SpaceId(
-                space_id=conversation_id[len("space:"):],
+                space_id=conversation_id[len("space:") :],
             )
         )
     else:
         raise ValueError("Invalid conversation ID")
-
