@@ -244,7 +244,7 @@ class User(DBUser, BaseUser):
         self._intentional_disconnect = False
         while True:
             try:
-                await self.client.connect(max_age=4 * 60 * 60)
+                await self.client.connect(max_age=1.5 * 60 * 60)
                 self._track_metric(METRIC_CONNECTED, False)
                 if self._intentional_disconnect:
                     self.log.info("Client connection finished")
