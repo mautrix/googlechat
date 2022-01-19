@@ -13,7 +13,7 @@ def add_surrogate(text: str) -> str:
 
 
 def del_surrogate(text: str) -> str:
-    return text.encode('utf-16', 'surrogatepass').decode('utf-16')
+    return text.encode("utf-16", "surrogatepass").decode("utf-16")
 
 
 class FormatError(Exception):

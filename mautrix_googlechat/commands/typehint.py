@@ -8,5 +8,5 @@ if TYPE_CHECKING:
 
 
 class CommandEvent(BaseCommandEvent):
-    bridge: 'GoogleChatBridge'
-    sender: 'User'
+    bridge: "GoogleChatBridge"
+    sender: "User"

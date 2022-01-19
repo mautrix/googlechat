@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,10 +13,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Tuple, List, Any
+from __future__ import annotations
 
-from mautrix.types import UserID
 from mautrix.bridge.config import BaseBridgeConfig, ConfigUpdateHelper
+from mautrix.types import UserID
 
 
 class Config(BaseBridgeConfig):
@@ -76,18 +76,18 @@ class Config(BaseBridgeConfig):
 
         copy_dict("bridge.permissions")
 
-    def _get_permissions(self, key: str) -> Tuple[bool, bool, str]:
+    def _get_permissions(self, key: str) -> tuple[bool, bool, str]:
         level = self["bridge.permissions"].get(key, "")
         admin = level == "admin"
         user = level == "user" or admin
         return user, admin, level
 
-    def get_permissions(self, mxid: UserID) -> Tuple[bool, bool, str]:
+    def get_permissions(self, mxid: UserID) -> tuple[bool, bool, str]:
         permissions = self["bridge.permissions"] or {}
         if mxid in permissions:
             return self._get_permissions(mxid)
 
-        homeserver = mxid[mxid.index(":") + 1:]
+        homeserver = mxid[mxid.index(":") + 1 :]
         if homeserver in permissions:
             return self._get_permissions(homeserver)
 

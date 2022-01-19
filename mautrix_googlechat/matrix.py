@@ -13,23 +13,33 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import List, TYPE_CHECKING
+from __future__ import annotations
 
-from mautrix.types import (EventID, RoomID, UserID, Event, EventType, PresenceEventContent,
-                           ReactionEventContent, RelationType, SingleReceiptEventContent,
-                           ReactionEvent, RedactionEvent)
+from typing import TYPE_CHECKING
+
 from mautrix.bridge import BaseMatrixHandler
-from mautrix.types.event.message import MessageType, TextMessageEventContent
-from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
+from mautrix.types import (
+    Event,
+    EventID,
+    EventType,
+    PresenceEventContent,
+    ReactionEvent,
+    ReactionEventContent,
+    RedactionEvent,
+    RelationType,
+    RoomID,
+    SingleReceiptEventContent,
+    UserID,
+)
 
-from . import user as u, portal as po
+from . import portal as po, user as u
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
 
 
 class MatrixHandler(BaseMatrixHandler):
-    def __init__(self, bridge: 'GoogleChatBridge') -> None:
+    def __init__(self, bridge: "GoogleChatBridge") -> None:
         prefix, suffix = bridge.config["bridge.username_template"].format(userid=":").split(":")
         homeserver = bridge.config["homeserver.domain"]
         self.user_id_prefix = f"@{prefix}"
@@ -37,13 +47,14 @@ class MatrixHandler(BaseMatrixHandler):
 
         super().__init__(bridge=bridge)
 
-    async def send_welcome_message(self, room_id: RoomID, inviter: 'u.User') -> None:
+    async def send_welcome_message(self, room_id: RoomID, inviter: u.User) -> None:
         await super().send_welcome_message(room_id, inviter)
         if not inviter.notice_room:
             inviter.notice_room = room_id
             await inviter.save()
-            await self.az.intent.send_notice(room_id, "This room has been marked as your "
-                                                      "Google Chat bridge notice room.")
+            await self.az.intent.send_notice(
+                room_id, "This room has been marked as your Google Chat bridge notice room."
+            )
 
     async def handle_join(self, room_id: RoomID, user_id: UserID, event_id: EventID) -> None:
         user = await u.User.get_by_mxid(user_id)
@@ -53,8 +64,9 @@ class MatrixHandler(BaseMatrixHandler):
             return
 
         if not user.is_whitelisted:
-            await portal.main_intent.kick_user(room_id, user.mxid, "You are not whitelisted on "
-                                                                   "this Google Chat bridge.")
+            await portal.main_intent.kick_user(
+                room_id, user.mxid, "You are not whitelisted on this Google Chat bridge."
+            )
             return
         # elif not await user.is_logged_in():
         #     await portal.main_intent.kick_user(room_id, user.mxid, "You are not logged in to this "
@@ -84,15 +96,20 @@ class MatrixHandler(BaseMatrixHandler):
         #         await user.client.set_active()
 
     @staticmethod
-    async def handle_typing(room_id: RoomID, typing: List[UserID]) -> None:
+    async def handle_typing(room_id: RoomID, typing: list[UserID]) -> None:
         portal = await po.Portal.get_by_mxid(room_id)
         if not portal:
             return
 
         await portal.handle_matrix_typing(set(typing))
 
-    async def handle_read_receipt(self, user: 'u.User', portal: 'po.Portal', event_id: EventID,
-                                  data: SingleReceiptEventContent) -> None:
+    async def handle_read_receipt(
+        self,
+        user: u.User,
+        portal: po.Portal,
+        event_id: EventID,
+        data: SingleReceiptEventContent,
+    ) -> None:
         await user.mark_read(portal.gcid, data.ts)
 
     async def handle_ephemeral_event(self, evt: Event) -> None:
@@ -104,11 +121,14 @@ class MatrixHandler(BaseMatrixHandler):
             await super().handle_ephemeral_event(evt)
 
     @classmethod
-    async def handle_reaction(cls, room_id: RoomID, user_id: UserID, event_id: EventID,
-                              content: ReactionEventContent) -> None:
+    async def handle_reaction(
+        cls, room_id: RoomID, user_id: UserID, event_id: EventID, content: ReactionEventContent
+    ) -> None:
         if content.relates_to.rel_type != RelationType.ANNOTATION:
-            cls.log.debug(f"Ignoring m.reaction event in {room_id} from {user_id} with unexpected "
-                          f"relation type {content.relates_to.rel_type}")
+            cls.log.debug(
+                f"Ignoring m.reaction event in {room_id} from {user_id} with unexpected "
+                f"relation type {content.relates_to.rel_type}"
+            )
             return
         user = await u.User.get_by_mxid(user_id)
         if not user:
@@ -118,12 +138,14 @@ class MatrixHandler(BaseMatrixHandler):
         if not portal:
             return
 
-        await portal.handle_matrix_reaction(user, event_id, content.relates_to.event_id,
-                                            content.relates_to.key)
+        await portal.handle_matrix_reaction(
+            user, event_id, content.relates_to.event_id, content.relates_to.key
+        )
 
     @staticmethod
-    async def handle_redaction(room_id: RoomID, user_id: UserID, event_id: EventID,
-                               redaction_event_id: EventID) -> None:
+    async def handle_redaction(
+        room_id: RoomID, user_id: UserID, event_id: EventID, redaction_event_id: EventID
+    ) -> None:
         user = await u.User.get_by_mxid(user_id)
         if not user:
             return
@@ -141,8 +163,9 @@ class MatrixHandler(BaseMatrixHandler):
 
         if evt.type == EventType.REACTION:
             evt: ReactionEvent
-            await self.handle_reaction(room_id=evt.room_id, user_id=evt.sender,
-                                       event_id=evt.event_id, content=evt.content)
+            await self.handle_reaction(
+                room_id=evt.room_id, user_id=evt.sender, event_id=evt.event_id, content=evt.content
+            )
         elif evt.type == EventType.ROOM_REDACTION:
             evt: RedactionEvent
             await self.handle_redaction(evt.room_id, evt.sender, evt.redacts, evt.event_id)

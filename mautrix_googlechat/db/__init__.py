@@ -1,10 +1,10 @@
 from mautrix.util.async_db import Database
 
-from .upgrade import upgrade_table
-from .reaction import Reaction
 from .message import Message
 from .portal import Portal
 from .puppet import Puppet
+from .reaction import Reaction
+from .upgrade import upgrade_table
 from .user import User
 
 

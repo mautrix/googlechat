@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,7 +13,9 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Optional, Dict, AsyncIterable, Awaitable, cast, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, AsyncIterable, Awaitable, cast
 import asyncio
 
 from yarl import URL
@@ -21,14 +23,14 @@ import aiohttp
 import magic
 
 from maugclib import googlechat_pb2 as googlechat
-from mautrix.types import RoomID, UserID, ContentURI, SyncToken
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePuppet, async_getter_lock
+from mautrix.types import ContentURI, RoomID, SyncToken, UserID
 from mautrix.util.simple_template import SimpleTemplate
 
+from . import portal as p, user as u
 from .config import Config
 from .db import Puppet as DBPuppet
-from . import user as u, portal as p
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
@@ -39,18 +41,36 @@ class Puppet(DBPuppet, BasePuppet):
     hs_domain: str
     mxid_template: SimpleTemplate[str]
 
-    by_gcid: Dict[str, 'Puppet'] = {}
-    by_custom_mxid: Dict[UserID, 'Puppet'] = {}
+    by_gcid: dict[str, Puppet] = {}
+    by_custom_mxid: dict[UserID, Puppet] = {}
 
-    def __init__(self, gcid: str, name: Optional[str] = None, photo_id: Optional[str] = None,
-                 photo_mxc: Optional[ContentURI] = None, name_set: bool = False,
-                 avatar_set: bool = False, is_registered: bool = False,
-                 custom_mxid: Optional[UserID] = None, access_token: Optional[str] = None,
-                 next_batch: Optional[SyncToken] = None, base_url: Optional[URL] = None) -> None:
-        super().__init__(gcid=gcid, name=name, photo_id=photo_id, photo_mxc=photo_mxc,
-                         name_set=name_set, avatar_set=avatar_set, is_registered=is_registered,
-                         custom_mxid=custom_mxid, access_token=access_token, next_batch=next_batch,
-                         base_url=base_url)
+    def __init__(
+        self,
+        gcid: str,
+        name: str | None = None,
+        photo_id: str | None = None,
+        photo_mxc: ContentURI | None = None,
+        name_set: bool = False,
+        avatar_set: bool = False,
+        is_registered: bool = False,
+        custom_mxid: UserID | None = None,
+        access_token: str | None = None,
+        next_batch: SyncToken | None = None,
+        base_url: URL | None = None,
+    ) -> None:
+        super().__init__(
+            gcid=gcid,
+            name=name,
+            photo_id=photo_id,
+            photo_mxc=photo_mxc,
+            name_set=name_set,
+            avatar_set=avatar_set,
+            is_registered=is_registered,
+            custom_mxid=custom_mxid,
+            access_token=access_token,
+            next_batch=next_batch,
+            base_url=base_url,
+        )
 
         self.default_mxid = self.get_mxid_from_id(gcid)
         self.default_mxid_intent = self.az.intent.user(self.default_mxid)
@@ -64,20 +84,29 @@ class Puppet(DBPuppet, BasePuppet):
             self.by_custom_mxid[self.custom_mxid] = self
 
     @classmethod
-    def init_cls(cls, bridge: 'GoogleChatBridge') -> AsyncIterable[Awaitable[None]]:
+    def init_cls(cls, bridge: "GoogleChatBridge") -> AsyncIterable[Awaitable[None]]:
         cls.config = bridge.config
         cls.loop = bridge.loop
         cls.mx = bridge.matrix
         cls.az = bridge.az
         cls.hs_domain = cls.config["homeserver"]["domain"]
-        cls.mxid_template = SimpleTemplate(cls.config["bridge.username_template"], "userid",
-                                           prefix="@", suffix=f":{cls.hs_domain}", type=str)
+        cls.mxid_template = SimpleTemplate(
+            cls.config["bridge.username_template"],
+            "userid",
+            prefix="@",
+            suffix=f":{cls.hs_domain}",
+            type=str,
+        )
         cls.sync_with_custom_puppets = cls.config["bridge.sync_with_custom_puppets"]
-        cls.homeserver_url_map = {server: URL(url) for server, url
-                                  in cls.config["bridge.double_puppet_server_map"].items()}
+        cls.homeserver_url_map = {
+            server: URL(url)
+            for server, url in cls.config["bridge.double_puppet_server_map"].items()
+        }
         cls.allow_discover_url = cls.config["bridge.double_puppet_allow_discovery"]
-        cls.login_shared_secret_map = {server: secret.encode("utf-8") for server, secret
-                                       in cls.config["bridge.login_shared_secret_map"].items()}
+        cls.login_shared_secret_map = {
+            server: secret.encode("utf-8")
+            for server, secret in cls.config["bridge.login_shared_secret_map"].items()
+        }
         cls.login_device_name = "Google Chat Bridge"
 
         return (puppet.start() async for puppet in Puppet.get_all_with_custom_mxid())
@@ -89,21 +118,26 @@ class Puppet(DBPuppet, BasePuppet):
     async def _leave_rooms_with_default_user(self) -> None:
         await super()._leave_rooms_with_default_user()
         # Make the user join all private chat portals.
-        await asyncio.gather(*[self.intent.ensure_joined(portal.mxid)
-                               async for portal in p.Portal.get_all_by_receiver(self.gcid)
-                               if portal.mxid])
+        await asyncio.gather(
+            *[
+                self.intent.ensure_joined(portal.mxid)
+                async for portal in p.Portal.get_all_by_receiver(self.gcid)
+                if portal.mxid
+            ]
+        )
 
-    def intent_for(self, portal: 'p.Portal') -> IntentAPI:
-        if (portal.other_user_id == self.gcid
-            or (portal.backfill_lock.locked
-                and self.config["bridge.backfill.invite_own_puppet"])):
+    def intent_for(self, portal: p.Portal) -> IntentAPI:
+        if portal.other_user_id == self.gcid or (
+            portal.backfill_lock.locked and self.config["bridge.backfill.invite_own_puppet"]
+        ):
             return self.default_mxid_intent
         return self.intent
 
     # region User info updating
 
-    async def update_info(self, source: 'u.User', info: Optional[googlechat.User] = None,
-                          update_avatar: bool = True) -> None:
+    async def update_info(
+        self, source: u.User, info: googlechat.User | None = None, update_avatar: bool = True
+    ) -> None:
         if info is None:
             info = (await source.get_users([self.gcid]))[0]
         changed = await self._update_name(info)
@@ -113,7 +147,7 @@ class Puppet(DBPuppet, BasePuppet):
             await self.save()
 
     @classmethod
-    def get_name_from_info(cls, info: googlechat.User) -> Optional[str]:
+    def get_name_from_info(cls, info: googlechat.User) -> str | None:
         full = info.name
         first = info.first_name
         last = info.last_name
@@ -131,9 +165,10 @@ class Puppet(DBPuppet, BasePuppet):
             first = full
             # Try to find the actual first name if possible
             if last and first.endswith(last):
-                first = first[:-len(last)].rstrip()
-        return cls.config["bridge.displayname_template"].format(first_name=first, full_name=full,
-                                                                last_name=last, email=info.email)
+                first = first[: -len(last)].rstrip()
+        return cls.config["bridge.displayname_template"].format(
+            first_name=first, full_name=full, last_name=last, email=info.email
+        )
 
     async def _update_name(self, info: googlechat.User) -> bool:
         name = self.get_name_from_info(info)
@@ -156,7 +191,8 @@ class Puppet(DBPuppet, BasePuppet):
             if photo_url != self.photo_id:
                 if photo_url:
                     self.photo_mxc = await self._reupload_gc_photo(
-                        photo_url, self.default_mxid_intent)
+                        photo_url, self.default_mxid_intent
+                    )
                 else:
                     self.photo_mxc = ContentURI("")
                 self.photo_id = photo_url
@@ -170,8 +206,9 @@ class Puppet(DBPuppet, BasePuppet):
         return False
 
     @staticmethod
-    async def _reupload_gc_photo(url: str, intent: IntentAPI, filename: Optional[str] = None
-                                 ) -> ContentURI:
+    async def _reupload_gc_photo(
+        url: str, intent: IntentAPI, filename: str | None = None
+    ) -> ContentURI:
         async with aiohttp.ClientSession() as session:
             resp = await session.get(URL(url).with_scheme("https"))
             data = await resp.read()
@@ -183,7 +220,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     @async_getter_lock
-    async def get_by_gcid(cls, gcid: str, create: bool = True) -> Optional['Puppet']:
+    async def get_by_gcid(cls, gcid: str, create: bool = True) -> Puppet | None:
         if not gcid:
             return None
         try:
@@ -206,7 +243,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     @async_getter_lock
-    async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Optional['Puppet']:
+    async def get_by_mxid(cls, mxid: UserID, create: bool = True) -> Puppet | None:
         gcid = cls.get_id_from_mxid(mxid)
         if gcid:
             return await cls.get_by_gcid(gcid, create)
@@ -215,7 +252,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     @async_getter_lock
-    async def get_by_custom_mxid(cls, mxid: UserID) -> Optional['Puppet']:
+    async def get_by_custom_mxid(cls, mxid: UserID) -> Puppet | None:
         try:
             return cls.by_custom_mxid[mxid]
         except KeyError:
@@ -229,7 +266,7 @@ class Puppet(DBPuppet, BasePuppet):
         return None
 
     @classmethod
-    def get_id_from_mxid(cls, mxid: UserID) -> Optional[str]:
+    def get_id_from_mxid(cls, mxid: UserID) -> str | None:
         if mxid == cls.az.bot_mxid:
             return None
         return cls.mxid_template.parse(mxid)
@@ -239,7 +276,7 @@ class Puppet(DBPuppet, BasePuppet):
         return UserID(cls.mxid_template.format_full(gcid))
 
     @classmethod
-    async def get_all_with_custom_mxid(cls) -> AsyncIterable['Puppet']:
+    async def get_all_with_custom_mxid(cls) -> AsyncIterable[Puppet]:
         puppets = await super().get_all_with_custom_mxid()
         puppet: cls
         for puppet in puppets:

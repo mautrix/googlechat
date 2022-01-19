@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,20 +13,22 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Any
+from __future__ import annotations
+
+from typing import Any
 
 from mautrix.bridge import Bridge
 from mautrix.types import RoomID, UserID
 
+from . import commands as _
 from .config import Config
 from .db import init as init_db, upgrade_table
-from .user import User
+from .matrix import MatrixHandler
 from .portal import Portal
 from .puppet import Puppet
-from .matrix import MatrixHandler
+from .user import User
+from .version import linkified_version, version
 from .web import GoogleChatAuthServer
-from .version import version, linkified_version
-from . import commands as _
 
 
 class GoogleChatBridge(Bridge):
@@ -51,8 +53,11 @@ class GoogleChatBridge(Bridge):
 
     def prepare_bridge(self) -> None:
         super().prepare_bridge()
-        self.auth_server = GoogleChatAuthServer(self.config["bridge.web.auth.shared_secret"],
-                                                self.config["hangouts.device_name"], self.loop)
+        self.auth_server = GoogleChatAuthServer(
+            self.config["bridge.web.auth.shared_secret"],
+            self.config["hangouts.device_name"],
+            self.loop,
+        )
         self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
 
     async def resend_bridge_info(self) -> None:
@@ -95,7 +100,7 @@ class GoogleChatBridge(Bridge):
     async def count_logged_in_users(self) -> int:
         return len([user for user in User.by_mxid.values() if user.gcid])
 
-    async def manhole_global_namespace(self, user_id: UserID) -> Dict[str, Any]:
+    async def manhole_global_namespace(self, user_id: UserID) -> dict[str, Any]:
         return {
             **await super().manhole_global_namespace(user_id),
             "User": User,

@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -21,8 +21,12 @@ from .typehint import CommandEvent
 SECTION_AUTH = HelpSection("Authentication", 10, "")
 
 
-@command_handler(needs_auth=False, management_only=True,
-                 help_section=SECTION_AUTH, help_text="Log in to Google Chat")
+@command_handler(
+    needs_auth=False,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text="Log in to Google Chat",
+)
 async def login(evt: CommandEvent) -> None:
     token = evt.bridge.auth_server.make_token(evt.sender.mxid)
     public_prefix = evt.config["bridge.web.auth.public"]
@@ -30,8 +34,12 @@ async def login(evt: CommandEvent) -> None:
     await evt.reply(f"Please visit the [login portal]({url}) to log in.")
 
 
-@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH,
-                 help_text="Log out from Google Chat")
+@command_handler(
+    needs_auth=True,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text="Log out from Google Chat",
+)
 async def logout(evt: CommandEvent) -> None:
     puppet = await pu.Puppet.get_by_gcid(evt.sender.gcid)
     await evt.sender.logout()
@@ -40,8 +48,12 @@ async def logout(evt: CommandEvent) -> None:
     await evt.reply("Successfully logged out")
 
 
-@command_handler(needs_auth=True, management_only=True, help_section=SECTION_AUTH,
-                 help_text="Check if you're logged into Google Chat")
+@command_handler(
+    needs_auth=True,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text="Check if you're logged into Google Chat",
+)
 async def ping(evt: CommandEvent) -> None:
     try:
         self_info = await evt.sender.get_self()
@@ -55,8 +67,12 @@ async def ping(evt: CommandEvent) -> None:
     await evt.reply(f"You're logged in as {name}{email} ({id})", allow_html=False)
 
 
-@command_handler(needs_auth=False, management_only=True, help_section=SECTION_AUTH,
-                 help_text="Mark this room as your bridge notice room")
+@command_handler(
+    needs_auth=False,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text="Mark this room as your bridge notice room",
+)
 async def set_notice_room(evt: CommandEvent) -> None:
     evt.sender.notice_room = evt.room_id
     await evt.sender.save()

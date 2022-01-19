@@ -1,6 +1,6 @@
-import subprocess
-import shutil
 import os
+import shutil
+import subprocess
 
 from . import __version__
 
@@ -39,8 +39,7 @@ else:
     git_revision_url = None
     git_tag = None
 
-git_tag_url = (f"https://github.com/mautrix/googlechat/releases/tag/{git_tag}"
-               if git_tag else None)
+git_tag_url = f"https://github.com/mautrix/googlechat/releases/tag/{git_tag}" if git_tag else None
 
 if git_tag and __version__ == git_tag[1:].replace("-", ""):
     version = __version__

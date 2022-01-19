@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,19 +13,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import List, Optional, Tuple
+from __future__ import annotations
+
 from html import escape
 
 from maugclib import googlechat_pb2 as googlechat
+from mautrix.types import Format, MessageType, TextMessageEventContent
 
-from mautrix.types import TextMessageEventContent, Format, MessageType
-
-from .. import user as u, puppet as pu
-from .util import add_surrogate, del_surrogate, FormatError
+from .. import puppet as pu, user as u
+from .util import FormatError, add_surrogate, del_surrogate
 
 
-async def googlechat_to_matrix(text: str, annotations: Optional[List[googlechat.Annotation]]
-                               ) -> TextMessageEventContent:
+async def googlechat_to_matrix(
+    text: str, annotations: list[googlechat.Annotation] | None
+) -> TextMessageEventContent:
     content = TextMessageEventContent(
         msgtype=MessageType.TEXT,
         body=add_surrogate(text),
@@ -42,15 +43,16 @@ async def googlechat_to_matrix(text: str, annotations: Optional[List[googlechat.
     return content
 
 
-async def _gc_annotations_to_matrix_catch(text: str, annotations: List[googlechat.Annotation]
-                                          ) -> str:
+async def _gc_annotations_to_matrix_catch(
+    text: str, annotations: list[googlechat.Annotation]
+) -> str:
     try:
         return await _gc_annotations_to_matrix(text, annotations)
     except Exception as e:
         raise FormatError("Failed to convert Google Chat format") from e
 
 
-def _annotation_key(item: googlechat.Annotation) -> Tuple[int, int, int]:
+def _annotation_key(item: googlechat.Annotation) -> tuple[int, int, int]:
     # Lowest offset sorts first
     offset_key = item.start_index
     type_key = 2
@@ -65,8 +67,9 @@ def _annotation_key(item: googlechat.Annotation) -> Tuple[int, int, int]:
 
 
 # Make sure annotations nested inside other annotations end before the next annotation starts
-def _normalize_annotations(annotations: List[googlechat.Annotation]
-                           ) -> List[googlechat.Annotation]:
+def _normalize_annotations(
+    annotations: list[googlechat.Annotation],
+) -> list[googlechat.Annotation]:
     i = 0
     insert_annotations = []
     # We want to sort so lowest index comes first and highest length with same index comes first
@@ -74,7 +77,7 @@ def _normalize_annotations(annotations: List[googlechat.Annotation]
     while i < len(annotations):
         cur = annotations[i]
         end = cur.start_index + cur.length
-        for i2, annotation in enumerate(annotations[i + 1:]):
+        for i2, annotation in enumerate(annotations[i + 1 :]):
             if annotation.start_index >= end:
                 # Annotation is after current one, no need to modify it,
                 # just insert the split-up annotations here and move on to the next one.
@@ -96,8 +99,9 @@ def _normalize_annotations(annotations: List[googlechat.Annotation]
     return annotations
 
 
-async def _gc_annotations_to_matrix(text: str, annotations: List[googlechat.Annotation],
-                                    offset: int = 0, length: int = None) -> str:
+async def _gc_annotations_to_matrix(
+    text: str, annotations: list[googlechat.Annotation], offset: int = 0, length: int = None
+) -> str:
     if not annotations:
         return escape(text)
     if length is None:
@@ -121,8 +125,8 @@ async def _gc_annotations_to_matrix(text: str, annotations: List[googlechat.Anno
 
         skip_entity = False
         entity_text = await _gc_annotations_to_matrix(
-            text=text[relative_offset:relative_offset + annotation.length],
-            annotations=annotations[i + 1:],
+            text=text[relative_offset : relative_offset + annotation.length],
+            annotations=annotations[i + 1 :],
             offset=annotation.start_index,
             length=annotation.length,
         )
@@ -146,7 +150,7 @@ async def _gc_annotations_to_matrix(text: str, annotations: List[googlechat.Anno
                 html.append(f"<pre><code>{entity_text}</code></pre>")
             elif type == googlechat.FormatMetadata.FONT_COLOR:
                 rgb_int = annotation.format_metadata.font_color
-                color = (rgb_int + 2 ** 31) & 0xffffff
+                color = (rgb_int + 2 ** 31) & 0xFFFFFF
                 html.append(f"<font color='#{color:x}'>{entity_text}</font>")
             elif type == googlechat.FormatMetadata.BULLETED_LIST_ITEM:
                 html.append(f"<li>{entity_text}</li>")

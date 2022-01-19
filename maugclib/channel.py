@@ -403,7 +403,7 @@ class Channel:
                             raise ChannelSessionError("SID became invalid")
                     LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
                     raise exceptions.NetworkError(
-                        "Request returned unexpected status: " f"{res.status}: {res.reason}"
+                        f"Request returned unexpected status: {res.status}: {res.reason}"
                     )
 
                 initial_response = res.headers.get("X-HTTP-Initial-Response", None)

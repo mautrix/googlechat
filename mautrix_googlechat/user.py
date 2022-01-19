@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,64 +13,81 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import (Any, Dict, Optional, List, Awaitable, Union, Callable, AsyncIterable, cast,
-                    Tuple, Set, Iterable, TYPE_CHECKING)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, AsyncIterable, Awaitable, Callable, Iterable, cast
 import asyncio
 import time
 
-import maugclib.parsers
-from maugclib import (googlechat_pb2 as googlechat, Client, RefreshTokenCache, TokenManager,
-                      GoogleAuthError, ChannelLifetimeExpired)
-
-from mautrix.types import UserID, RoomID, MessageType
+from maugclib import (
+    ChannelLifetimeExpired,
+    Client,
+    GoogleAuthError,
+    RefreshTokenCache,
+    TokenManager,
+    googlechat_pb2 as googlechat,
+)
 from mautrix.bridge import BaseUser, async_getter_lock
+from mautrix.types import MessageType, RoomID, UserID
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Histogram, async_time
+import maugclib.parsers
 
+from . import portal as po, puppet as pu
 from .config import Config
 from .db import User as DBUser
-from . import puppet as pu, portal as po
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
 
-METRIC_SYNC = Histogram('bridge_sync', 'calls to sync')
-METRIC_STREAM_EVENT = Histogram('bridge_on_stream_event', 'calls to on_stream_event',
-                                ['event_type'])
-METRIC_LOGGED_IN = Gauge('bridge_logged_in', 'Number of users logged into the bridge')
-METRIC_CONNECTED = Gauge('bridge_connected', 'Number of users connected to Google Chat')
+METRIC_SYNC = Histogram("bridge_sync", "calls to sync")
+METRIC_STREAM_EVENT = Histogram(
+    "bridge_on_stream_event", "calls to on_stream_event", ["event_type"]
+)
+METRIC_LOGGED_IN = Gauge("bridge_logged_in", "Number of users logged into the bridge")
+METRIC_CONNECTED = Gauge("bridge_connected", "Number of users connected to Google Chat")
 
 
 class User(DBUser, BaseUser):
-    by_mxid: Dict[UserID, 'User'] = {}
-    by_gcid: Dict[str, 'User'] = {}
+    by_mxid: dict[UserID, User] = {}
+    by_gcid: dict[str, User] = {}
     config: Config
 
-    client: Optional[Client]
+    client: Client | None
     is_admin: bool
-    _db_instance: Optional[DBUser]
+    _db_instance: DBUser | None
 
     _notice_room_lock: asyncio.Lock
     _intentional_disconnect: bool
-    name: Optional[str]
-    email: Optional[str]
+    name: str | None
+    email: str | None
     name_future: asyncio.Future
     connected: bool
     _skip_backoff: bool
     _skip_on_connect: bool
     _prev_sync: float
-    periodic_sync_task: Optional[asyncio.Task]
+    periodic_sync_task: asyncio.Task | None
 
-    groups: Dict[str, googlechat.GetGroupResponse]
+    groups: dict[str, googlechat.GetGroupResponse]
     groups_lock: asyncio.Lock
-    users: Dict[str, googlechat.User]
+    users: dict[str, googlechat.User]
     users_lock: asyncio.Lock
 
-    def __init__(self, mxid: UserID, gcid: Optional[str] = None, revision: Optional[int] = None,
-                 refresh_token: Optional[str] = None, notice_room: Optional[RoomID] = None,
-                 ) -> None:
-        super().__init__(mxid=mxid, gcid=gcid, refresh_token=refresh_token, revision=revision,
-                         notice_room=notice_room)
+    def __init__(
+        self,
+        mxid: UserID,
+        gcid: str | None = None,
+        revision: int | None = None,
+        refresh_token: str | None = None,
+        notice_room: RoomID | None = None,
+    ) -> None:
+        super().__init__(
+            mxid=mxid,
+            gcid=gcid,
+            refresh_token=refresh_token,
+            revision=revision,
+            notice_room=notice_room,
+        )
         BaseUser.__init__(self)
         self._notice_room_lock = asyncio.Lock()
         self.is_whitelisted, self.is_admin, self.level = self.config.get_permissions(mxid)
@@ -97,7 +114,7 @@ class User(DBUser, BaseUser):
             self.by_gcid[self.gcid] = self
 
     @classmethod
-    async def all_logged_in(cls) -> AsyncIterable['User']:
+    async def all_logged_in(cls) -> AsyncIterable[User]:
         users = await super().all_logged_in()
         user: cls
         for user in users:
@@ -109,7 +126,7 @@ class User(DBUser, BaseUser):
 
     @classmethod
     @async_getter_lock
-    async def get_by_mxid(cls, mxid: UserID, *, create: bool = True) -> Optional['User']:
+    async def get_by_mxid(cls, mxid: UserID, *, create: bool = True) -> User | None:
         if pu.Puppet.get_id_from_mxid(mxid) or mxid == cls.az.bot_mxid:
             return None
         try:
@@ -133,7 +150,7 @@ class User(DBUser, BaseUser):
 
     @classmethod
     @async_getter_lock
-    async def get_by_gcid(cls, gcid: str) -> Optional['User']:
+    async def get_by_gcid(cls, gcid: str) -> User | None:
         try:
             return cls.by_gcid[gcid]
         except KeyError:
@@ -175,8 +192,9 @@ class User(DBUser, BaseUser):
                 await self.save()
         return self.notice_room
 
-    async def send_bridge_notice(self, text: str, important: bool = False,
-                                 state_event: Optional[BridgeStateEvent] = None) -> None:
+    async def send_bridge_notice(
+        self, text: str, important: bool = False, state_event: BridgeStateEvent | None = None
+    ) -> None:
         if state_event:
             await self.push_bridge_state(state_event, message=text)
         if self.config["bridge.disable_bridge_notices"]:
@@ -193,7 +211,7 @@ class User(DBUser, BaseUser):
         return self.client and self.connected
 
     @classmethod
-    def init_cls(cls, bridge: 'GoogleChatBridge') -> AsyncIterable[Awaitable[None]]:
+    def init_cls(cls, bridge: "GoogleChatBridge") -> AsyncIterable[Awaitable[None]]:
         cls.bridge = bridge
         cls.az = bridge.az
         cls.config = bridge.config
@@ -223,8 +241,9 @@ class User(DBUser, BaseUser):
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)
 
-    def _in_background(self, method: Callable[[Any], Awaitable[None]]
-                       ) -> Callable[[Any], Awaitable[None]]:
+    def _in_background(
+        self, method: Callable[[Any], Awaitable[None]]
+    ) -> Callable[[Any], Awaitable[None]]:
         async def try_proxy(*args, **kwargs) -> None:
             try:
                 await method(*args, **kwargs)
@@ -272,8 +291,11 @@ class User(DBUser, BaseUser):
                 backoff = int(backoff * 1.5)
                 if backoff > 60:
                     state_event = BridgeStateEvent.UNKNOWN_ERROR
-            await self.send_bridge_notice(error_msg, state_event=state_event,
-                                          important=state_event == BridgeStateEvent.UNKNOWN_ERROR)
+            await self.send_bridge_notice(
+                error_msg,
+                state_event=state_event,
+                important=state_event == BridgeStateEvent.UNKNOWN_ERROR,
+            )
             last_disconnection = time.time()
             self.log.debug(f"Reconnecting in {backoff} seconds")
             await asyncio.sleep(backoff)
@@ -317,40 +339,46 @@ class User(DBUser, BaseUser):
     async def get_self(self) -> googlechat.User:
         if not self.gcid:
             info = await self.client.proto_get_self_user_status(
-                googlechat.GetSelfUserStatusRequest(
-                    request_header=self.client.gc_request_header
-                )
+                googlechat.GetSelfUserStatusRequest(request_header=self.client.gc_request_header)
             )
             self.gcid = info.user_status.user_id.id
             self.by_gcid[self.gcid] = self
 
-        resp = await self.client.proto_get_members(googlechat.GetMembersRequest(
-            request_header=self.client.gc_request_header,
-            member_ids=[
-                googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
-            ]
-        ))
+        resp = await self.client.proto_get_members(
+            googlechat.GetMembersRequest(
+                request_header=self.client.gc_request_header,
+                member_ids=[
+                    googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
+                ],
+            )
+        )
         user: googlechat.User = resp.members[0].user
         self.users[user.user_id.id] = user
         return user
 
-    async def get_users(self, ids: Iterable[str]) -> List[googlechat.User]:
+    async def get_users(self, ids: Iterable[str]) -> list[googlechat.User]:
         async with self.users_lock:
-            req_ids = [googlechat.MemberId(user_id=googlechat.UserId(id=user_id))
-                       for user_id in ids if user_id not in self.users]
+            req_ids = [
+                googlechat.MemberId(user_id=googlechat.UserId(id=user_id))
+                for user_id in ids
+                if user_id not in self.users
+            ]
             if req_ids:
                 self.log.debug(f"Fetching info of users {[user.user_id.id for user in req_ids]}")
-                resp = await self.client.proto_get_members(googlechat.GetMembersRequest(
-                    request_header=self.client.gc_request_header,
-                    member_ids=req_ids,
-                ))
+                resp = await self.client.proto_get_members(
+                    googlechat.GetMembersRequest(
+                        request_header=self.client.gc_request_header,
+                        member_ids=req_ids,
+                    )
+                )
                 member: googlechat.Member
                 for member in resp.members:
                     self.users[member.user.user_id.id] = member.user
         return [self.users[user_id] for user_id in ids]
 
-    async def get_group(self, id: Union[googlechat.GroupId, str], revision: int
-                        ) -> googlechat.GetGroupResponse:
+    async def get_group(
+        self, id: googlechat.GroupId | str, revision: int
+    ) -> googlechat.GetGroupResponse:
         if isinstance(id, str):
             group_id = maugclib.parsers.group_id_from_id(id)
             conv_id = id
@@ -375,14 +403,16 @@ class User(DBUser, BaseUser):
                 if group.group_revision.timestamp >= revision:
                     return group
             self.log.debug(f"Fetching info of chat {conv_id}")
-            resp = await self.client.proto_get_group(googlechat.GetGroupRequest(
-                request_header=self.client.gc_request_header,
-                group_id=group_id,
-                fetch_options=[
-                    googlechat.GetGroupRequest.MEMBERS,
-                    googlechat.GetGroupRequest.INCLUDE_DYNAMIC_GROUP_NAME,
-                ],
-            ))
+            resp = await self.client.proto_get_group(
+                googlechat.GetGroupRequest(
+                    request_header=self.client.gc_request_header,
+                    group_id=group_id,
+                    fetch_options=[
+                        googlechat.GetGroupRequest.MEMBERS,
+                        googlechat.GetGroupRequest.INCLUDE_DYNAMIC_GROUP_NAME,
+                    ],
+                )
+            )
             self.groups[conv_id] = resp
         return resp
 
@@ -427,8 +457,9 @@ class User(DBUser, BaseUser):
     async def on_disconnect(self) -> None:
         self.connected = False
         await self.send_bridge_notice("Disconnected from Google Chat")
-        await self.push_bridge_state(BridgeStateEvent.TRANSIENT_DISCONNECT,
-                                     error="googlechat-disconnected")
+        await self.push_bridge_state(
+            BridgeStateEvent.TRANSIENT_DISCONNECT, error="googlechat-disconnected"
+        )
 
     def reconnect(self) -> None:
         self._skip_backoff = True
@@ -455,7 +486,7 @@ class User(DBUser, BaseUser):
                 self.log.exception("Exception in periodic sync")
 
     @async_time(METRIC_SYNC)
-    async def sync(self, limit: Optional[int] = None) -> int:
+    async def sync(self, limit: int | None = None) -> int:
         self._prev_sync = time.monotonic()
         self.log.debug("Fetching first page of the world")
         req = googlechat.PaginatedWorldRequest(
@@ -468,11 +499,11 @@ class User(DBUser, BaseUser):
         if limit:
             req.world_section_requests.append(googlechat.WorldSectionRequest(page_size=limit))
         resp = await self.client.proto_paginated_world(req)
-        items: List[googlechat.WorldItemLite] = list(resp.world_items)
+        items: list[googlechat.WorldItemLite] = list(resp.world_items)
         items.sort(key=lambda item: item.sort_timestamp, reverse=True)
         max_sync = self.config["bridge.initial_chat_sync"]
-        portals_to_sync: List[Tuple[po.Portal, googlechat.WorldItemLite]] = []
-        prefetch_users: Set[str] = set()
+        portals_to_sync: list[tuple[po.Portal, googlechat.WorldItemLite]] = []
+        prefetch_users: set[str] = set()
         for index, item in enumerate(items):
             conv_id = maugclib.parsers.id_from_group_id(item.group_id)
             if (
@@ -510,7 +541,7 @@ class User(DBUser, BaseUser):
         await self.update_direct_chats()
         return backfilled_count
 
-    async def get_direct_chats(self) -> Dict[UserID, List[RoomID]]:
+    async def get_direct_chats(self) -> dict[UserID, list[RoomID]]:
         return {
             pu.Puppet.get_mxid_from_id(portal.other_user_id): [portal.mxid]
             async for portal in po.Portal.get_all_by_receiver(self.gcid)
@@ -536,11 +567,13 @@ class User(DBUser, BaseUser):
             await portal.set_revision(evt.group_revision.timestamp)
 
     async def mark_read(self, conversation_id: str, timestamp: int) -> None:
-        await self.client.proto_mark_group_read_state(googlechat.MarkGroupReadstateRequest(
-            request_header=self.client.gc_request_header,
-            id=maugclib.parsers.group_id_from_id(conversation_id),
-            last_read_time=int((timestamp or (time.time() * 1000)) * 1000),
-        ))
+        await self.client.proto_mark_group_read_state(
+            googlechat.MarkGroupReadstateRequest(
+                request_header=self.client.gc_request_header,
+                id=maugclib.parsers.group_id_from_id(conversation_id),
+                last_read_time=int((timestamp or (time.time() * 1000)) * 1000),
+            )
+        )
 
 
 class UserRefreshTokenCache(RefreshTokenCache):

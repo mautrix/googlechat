@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from asyncpg import Connection
+
 from . import upgrade_table
 
 
@@ -21,27 +22,31 @@ from . import upgrade_table
 async def upgrade_v2(conn: Connection, dialect: str) -> None:
     if dialect != "sqlite":
         # This change was backported to the v1 db schema before SQLite support was added
-        await conn.execute("ALTER TABLE message"
-                           "  DROP CONSTRAINT message_pkey,"
-                           "  ADD PRIMARY KEY (gcid, gc_chat, gc_receiver, index)")
+        await conn.execute(
+            "ALTER TABLE message"
+            "  DROP CONSTRAINT message_pkey,"
+            "  ADD PRIMARY KEY (gcid, gc_chat, gc_receiver, index)"
+        )
     await conn.execute("ALTER TABLE message ADD COLUMN msgtype TEXT")
     await conn.execute("ALTER TABLE message ADD COLUMN gc_sender TEXT")
-    await conn.execute("""CREATE TABLE reaction (
-        mxid         TEXT NOT NULL,
-        mx_room      TEXT NOT NULL,
-        emoji        TEXT,
-        gc_sender    TEXT,
-        gc_msgid     TEXT,
-        gc_chat      TEXT,
-        gc_receiver  TEXT,
-        timestamp    BIGINT NOT NULL,
-        _index       SMALLINT DEFAULT 0,
-        PRIMARY KEY (emoji, gc_sender, gc_msgid, gc_chat, gc_receiver),
-        FOREIGN KEY (gc_chat, gc_receiver)
-            REFERENCES portal(gcid, gc_receiver)
-            ON UPDATE CASCADE ON DELETE CASCADE,
-        FOREIGN KEY (gc_msgid, gc_chat, gc_receiver, _index)
-            REFERENCES message(gcid, gc_chat, gc_receiver, index)
-            ON UPDATE CASCADE ON DELETE CASCADE,
-        UNIQUE (mxid, mx_room)
-    )""")
+    await conn.execute(
+        """CREATE TABLE reaction (
+            mxid         TEXT NOT NULL,
+            mx_room      TEXT NOT NULL,
+            emoji        TEXT,
+            gc_sender    TEXT,
+            gc_msgid     TEXT,
+            gc_chat      TEXT,
+            gc_receiver  TEXT,
+            timestamp    BIGINT NOT NULL,
+            _index       SMALLINT DEFAULT 0,
+            PRIMARY KEY (emoji, gc_sender, gc_msgid, gc_chat, gc_receiver),
+            FOREIGN KEY (gc_chat, gc_receiver)
+                REFERENCES portal(gcid, gc_receiver)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (gc_msgid, gc_chat, gc_receiver, _index)
+                REFERENCES message(gcid, gc_chat, gc_receiver, index)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            UNIQUE (mxid, mx_room)
+        )"""
+    )

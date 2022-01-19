@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,22 +13,18 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import List, Tuple, Optional
+from __future__ import annotations
 
-from mautrix.types import UserID, RoomID
+from maugclib import googlechat_pb2 as googlechat
+from mautrix.types import RoomID, UserID
 from mautrix.util.formatter import MatrixParser as BaseMatrixParser, RecursionContext
 from mautrix.util.formatter.html_reader import HTMLNode
 
-from maugclib import googlechat_pb2 as googlechat
-
 from ... import puppet as pu
-from .gc_message import GCMessage, GCEntityType
+from .gc_message import GCEntityType, GCMessage
 
 
-ParsedMessage = Tuple[str, Optional[List[googlechat.Annotation]]]
-
-
-async def parse_html(input_html: str) -> ParsedMessage:
+async def parse_html(input_html: str) -> tuple[str, list[googlechat.Annotation] | None]:
     msg = await MatrixParser().parse(input_html)
     return msg.text, msg.googlechat_entities
 
@@ -43,7 +39,7 @@ class MatrixParser(BaseMatrixParser[GCMessage]):
         except ValueError:
             return msg
         # I have no idea what's happening here but it works
-        rgb_int = (rgb_int | 0x7f000000) - 2**31
+        rgb_int = (rgb_int | 0x7F000000) - 2 ** 31
         return msg.format(GCEntityType.COLOR, font_color=rgb_int)
 
     async def user_pill_to_fstring(self, msg: GCMessage, user_id: UserID) -> GCMessage:
@@ -52,7 +48,7 @@ class MatrixParser(BaseMatrixParser[GCMessage]):
         gcid = pu.Puppet.get_id_from_mxid(user_id)
         return msg.format(GCEntityType.USER_MENTION, user_id=gcid)
 
-    async def room_pill_to_fstring(self, msg: GCMessage, room_id: RoomID) -> Optional[GCMessage]:
+    async def room_pill_to_fstring(self, msg: GCMessage, room_id: RoomID) -> GCMessage | None:
         # TODO are room mentions supported at all?
         return None
 

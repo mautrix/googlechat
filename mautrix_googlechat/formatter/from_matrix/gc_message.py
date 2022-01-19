@@ -13,11 +13,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Optional, Union, Any, List, Dict
+from typing import Any, Dict, List, Optional, Union
 from enum import Enum, auto
 
 from maugclib import googlechat_pb2 as googlechat
-
 from mautrix.util.formatter import EntityString, SemiAbstractEntity
 
 
@@ -46,6 +45,7 @@ class GCUserMentionType(Enum):
 
 class GCEntityType(Enum):
     """EntityType is a Matrix formatting entity type."""
+
     BOLD = GCFormatType.BOLD
     ITALIC = GCFormatType.ITALIC
     STRIKETHROUGH = GCFormatType.STRIKE
@@ -67,8 +67,13 @@ class GCEntity(SemiAbstractEntity):
     internal: googlechat.Annotation
     type: GCEntityType
 
-    def __init__(self, type: Union[GCEntityType, GCFormatType, GCUserMentionType],
-                 offset: int, length: int, extra_info: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        type: Union[GCEntityType, GCFormatType, GCUserMentionType],
+        offset: int,
+        length: int,
+        extra_info: Dict[str, Any],
+    ) -> None:
         if isinstance(type, GCEntityType):
             gc_type = type.value
             self.type = type
@@ -111,7 +116,7 @@ class GCEntity(SemiAbstractEntity):
         else:
             raise ValueError(f"Can't create Entity with unknown entity type {type}")
 
-    def copy(self) -> Optional['GCEntity']:
+    def copy(self) -> Optional["GCEntity"]:
         extra_info = {}
         if self.type == GCEntityType.COLOR:
             extra_info["font_color"] = self.internal.format_metadata.font_color
@@ -147,5 +152,8 @@ class GCMessage(EntityString[GCEntity, GCEntityType]):
 
     @property
     def googlechat_entities(self) -> List[googlechat.Annotation]:
-        return [entity.internal for entity in self.entities
-                if entity.internal.type != googlechat.ANNOTATION_TYPE_UNKNOWN]
+        return [
+            entity.internal
+            for entity in self.entities
+            if entity.internal.type != googlechat.ANNOTATION_TYPE_UNKNOWN
+        ]

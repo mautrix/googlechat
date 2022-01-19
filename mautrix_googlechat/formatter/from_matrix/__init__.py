@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2021 Tulir Asokan
+# Copyright (C) 2022 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,12 +13,18 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from mautrix.types import TextMessageEventContent, Format
-from ..util import add_surrogate, del_surrogate, FormatError
-from .parser import ParsedMessage, parse_html
+from __future__ import annotations
+
+from maugclib import googlechat_pb2 as googlechat
+from mautrix.types import Format, TextMessageEventContent
+
+from ..util import FormatError, add_surrogate, del_surrogate
+from .parser import parse_html
 
 
-async def matrix_to_googlechat(content: TextMessageEventContent) -> ParsedMessage:
+async def matrix_to_googlechat(
+    content: TextMessageEventContent,
+) -> tuple[str, list[googlechat.Annotation] | None]:
     if content.format != Format.HTML or not content.formatted_body:
         return content.body, None
     try:
@@ -26,5 +32,6 @@ async def matrix_to_googlechat(content: TextMessageEventContent) -> ParsedMessag
         return del_surrogate(text), entities
     except Exception as e:
         raise FormatError(f"Failed to convert Matrix format") from e
+
 
 __all__ = ["matrix_to_googlechat"]
