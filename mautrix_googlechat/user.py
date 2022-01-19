@@ -165,6 +165,11 @@ class User(DBUser, BaseUser):
 
     # endregion
 
+    async def get_puppet(self) -> pu.Puppet | None:
+        if not self.gcid:
+            return None
+        return await pu.Puppet.get_by_gcid(self.gcid)
+
     async def fill_bridge_state(self, state: BridgeState) -> None:
         await super().fill_bridge_state(state)
         state.remote_id = str(self.gcid)
