@@ -76,6 +76,7 @@ StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STAT
 
 SendResponse = NamedTuple("SendResponse", gcid=str, timestamp=int)
 ChatInfo = Union[googlechat.WorldItemLite, googlechat.GetGroupResponse]
+DRIVE_OPEN_URL = URL("https://drive.google.com/open")
 
 
 class AttachmentURL(NamedTuple):
@@ -1196,6 +1197,13 @@ class Portal(DBPortal, BasePortal):
             elif annotation.HasField("video_call_metadata"):
                 au = AttachmentURL(
                     url=URL(annotation.video_call_metadata.meeting_space.meeting_url),
+                    send_as_text=True,
+                    name=None,
+                    mime=None,
+                )
+            elif annotation.HasField("drive_metadata"):
+                au = AttachmentURL(
+                    url=DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id}),
                     send_as_text=True,
                     name=None,
                     mime=None,
