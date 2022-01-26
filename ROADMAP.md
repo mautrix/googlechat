@@ -28,11 +28,11 @@
 * Google Chat → Matrix
   * [ ] Message content
     * [x] Text
-    * [ ] Media
-      * [ ] Files
-      * [ ] Videos
+    * [x] Media
+      * [x] Files
+      * [x] Videos
       * [x] Images
-      * [ ] Locations
+      * [x] Google Drive file links
     * [x] Formatting
     * [x] Threads (as replies)
   * [x] Message deletions
