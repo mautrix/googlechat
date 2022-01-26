@@ -14,6 +14,7 @@ import random
 
 from google.protobuf import message as proto
 from yarl import URL
+import aiohttp
 
 from . import auth, channel, event, exceptions, googlechat_pb2, http_utils, parsers
 
@@ -168,18 +169,44 @@ class Client:
         """
         if isinstance(url, str):
             url = URL(url)
-        async with self._session.fetch_raw_ctx("GET", url) as resp:
-            resp.raise_for_status()
-            try:
-                _, params = cgi.parse_header(resp.headers["Content-Disposition"])
-                filename = params.get("filename") or url.path.split("/")[-1]
-            except KeyError:
-                filename = url.path.split("/")[-1]
-            mime = resp.headers["Content-Type"]
-            if 0 < max_size < int(resp.headers["Content-Length"]):
-                raise exceptions.FileTooLargeError("Image size larger than maximum")
-            data = await resp.read()
-            return data, mime, filename
+        resp: aiohttp.ClientResponse
+        sess: aiohttp.ClientSession | None = None
+        depth = 0
+        try:
+            # Usually there are 4 redirects for files and 1 for images
+            while depth < 10:
+                depth += 1
+                if url.host.endswith(".google.com"):
+                    logger.log(5, "Fetching %s with auth", url)
+                    req = self._session.fetch_raw_ctx("GET", url, allow_redirects=False)
+                else:
+                    if not sess:
+                        sess = aiohttp.ClientSession()
+                    logger.log(5, "Fetching %s without auth", url)
+                    req = sess.get(url, allow_redirects=False)
+
+                async with req as resp:
+                    # Follow redirects manually in order to re-add authorization headers
+                    # when redirected from googleusercontent.com back to chat.google.com
+                    if resp.status in (301, 302, 307, 308):
+                        url = URL(resp.headers["Location"])
+                        logger.log(5, "Redirected to %s", url)
+                        continue
+
+                    resp.raise_for_status()
+                    try:
+                        _, params = cgi.parse_header(resp.headers["Content-Disposition"])
+                        filename = params.get("filename") or url.path.split("/")[-1]
+                    except KeyError:
+                        filename = url.path.split("/")[-1]
+                    mime = resp.headers["Content-Type"]
+                    if 0 < max_size < int(resp.headers["Content-Length"]):
+                        raise exceptions.FileTooLargeError("Image size larger than maximum")
+                    data = await resp.read()
+                    return data, mime, filename
+        finally:
+            if sess:
+                await sess.close()
 
     async def upload_file(
         self,

@@ -1158,9 +1158,14 @@ class Portal(DBPortal, BasePortal):
         attachment_urls = []
         for annotation in annotations:
             if annotation.HasField("upload_metadata"):
+                url_type = (
+                    "FIFE_URL"
+                    if annotation.upload_metadata.content_type.startswith("image/")
+                    else "DOWNLOAD_URL"
+                )
                 url = URL("https://chat.google.com/api/get_attachment_url").with_query(
                     {
-                        "url_type": "FIFE_URL",
+                        "url_type": url_type,
                         "attachment_token": annotation.upload_metadata.attachment_token,
                     }
                 )

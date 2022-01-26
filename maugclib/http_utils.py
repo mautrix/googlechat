@@ -7,7 +7,6 @@ from http.cookies import Morsel
 import asyncio
 import collections
 import logging
-import urllib.parse
 
 from yarl import URL
 import aiohttp
@@ -61,6 +60,7 @@ class Session:
         url: URL | str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool = True,
         data: Any = None,
     ) -> FetchResponse:
         """Make an HTTP request.
@@ -75,6 +75,7 @@ class Session:
             url (str): Request URL.
             params (dict): (optional) Request query string parameters.
             headers (dict): (optional) Request headers.
+            allow_redirects (bool): Should redirects be followed automatically?
             data: (str): (optional) Request body data.
 
         Returns:
@@ -93,7 +94,12 @@ class Session:
         for retry_num in range(MAX_RETRIES):
             try:
                 async with self.fetch_raw_ctx(
-                    method, url, params=params, headers=headers, data=data
+                    method,
+                    url,
+                    params=params,
+                    headers=headers,
+                    allow_redirects=allow_redirects,
+                    data=data,
                 ) as res:
                     async with async_timeout.timeout(REQUEST_TIMEOUT):
                         body = await res.read()
@@ -125,6 +131,7 @@ class Session:
         url: URL | str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool = True,
         data: Any = None,
     ) -> aiohttp.ClientResponse:
         """Make an HTTP request using aiohttp directly.
@@ -137,6 +144,7 @@ class Session:
             url (str): Request URL.
             params (dict): (optional) Request query string parameters.
             headers (dict): (optional) Request headers.
+            allow_redirects (bool): Should redirects be followed automatically?
             data: (str): (optional) Request body data.
 
         Returns:
@@ -145,7 +153,7 @@ class Session:
         Raises:
             See ``aiohttp.ClientSession.request``.
         """
-        resp = await self._fetch_raw(method, url, params, headers, data)
+        resp = await self._fetch_raw(method, url, params, headers, allow_redirects, data)
         return await resp
 
     @asynccontextmanager
@@ -155,6 +163,7 @@ class Session:
         url: URL | str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool = True,
         data: Any = None,
     ) -> AsyncIterator[aiohttp.ClientResponse, None]:
         """Make an HTTP request using aiohttp directly.
@@ -167,6 +176,7 @@ class Session:
             url (str): Request URL.
             params (dict): (optional) Request query string parameters.
             headers (dict): (optional) Request headers.
+            allow_redirects (bool): Should redirects be followed automatically?
             data: (str): (optional) Request body data.
 
         Yields:
@@ -175,7 +185,9 @@ class Session:
         Raises:
             See ``aiohttp.ClientSession.request``.
         """
-        async with await self._fetch_raw(method, url, params, headers, data) as resp:
+        async with await self._fetch_raw(
+            method, url, params, headers, allow_redirects, data
+        ) as resp:
             yield resp
 
     async def _fetch_raw(
@@ -184,11 +196,12 @@ class Session:
         url: URL | str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool = True,
         data: Any = None,
     ):
         # Ensure we don't accidentally send the authorization header to a
         # non-Google domain:
-        if not urllib.parse.urlparse(str(url)).hostname.endswith(".google.com"):
+        if not URL(url).host.endswith(".google.com"):
             raise Exception("expected google.com domain")
 
         headers = headers or {}
@@ -199,6 +212,7 @@ class Session:
             url,
             params=params,
             headers=headers,
+            allow_redirects=allow_redirects,
             data=data,
             proxy=self._proxy,
             ssl=False,
