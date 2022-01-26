@@ -75,8 +75,14 @@ StateBridge = EventType.find("m.bridge", EventType.Class.STATE)
 StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STATE)
 
 SendResponse = NamedTuple("SendResponse", gcid=str, timestamp=int)
-AttachmentURL = NamedTuple("AttachmentURL", url=URL, send_as_text=bool)
 ChatInfo = Union[googlechat.WorldItemLite, googlechat.GetGroupResponse]
+
+
+class AttachmentURL(NamedTuple):
+    url: URL
+    name: str | None
+    mime: str | None
+    send_as_text: bool
 
 
 class Portal(DBPortal, BasePortal):
@@ -1169,7 +1175,12 @@ class Portal(DBPortal, BasePortal):
                         "attachment_token": annotation.upload_metadata.attachment_token,
                     }
                 )
-                attachment_urls.append(AttachmentURL(url=url, send_as_text=False))
+                au = AttachmentURL(
+                    url=url,
+                    name=annotation.upload_metadata.content_name,
+                    mime=annotation.upload_metadata.content_type,
+                    send_as_text=False,
+                )
             elif annotation.HasField("url_metadata"):
                 if annotation.url_metadata.should_not_render:
                     continue
@@ -1179,14 +1190,19 @@ class Portal(DBPortal, BasePortal):
                     url = URL(annotation.url_metadata.url.url)
                 else:
                     continue
-                attachment_urls.append(AttachmentURL(url=url, send_as_text=False))
-            elif annotation.HasField("video_call_metadata"):
-                attachment_urls.append(
-                    AttachmentURL(
-                        url=URL(annotation.video_call_metadata.meeting_space.meeting_url),
-                        send_as_text=True,
-                    )
+                au = AttachmentURL(
+                    url=url, name=None, mime=annotation.url_metadata.mime_type, send_as_text=False
                 )
+            elif annotation.HasField("video_call_metadata"):
+                au = AttachmentURL(
+                    url=URL(annotation.video_call_metadata.meeting_space.meeting_url),
+                    send_as_text=True,
+                    name=None,
+                    mime=None,
+                )
+            else:
+                continue
+            attachment_urls.append(au)
         return attachment_urls
 
     async def process_googlechat_attachments(
@@ -1197,27 +1213,32 @@ class Portal(DBPortal, BasePortal):
         reply_to: DBMessage,
         ts: int,
     ) -> AsyncIterable[tuple[EventID, MessageType]]:
-        for url, send_as_text in urls:
-            if send_as_text:
-                content = TextMessageEventContent(msgtype=MessageType.TEXT, body=str(url))
+        for att in urls:
+            if att.send_as_text:
+                content = TextMessageEventContent(msgtype=MessageType.TEXT, body=str(att.url))
                 if reply_to:
                     content.set_reply(reply_to.mxid)
                 event_id = await self._send_message(intent, content, timestamp=ts)
                 yield event_id, MessageType.NOTICE
             else:
-                resp = await self._process_googlechat_attachment(url, source, intent, reply_to, ts)
+                resp = await self._process_googlechat_attachment(att, source, intent, reply_to, ts)
                 if resp:
                     yield resp
 
     async def _process_googlechat_attachment(
-        self, url: URL, source: u.User, intent: IntentAPI, reply_to: DBMessage | None, ts: int
+        self,
+        att: AttachmentURL,
+        source: u.User,
+        intent: IntentAPI,
+        reply_to: DBMessage | None,
+        ts: int,
     ) -> tuple[EventID, MessageType] | None:
         max_size = self.matrix.media_config.upload_size
         try:
-            if url.host.endswith(".google.com"):
-                data, mime, filename = await source.client.download_attachment(url, max_size)
+            if att.url.host.endswith(".google.com"):
+                data, mime, filename = await source.client.download_attachment(att.url, max_size)
             else:
-                data, mime, filename = await self._download_external_attachment(url, max_size)
+                data, mime, filename = await self._download_external_attachment(att.url, max_size)
         except FileTooLargeError:
             # TODO send error message
             self.log.warning("Can't upload too large attachment")
@@ -1226,14 +1247,17 @@ class Portal(DBPortal, BasePortal):
             self.log.warning(f"Failed to download attachment: {e}")
             return None
         if mime.startswith("text/html"):
-            self.log.debug(f"Ignoring HTML URL attachment {url}")
+            self.log.debug(f"Ignoring HTML URL attachment {att.url}")
             return None
 
         msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
         if msgtype == MessageType.TEXT:
             msgtype = MessageType.FILE
         if not filename or filename == "get_attachment_url":
-            filename = msgtype.value + (mimetypes.guess_extension(mime) or "")
+            if att.name:
+                filename = att.name
+            else:
+                filename = msgtype.value + (mimetypes.guess_extension(mime) or "")
         upload_mime = mime
         decryption_info = None
         if self.encrypted and encrypt_attachment:
