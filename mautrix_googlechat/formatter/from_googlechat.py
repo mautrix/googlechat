@@ -150,7 +150,7 @@ async def _gc_annotations_to_matrix(
                 html.append(f"<pre><code>{entity_text}</code></pre>")
             elif type == googlechat.FormatMetadata.FONT_COLOR:
                 rgb_int = annotation.format_metadata.font_color
-                color = (rgb_int + 2 ** 31) & 0xFFFFFF
+                color = (rgb_int + 2**31) & 0xFFFFFF
                 html.append(f"<font color='#{color:x}'>{entity_text}</font>")
             elif type == googlechat.FormatMetadata.BULLETED_LIST_ITEM:
                 html.append(f"<li>{entity_text}</li>")

@@ -208,7 +208,7 @@ class Channel:
             # After the first failed retry, back off exponentially longer after
             # each attempt.
             if retries > 0 and not skip_backoff:
-                backoff_seconds = self._retry_backoff_base ** retries
+                backoff_seconds = self._retry_backoff_base**retries
                 logger.info(f"Backing off for {backoff_seconds} seconds")
                 await asyncio.sleep(backoff_seconds)
             skip_backoff = False

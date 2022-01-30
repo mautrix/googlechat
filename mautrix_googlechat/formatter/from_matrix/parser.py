@@ -39,7 +39,7 @@ class MatrixParser(BaseMatrixParser[GCMessage]):
         except ValueError:
             return msg
         # I have no idea what's happening here but it works
-        rgb_int = (rgb_int | 0x7F000000) - 2 ** 31
+        rgb_int = (rgb_int | 0x7F000000) - 2**31
         return msg.format(GCEntityType.COLOR, font_color=rgb_int)
 
     async def user_pill_to_fstring(self, msg: GCMessage, user_id: UserID) -> GCMessage:
