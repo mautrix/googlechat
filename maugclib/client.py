@@ -200,13 +200,25 @@ class Client:
                     except KeyError:
                         filename = url.path.split("/")[-1]
                     mime = resp.headers["Content-Type"]
-                    if 0 < max_size < int(resp.headers["Content-Length"]):
-                        raise exceptions.FileTooLargeError("Image size larger than maximum")
-                    data = await resp.read()
+                    data = await self.read_with_max_size(resp, max_size)
                     return data, mime, filename
         finally:
             if sess:
                 await sess.close()
+
+    @staticmethod
+    async def read_with_max_size(resp: aiohttp.ClientResponse, max_size: int) -> bytes:
+        if 0 < max_size < int(resp.headers.get("Content-Length", "0")):
+            raise exceptions.FileTooLargeError("File size larger than maximum")
+        blocks = []
+        while True:
+            block = await resp.content.read(max_size)
+            if not block:
+                break
+            max_size -= len(block)
+            blocks.append(block)
+        data = b"".join(blocks)
+        return data
 
     async def upload_file(
         self,

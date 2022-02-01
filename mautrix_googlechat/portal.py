@@ -1143,16 +1143,7 @@ class Portal(DBPortal, BasePortal):
         async with aiohttp.ClientSession() as sess, sess.get(url) as resp:
             resp.raise_for_status()
             filename = url.path.split("/")[-1]
-            if 0 < max_size < int(resp.headers.get("Content-Length", "0")):
-                raise FileTooLargeError("Image size larger than maximum")
-            blocks = []
-            while True:
-                block = await resp.content.read(max_size)
-                if not block:
-                    break
-                max_size -= len(block)
-                blocks.append(block)
-            data = b"".join(blocks)
+            data = await maugclib.Client.read_with_max_size(resp, max_size)
             mime = resp.headers.get("Content-Type") or magic.from_buffer(data, mime=True)
             return data, mime, filename
 
