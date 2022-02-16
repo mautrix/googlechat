@@ -47,6 +47,7 @@ from mautrix.types import (
 )
 from mautrix.util import variation_selector
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
+from mautrix.util.opt_prometheus import Histogram
 from mautrix.util.simple_lock import SimpleLock
 import maugclib.parsers
 
@@ -78,6 +79,8 @@ SendResponse = NamedTuple("SendResponse", gcid=str, timestamp=int)
 ChatInfo = Union[googlechat.WorldItemLite, googlechat.GetGroupResponse]
 DRIVE_OPEN_URL = URL("https://drive.google.com/open")
 
+METRIC_HANDLE_EVENT = Histogram("bridge_handle_event", "calls to handle_event", ["event_type"])
+
 
 class AttachmentURL(NamedTuple):
     url: URL
@@ -102,6 +105,8 @@ class Portal(DBPortal, BasePortal):
     _edit_dedup: dict[str, int]
     _noop_lock: FakeLock = FakeLock()
     _typing: set[UserID]
+    _incoming_events: asyncio.Queue[tuple[u.User, googlechat.Event]]
+    _event_dispatcher_task: asyncio.Task | None
     backfill_lock: SimpleLock
 
     def __init__(
@@ -135,6 +140,8 @@ class Portal(DBPortal, BasePortal):
 
         self._main_intent = None
         self._create_room_lock = asyncio.Lock()
+        self._incoming_events = asyncio.Queue()
+        self._event_dispatcher_task = None
         self._last_bridged_mxid = None
         self._dedup = deque(maxlen=100)
         self._edit_dedup = {}
@@ -398,7 +405,7 @@ class Portal(DBPortal, BasePortal):
         handled_count = 0
         for multi_evt in events:
             for evt in source.client.split_event_bodies(multi_evt):
-                handled = await self.handle_event(source, evt, is_backfill=True)
+                handled = await self.handle_event(source, evt)
                 if not handled:
                     type_name = googlechat.Event.EventType.Name(evt.type)
                     self.log.debug(f"Unhandled event type {type_name} in backfill")
@@ -408,29 +415,49 @@ class Portal(DBPortal, BasePortal):
                 await self.set_revision(multi_evt.group_revision.timestamp)
         return handled_count
 
-    async def handle_event(
-        self, source: u.User, evt: googlechat.Event, is_backfill: bool = False
-    ) -> bool:
+    async def _try_event_dispatcher_loop(self) -> None:
+        loop_id = f"{hex(id(self))}#{time.monotonic()}"
+        self.log.debug(f"Dispatcher loop {loop_id} starting")
+        try:
+            await self._event_dispatcher_loop()
+        except Exception:
+            self.log.exception("Error in event dispatcher loop")
+        finally:
+            self.log.debug(f"Dispatcher loop {loop_id} stopped")
+
+    async def _event_dispatcher_loop(self) -> None:
+        await self.backfill_lock.wait()
+        while True:
+            user, evt = await self._incoming_events.get()
+            type_name = googlechat.Event.EventType.Name(evt.type)
+            start = time.time()
+            try:
+                handled = await self.handle_event(user, evt)
+                if not handled:
+                    self.log.debug(f"Unhandled event type {type_name}")
+            except Exception:
+                self.log.exception("Error in Google Chat event handler")
+            finally:
+                METRIC_HANDLE_EVENT.labels(event_type=type_name).observe(time.time() - start)
+            if evt.HasField("group_revision"):
+                await self.set_revision(evt.group_revision.timestamp)
+
+    def queue_event(self, user: u.User, evt: googlechat.Event) -> None:
+        self._incoming_events.put_nowait((user, evt))
+        if not self._event_dispatcher_task or self._event_dispatcher_task.done():
+            self._event_dispatcher_task = asyncio.create_task(self._try_event_dispatcher_loop())
+
+    async def handle_event(self, source: u.User, evt: googlechat.Event) -> bool:
         if evt.body.HasField("message_posted"):
-            if not is_backfill:
-                await self.backfill_lock.wait(evt.body.message_posted.message.id.message_id)
             if evt.type == googlechat.Event.MESSAGE_UPDATED:
                 await self.handle_googlechat_edit(source, evt.body.message_posted.message)
             else:
                 await self.handle_googlechat_message(source, evt.body.message_posted.message)
         elif evt.body.HasField("message_reaction"):
-            if not is_backfill:
-                target_id = evt.body.message_reaction.message_id.message_id
-                await self.backfill_lock.wait(f"reaction to {target_id}")
             await self.handle_googlechat_reaction(evt.body.message_reaction)
         elif evt.body.HasField("message_deleted"):
-            if not is_backfill:
-                target_id = evt.body.message_deleted.message_id.message_id
-                await self.backfill_lock.wait(f"deletion of {target_id}")
             await self.handle_googlechat_redaction(evt.body.message_deleted)
         elif evt.body.HasField("read_receipt_changed"):
-            if not is_backfill:
-                await self.backfill_lock.wait("read receipt change")
             await self.handle_googlechat_read_receipts(evt.body.read_receipt_changed)
         elif evt.body.HasField("typing_state_changed"):
             await self.handle_googlechat_typing(
@@ -439,8 +466,6 @@ class Portal(DBPortal, BasePortal):
                 evt.body.typing_state_changed.state,
             )
         elif evt.body.HasField("group_viewed"):
-            if not is_backfill:
-                await self.backfill_lock.wait("group view event")
             await self.mark_read(source.gcid, evt.body.group_viewed.view_time)
         else:
             return False

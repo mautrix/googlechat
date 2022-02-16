@@ -41,9 +41,6 @@ if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
 
 METRIC_SYNC = Histogram("bridge_sync", "calls to sync")
-METRIC_STREAM_EVENT = Histogram(
-    "bridge_on_stream_event", "calls to on_stream_event", ["event_type"]
-)
 METRIC_LOGGED_IN = Gauge("bridge_logged_in", "Number of users logged into the bridge")
 METRIC_CONNECTED = Gauge("bridge_connected", "Number of users connected to Google Chat")
 
@@ -558,18 +555,10 @@ class User(DBUser, BaseUser):
         if evt.type == googlechat.Event.TYPING_STATE_CHANGED:
             group_id = evt.body.typing_state_changed.context.group_id
         portal = await po.Portal.get_by_group_id(group_id, self.gcid)
-        if not portal:
-            return
-        type_name = googlechat.Event.EventType.Name(evt.type)
-        start = time.time()
-        handled = await portal.handle_event(self, evt)
-        if not handled:
-            self.log.debug(f"Unhandled event type {type_name}")
-        METRIC_STREAM_EVENT.labels(event_type=type_name).observe(time.time() - start)
+        if portal:
+            portal.queue_event(self, evt)
         if evt.HasField("user_revision"):
             await self.set_revision(evt.user_revision.timestamp)
-        if evt.HasField("group_revision"):
-            await portal.set_revision(evt.group_revision.timestamp)
 
     async def mark_read(self, conversation_id: str, timestamp: int) -> None:
         await self.client.proto_mark_group_read_state(
