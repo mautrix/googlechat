@@ -1057,7 +1057,7 @@ class Portal(DBPortal, BasePortal):
             self.log.debug(f"Ignoring edit of non-text message {msg_id}")
             return
 
-        content = await fmt.googlechat_to_matrix(evt.text_body, evt.annotations)
+        content = await fmt.googlechat_to_matrix(evt.text_body, evt.annotations, self.encrypted)
         content.set_edit(target.mxid)
         event_id = await self._send_message(
             sender.intent_for(self), content, timestamp=edit_ts // 1000
@@ -1123,7 +1123,9 @@ class Portal(DBPortal, BasePortal):
 
         event_ids: list[tuple[EventID, MessageType]] = []
         if evt.text_body:
-            content = await fmt.googlechat_to_matrix(evt.text_body, evt.annotations)
+            content = await fmt.googlechat_to_matrix(
+                evt.text_body, evt.annotations, self.encrypted
+            )
             if reply_to:
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
