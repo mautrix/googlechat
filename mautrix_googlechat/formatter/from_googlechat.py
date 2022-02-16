@@ -73,6 +73,7 @@ async def gc_previews_to_beeper(
             not ann.HasField("url_metadata")
             or ann.url_metadata.should_not_render
             or not ann.length
+            or not ann.url_metadata.title
         ):
             continue
         meta = ann.url_metadata
