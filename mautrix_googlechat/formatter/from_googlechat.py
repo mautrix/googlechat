@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+from typing import Any
 from html import escape
 
 from maugclib import googlechat_pb2 as googlechat
@@ -24,6 +25,33 @@ from .. import puppet as pu, user as u
 from .util import FormatError, add_surrogate, del_surrogate
 
 
+async def gc_previews_to_beeper(
+    text: str, annotations: list[googlechat.Annotation] | None
+) -> list[dict[str, Any]]:
+    url_previews = []
+    for ann in annotations:
+        if (
+            not ann.HasField("url_metadata")
+            or ann.url_metadata.should_not_render
+            or not ann.length
+        ):
+            continue
+        meta = ann.url_metadata
+        preview = {
+            "matched_url": text[ann.start_index : ann.start_index + ann.length],
+            "og:url": meta.url.url,
+            "og:title": meta.title,
+            "og:description": meta.snippet,
+        }
+        if meta.image_url:
+            # TODO reupload to content repo
+            preview["og:image"] = meta.image_url
+            preview["og:image:width"] = meta.int_image_width
+            preview["og:image:height"] = meta.int_image_height
+        url_previews.append({k: v for k, v in preview.items() if v})
+    return url_previews
+
+
 async def googlechat_to_matrix(
     text: str, annotations: list[googlechat.Annotation] | None
 ) -> TextMessageEventContent:
@@ -31,6 +59,7 @@ async def googlechat_to_matrix(
         msgtype=MessageType.TEXT,
         body=add_surrogate(text),
     )
+    content["com.beeper.linkpreviews"] = await gc_previews_to_beeper(content.body, annotations)
     if annotations:
         content.format = Format.HTML
         content.formatted_body = await _gc_annotations_to_matrix_catch(content.body, annotations)

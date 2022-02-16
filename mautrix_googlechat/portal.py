@@ -1104,7 +1104,7 @@ class Portal(DBPortal, BasePortal):
             event_id = await self._send_message(intent, content, timestamp=timestamp)
             event_ids.append((event_id, MessageType.TEXT))
 
-        attachment_urls = self._get_urls_from_annotations(evt.annotations)
+        attachment_urls = self._get_urls_from_annotations(evt.text_body, evt.annotations)
         if attachment_urls:
             try:
                 async for event_id, msgtype in self.process_googlechat_attachments(
@@ -1149,6 +1149,7 @@ class Portal(DBPortal, BasePortal):
 
     @staticmethod
     def _get_urls_from_annotations(
+        text: str,
         annotations: list[googlechat.Annotation],
     ) -> list[AttachmentURL]:
         if not annotations:
@@ -1186,6 +1187,8 @@ class Portal(DBPortal, BasePortal):
                     url=url, name=None, mime=annotation.url_metadata.mime_type, send_as_text=False
                 )
             elif annotation.HasField("video_call_metadata"):
+                if annotation.video_call_metadata.meeting_space.meeting_url in text:
+                    continue
                 au = AttachmentURL(
                     url=URL(annotation.video_call_metadata.meeting_space.meeting_url),
                     send_as_text=True,
@@ -1193,6 +1196,9 @@ class Portal(DBPortal, BasePortal):
                     mime=None,
                 )
             elif annotation.HasField("drive_metadata"):
+                if annotation.drive_metadata.id in text:
+                    # Don't send a duplicate message if the URL is already in the message.
+                    continue
                 au = AttachmentURL(
                     url=DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id}),
                     send_as_text=True,
