@@ -24,7 +24,6 @@ import time
 
 from yarl import URL
 import aiohttp
-import magic
 
 from maugclib import FileTooLargeError, googlechat_pb2 as googlechat
 from mautrix.appservice import IntentAPI
@@ -45,7 +44,7 @@ from mautrix.types import (
     TextMessageEventContent,
     UserID,
 )
-from mautrix.util import variation_selector
+from mautrix.util import magic, variation_selector
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
 from mautrix.util.opt_prometheus import Histogram
 from mautrix.util.simple_lock import SimpleLock
@@ -77,7 +76,6 @@ StateHalfShotBridge = EventType.find("uk.half-shot.bridge", EventType.Class.STAT
 
 SendResponse = NamedTuple("SendResponse", gcid=str, timestamp=int)
 ChatInfo = Union[googlechat.WorldItemLite, googlechat.GetGroupResponse]
-DRIVE_OPEN_URL = URL("https://drive.google.com/open")
 
 METRIC_HANDLE_EVENT = Histogram("bridge_handle_event", "calls to handle_event", ["event_type"])
 
@@ -909,7 +907,7 @@ class Portal(DBPortal, BasePortal):
             data = await self.main_intent.download_media(message.url)
         else:
             raise Exception("Failed to download media from matrix")
-        mime = message.info.mimetype or magic.from_buffer(data, mime=True)
+        mime = message.info.mimetype or magic.mimetype(data)
         upload = await sender.client.upload_file(
             data=data, group_id=self.gcid_plain, filename=message.body, mime_type=mime
         )
@@ -1168,7 +1166,7 @@ class Portal(DBPortal, BasePortal):
             resp.raise_for_status()
             filename = url.path.split("/")[-1]
             data = await maugclib.Client.read_with_max_size(resp, max_size)
-            mime = resp.headers.get("Content-Type") or magic.from_buffer(data, mime=True)
+            mime = resp.headers.get("Content-Type") or magic.mimetype(data)
             return data, mime, filename
 
     @staticmethod
@@ -1214,7 +1212,15 @@ class Portal(DBPortal, BasePortal):
                 continue
             elif annotation.HasField("drive_metadata"):
                 if annotation.drive_metadata.id not in evt.text_body:
-                    url = DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id})
+                    url = fmt.DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id})
+                    if not evt.text_body:
+                        evt.text_body = url
+                    else:
+                        evt.text_body += f"\n\n{url}"
+                continue
+            elif annotation.HasField("youtube_metadata"):
+                if annotation.youtube_metadata.id not in evt.text_body:
+                    url = fmt.YOUTUBE_URL.with_query({"v": annotation.youtube_metadata.id})
                     if not evt.text_body:
                         evt.text_body = url
                     else:

@@ -20,12 +20,12 @@ import asyncio
 
 from yarl import URL
 import aiohttp
-import magic
 
 from maugclib import googlechat_pb2 as googlechat
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePuppet, async_getter_lock
 from mautrix.types import ContentURI, RoomID, SyncToken, UserID
+from mautrix.util import magic
 from mautrix.util.simple_template import SimpleTemplate
 
 from . import portal as p, user as u
@@ -212,7 +212,7 @@ class Puppet(DBPuppet, BasePuppet):
         async with aiohttp.ClientSession() as session:
             resp = await session.get(URL(url).with_scheme("https"))
             data = await resp.read()
-        mime = magic.from_buffer(data, mime=True)
+        mime = magic.mimetype(data)
         return await intent.upload_media(data, mime_type=mime, filename=filename)
 
     # endregion

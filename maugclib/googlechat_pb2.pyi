@@ -2883,6 +2883,22 @@ class TrustedResourceUrl(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["resource_url",b"resource_url"]) -> None: ...
 global___TrustedResourceUrl = TrustedResourceUrl
 
+class YoutubeMetadata(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    ID_FIELD_NUMBER: builtins.int
+    id: typing.Text = ...
+    """optional int/bool ??? = 2;
+    optional bool should_not_render = 3?
+    """
+
+    def __init__(self,
+        *,
+        id : typing.Optional[typing.Text] = ...,
+        ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["id",b"id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["id",b"id"]) -> None: ...
+global___YoutubeMetadata = YoutubeMetadata
+
 class UrlMetadata(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
     TITLE_FIELD_NUMBER: builtins.int
@@ -3050,6 +3066,7 @@ class Annotation(google.protobuf.message.Message):
     FORMAT_METADATA_FIELD_NUMBER: builtins.int
     SLASH_COMMAND_METADATA_FIELD_NUMBER: builtins.int
     DRIVE_METADATA_FIELD_NUMBER: builtins.int
+    YOUTUBE_METADATA_FIELD_NUMBER: builtins.int
     URL_METADATA_FIELD_NUMBER: builtins.int
     UPLOAD_METADATA_FIELD_NUMBER: builtins.int
     MEMBERSHIP_CHANGED_FIELD_NUMBER: builtins.int
@@ -3071,9 +3088,9 @@ class Annotation(google.protobuf.message.Message):
     @property
     def drive_metadata(self) -> global___DriveMetadata: ...
     @property
-    def url_metadata(self) -> global___UrlMetadata:
-        """DYNProtoYoutubeMetadata youtube_metadata = 6;"""
-        pass
+    def youtube_metadata(self) -> global___YoutubeMetadata: ...
+    @property
+    def url_metadata(self) -> global___UrlMetadata: ...
     @property
     def upload_metadata(self) -> global___UploadMetadata: ...
     @property
@@ -3104,15 +3121,16 @@ class Annotation(google.protobuf.message.Message):
         format_metadata : typing.Optional[global___FormatMetadata] = ...,
         slash_command_metadata : typing.Optional[global___SlashCommandMetadata] = ...,
         drive_metadata : typing.Optional[global___DriveMetadata] = ...,
+        youtube_metadata : typing.Optional[global___YoutubeMetadata] = ...,
         url_metadata : typing.Optional[global___UrlMetadata] = ...,
         upload_metadata : typing.Optional[global___UploadMetadata] = ...,
         membership_changed : typing.Optional[global___MembershipChangedMetadata] = ...,
         video_call_metadata : typing.Optional[global___VideoCallMetadata] = ...,
         room_updated : typing.Optional[global___RoomUpdatedMetadata] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata","video_call_metadata",b"video_call_metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata","video_call_metadata",b"video_call_metadata"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["Metadata",b"Metadata"]) -> typing.Optional[typing_extensions.Literal["user_mention_metadata","format_metadata","slash_command_metadata","drive_metadata","url_metadata","upload_metadata","membership_changed","video_call_metadata","room_updated"]]: ...
+    def HasField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata","video_call_metadata",b"video_call_metadata","youtube_metadata",b"youtube_metadata"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["Metadata",b"Metadata","chip_render_type",b"chip_render_type","drive_metadata",b"drive_metadata","format_metadata",b"format_metadata","length",b"length","local_id",b"local_id","membership_changed",b"membership_changed","room_updated",b"room_updated","server_invalidated",b"server_invalidated","slash_command_metadata",b"slash_command_metadata","start_index",b"start_index","type",b"type","unique_id",b"unique_id","upload_metadata",b"upload_metadata","url_metadata",b"url_metadata","user_mention_metadata",b"user_mention_metadata","video_call_metadata",b"video_call_metadata","youtube_metadata",b"youtube_metadata"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["Metadata",b"Metadata"]) -> typing.Optional[typing_extensions.Literal["user_mention_metadata","format_metadata","slash_command_metadata","drive_metadata","youtube_metadata","url_metadata","upload_metadata","membership_changed","video_call_metadata","room_updated"]]: ...
 global___Annotation = Annotation
 
 class TypingContext(google.protobuf.message.Message):

@@ -821,6 +821,12 @@ message TrustedResourceUrl {
 	optional string resource_url = 4;
 }
 
+message YoutubeMetadata {
+	optional string id = 1;
+	//optional int/bool ??? = 2;
+	//optional bool should_not_render = 3?
+}
+
 message UrlMetadata {
 	optional string title = 1;
 	optional string snippet = 2;
@@ -896,7 +902,7 @@ message Annotation {
 		SlashCommandMetadata slash_command_metadata = 15;
 		DriveMetadata drive_metadata = 4;
 
-		//DYNProtoYoutubeMetadata youtube_metadata = 6;
+		YoutubeMetadata youtube_metadata = 6;
 		UrlMetadata url_metadata = 7;
 		UploadMetadata upload_metadata = 10;
 		MembershipChangedMetadata membership_changed = 11;
