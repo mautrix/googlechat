@@ -86,7 +86,6 @@ class AttachmentURL(NamedTuple):
     url: URL
     name: str | None
     mime: str | None
-    send_as_text: bool
 
 
 class Portal(DBPortal, BasePortal):
@@ -1057,7 +1056,8 @@ class Portal(DBPortal, BasePortal):
             self.log.debug(f"Ignoring edit of non-text message {msg_id}")
             return
 
-        content = await fmt.googlechat_to_matrix(evt.text_body, evt.annotations, self.encrypted)
+        self._preprocess_annotations(evt)
+        content = await fmt.googlechat_to_matrix(source, evt, self.encrypted)
         content.set_edit(target.mxid)
         event_id = await self._send_message(
             sender.intent_for(self), content, timestamp=edit_ts // 1000
@@ -1121,29 +1121,26 @@ class Portal(DBPortal, BasePortal):
         if parent_id:
             reply_to = await DBMessage.get_last_in_thread(parent_id, self.gcid, self.gc_receiver)
 
+        # This also adds text to evt.text_body if necessary
+        attachment_urls = self._preprocess_annotations(evt)
+
         event_ids: list[tuple[EventID, MessageType]] = []
         if evt.text_body:
-            content = await fmt.googlechat_to_matrix(
-                evt.text_body, evt.annotations, self.encrypted
-            )
+            content = await fmt.googlechat_to_matrix(source, evt, self.encrypted)
             if reply_to:
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
             event_ids.append((event_id, MessageType.TEXT))
 
-        attachment_urls = self._get_urls_from_annotations(evt.text_body, evt.annotations)
-        if attachment_urls:
-            try:
-                async for event_id, msgtype in self.process_googlechat_attachments(
-                    source,
-                    attachment_urls,
-                    intent,
-                    reply_to=reply_to,
-                    ts=timestamp,
-                ):
-                    event_ids.append((event_id, msgtype))
-            except Exception:
-                self.log.exception("Failed to process attachments")
+        try:
+            for att in attachment_urls:
+                resp = await self._process_googlechat_attachment(
+                    att, source=source, intent=intent, reply_to=reply_to, ts=timestamp
+                )
+                if resp:
+                    event_ids.append(resp)
+        except Exception:
+            self.log.exception("Failed to process attachments")
 
         if not event_ids:
             # TODO send notification
@@ -1175,14 +1172,11 @@ class Portal(DBPortal, BasePortal):
             return data, mime, filename
 
     @staticmethod
-    def _get_urls_from_annotations(
-        text: str,
-        annotations: list[googlechat.Annotation],
-    ) -> list[AttachmentURL]:
-        if not annotations:
+    def _preprocess_annotations(evt: googlechat.Message) -> list[AttachmentURL]:
+        if not evt.annotations:
             return []
         attachment_urls = []
-        for annotation in annotations:
+        for annotation in evt.annotations:
             if annotation.HasField("upload_metadata"):
                 url_type = (
                     "FIFE_URL"
@@ -1199,7 +1193,6 @@ class Portal(DBPortal, BasePortal):
                     url=url,
                     name=annotation.upload_metadata.content_name,
                     mime=annotation.upload_metadata.content_type,
-                    send_as_text=False,
                 )
             elif annotation.HasField("url_metadata"):
                 if annotation.url_metadata.should_not_render:
@@ -1210,52 +1203,27 @@ class Portal(DBPortal, BasePortal):
                     url = URL(annotation.url_metadata.url.url)
                 else:
                     continue
-                au = AttachmentURL(
-                    url=url, name=None, mime=annotation.url_metadata.mime_type, send_as_text=False
-                )
+                au = AttachmentURL(url=url, name=None, mime=annotation.url_metadata.mime_type)
             elif annotation.HasField("video_call_metadata"):
-                if annotation.video_call_metadata.meeting_space.meeting_url in text:
-                    continue
-                au = AttachmentURL(
-                    url=URL(annotation.video_call_metadata.meeting_space.meeting_url),
-                    send_as_text=True,
-                    name=None,
-                    mime=None,
-                )
+                if annotation.video_call_metadata.meeting_space.meeting_url not in evt.text_body:
+                    url = annotation.video_call_metadata.meeting_space.meeting_url
+                    if not evt.text_body:
+                        evt.text_body = url
+                    else:
+                        evt.text_body += f"\n\n{url}"
+                continue
             elif annotation.HasField("drive_metadata"):
-                if annotation.drive_metadata.id in text:
-                    # Don't send a duplicate message if the URL is already in the message.
-                    continue
-                au = AttachmentURL(
-                    url=DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id}),
-                    send_as_text=True,
-                    name=None,
-                    mime=None,
-                )
+                if annotation.drive_metadata.id not in evt.text_body:
+                    url = DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id})
+                    if not evt.text_body:
+                        evt.text_body = url
+                    else:
+                        evt.text_body += f"\n\n{url}"
+                continue
             else:
                 continue
             attachment_urls.append(au)
         return attachment_urls
-
-    async def process_googlechat_attachments(
-        self,
-        source: u.User,
-        urls: list[AttachmentURL],
-        intent: IntentAPI,
-        reply_to: DBMessage,
-        ts: int,
-    ) -> AsyncIterable[tuple[EventID, MessageType]]:
-        for att in urls:
-            if att.send_as_text:
-                content = TextMessageEventContent(msgtype=MessageType.TEXT, body=str(att.url))
-                if reply_to:
-                    content.set_reply(reply_to.mxid)
-                event_id = await self._send_message(intent, content, timestamp=ts)
-                yield event_id, MessageType.NOTICE
-            else:
-                resp = await self._process_googlechat_attachment(att, source, intent, reply_to, ts)
-                if resp:
-                    yield resp
 
     async def _process_googlechat_attachment(
         self,

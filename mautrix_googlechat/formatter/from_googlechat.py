@@ -15,97 +15,31 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from typing import Any
 from html import escape
-
-from aiohttp import ClientSession
 
 from maugclib import googlechat_pb2 as googlechat
 from mautrix.types import Format, MessageType, TextMessageEventContent
-from mautrix.util import magic
 
-from .. import portal as po, puppet as pu, user as u
+from .. import puppet as pu, user as u
+from .gc_url_preview import gc_previews_to_beeper
 from .util import FormatError, add_surrogate, del_surrogate
-
-try:
-    from mautrix.crypto.attachments import encrypt_attachment
-except ImportError:
-    decrypt_attachment = encrypt_attachment = None
-
-_upload_cache: dict[str, dict] = {}
-
-
-async def _reupload_preview(url: str, encrypt: bool) -> dict:
-    try:
-        return _upload_cache[url]
-    except KeyError:
-        pass
-
-    bot = po.Portal.bridge.az.intent
-
-    async with ClientSession() as sess, sess.get(url) as resp:
-        data = await resp.read()
-        mime = resp.headers.get("Content-Type") or magic.mimetype(data)
-    output = {
-        "og:image:type": mime,
-        "matrix:image:size": len(data),
-    }
-    file = None
-    if encrypt:
-        data, file = encrypt_attachment(data)
-        output["beeper:image:encryption"] = file.serialize()
-        mime = "application/octet-stream"
-    mxc = await bot.upload_media(data, mime_type=mime)
-    if file:
-        output["beeper:image:encryption"]["url"] = mxc
-    else:
-        output["og:image"] = mxc
-    _upload_cache[url] = output
-    return output
-
-
-async def gc_previews_to_beeper(
-    text: str, annotations: list[googlechat.Annotation] | None, encrypt: bool = False
-) -> list[dict[str, Any]]:
-    url_previews = []
-    for ann in annotations:
-        if (
-            not ann.HasField("url_metadata")
-            or ann.url_metadata.should_not_render
-            or not ann.length
-            or not ann.url_metadata.title
-        ):
-            continue
-        meta = ann.url_metadata
-        preview = {
-            "matched_url": text[ann.start_index : ann.start_index + ann.length],
-            "og:url": meta.url.url,
-            "og:title": meta.title,
-            "og:description": meta.snippet,
-        }
-        if meta.image_url:
-            preview.update(await _reupload_preview(meta.image_url, encrypt))
-            preview["og:image:width"] = meta.int_image_width
-            preview["og:image:height"] = meta.int_image_height
-        url_previews.append({k: v for k, v in preview.items() if v})
-    return url_previews
 
 
 async def googlechat_to_matrix(
-    text: str,
-    annotations: list[googlechat.Annotation] | None,
-    encrypt: bool = False,
+    source: u.User, evt: googlechat.Message, encrypt: bool = False
 ) -> TextMessageEventContent:
     content = TextMessageEventContent(
         msgtype=MessageType.TEXT,
-        body=add_surrogate(text),
+        body=add_surrogate(evt.text_body),
     )
     content["com.beeper.linkpreviews"] = await gc_previews_to_beeper(
-        content.body, annotations, encrypt=encrypt
+        source, content.body, evt.annotations or [], encrypt=encrypt
     )
     if annotations:
         content.format = Format.HTML
-        content.formatted_body = await _gc_annotations_to_matrix_catch(content.body, annotations)
+        content.formatted_body = await _gc_annotations_to_matrix_catch(
+            content.body, evt.annotations
+        )
 
     content.body = del_surrogate(content.body)
 
