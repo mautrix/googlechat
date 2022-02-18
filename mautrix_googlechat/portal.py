@@ -1206,7 +1206,7 @@ class Portal(DBPortal, BasePortal):
                 if annotation.video_call_metadata.meeting_space.meeting_url not in evt.text_body:
                     url = annotation.video_call_metadata.meeting_space.meeting_url
                     if not evt.text_body:
-                        evt.text_body = url
+                        evt.text_body = str(url)
                     else:
                         evt.text_body += f"\n\n{url}"
                 continue
@@ -1214,7 +1214,7 @@ class Portal(DBPortal, BasePortal):
                 if annotation.drive_metadata.id not in evt.text_body:
                     url = fmt.DRIVE_OPEN_URL.with_query({"id": annotation.drive_metadata.id})
                     if not evt.text_body:
-                        evt.text_body = url
+                        evt.text_body = str(url)
                     else:
                         evt.text_body += f"\n\n{url}"
                 continue
@@ -1222,7 +1222,7 @@ class Portal(DBPortal, BasePortal):
                 if annotation.youtube_metadata.id not in evt.text_body:
                     url = fmt.YOUTUBE_URL.with_query({"v": annotation.youtube_metadata.id})
                     if not evt.text_body:
-                        evt.text_body = url
+                        evt.text_body = str(url)
                     else:
                         evt.text_body += f"\n\n{url}"
                 continue
