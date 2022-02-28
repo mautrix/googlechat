@@ -216,11 +216,14 @@ class Client:
         dl_log.info(f"Reading file download response with {size_str} (max: {max_size})")
         blocks = []
         read_size = 0
+        max_size += 1
         while True:
             block = await resp.content.read(max_size)
             if not block:
                 break
             max_size -= len(block)
+            if max_size <= 0:
+                raise exceptions.FileTooLargeError("File size larger than maximum")
             read_size += len(block)
             blocks.append(block)
         dl_log.info(f"Successfully read {read_size} bytes of file download response")
