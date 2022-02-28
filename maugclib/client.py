@@ -19,6 +19,7 @@ import aiohttp
 from . import auth, channel, event, exceptions, googlechat_pb2, http_utils, parsers
 
 logger = logging.getLogger(__name__)
+dl_log = logger.getChild("download")
 UPLOAD_URL = "https://chat.google.com/uploads"
 # API key for `key` parameter (from Hangouts web client)
 API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
@@ -208,17 +209,22 @@ class Client:
 
     @staticmethod
     async def read_with_max_size(resp: aiohttp.ClientResponse, max_size: int) -> bytes:
-        if 0 < max_size < int(resp.headers.get("Content-Length", "0")):
+        content_length = int(resp.headers.get("Content-Length", "0"))
+        if 0 < max_size < content_length:
             raise exceptions.FileTooLargeError("File size larger than maximum")
+        size_str = "unknown length" if content_length == 0 else f"{content_length} bytes"
+        dl_log.info(f"Reading file download response with {size_str} (max: {max_size})")
         blocks = []
+        read_size = 0
         while True:
             block = await resp.content.read(max_size)
             if not block:
                 break
             max_size -= len(block)
+            read_size += len(block)
             blocks.append(block)
-        data = b"".join(blocks)
-        return data
+        dl_log.info(f"Successfully read {read_size} bytes of file download response")
+        return b"".join(blocks)
 
     async def upload_file(
         self,
