@@ -572,6 +572,9 @@ class Portal(DBPortal, BasePortal):
                 "content": self.bridge_info,
             },
         ]
+
+        if self.is_direct:
+            invites.append(self.az.bot_mxid)
         if self.config["bridge.encryption.default"] and self.matrix.e2ee:
             self.encrypted = True
             initial_state.append(
@@ -580,9 +583,6 @@ class Portal(DBPortal, BasePortal):
                     "content": {"algorithm": str(EncryptionAlgorithm.MEGOLM_V1)},
                 }
             )
-            if self.is_direct:
-                invites.append(self.az.bot_mxid)
-
         creation_content = {}
         if not self.config["bridge.federate_rooms"]:
             creation_content["m.federate"] = False
