@@ -28,9 +28,9 @@ from mautrix.util import magic
 from .. import portal as po, user as u
 
 try:
-    from mautrix.crypto.attachments import encrypt_attachment
+    from mautrix.crypto.attachments import async_inplace_encrypt_attachment
 except ImportError:
-    decrypt_attachment = encrypt_attachment = None
+    decrypt_attachment = async_inplace_encrypt_attachment = None
 
 log = logging.getLogger("mau.gc_url_preview")
 
@@ -58,7 +58,7 @@ async def _reupload_preview(source: u.User | None, url: str, encrypt: bool) -> d
             data, mime, _ = await source.client.download_attachment(url, max_size=max_size)
         else:
             async with aiohttp.ClientSession() as sess, sess.get(url) as resp:
-                data = await resp.read()
+                data = bytearray(await resp.read())
                 mime = resp.headers.get("Content-Type") or magic.mimetype(data)
     except aiohttp.ClientError:
         return {}
@@ -68,7 +68,7 @@ async def _reupload_preview(source: u.User | None, url: str, encrypt: bool) -> d
     }
     file = None
     if encrypt:
-        data, file = encrypt_attachment(data)
+        file = await async_inplace_encrypt_attachment(data)
         output["beeper:image:encryption"] = file.serialize()
         mime = "application/octet-stream"
     mxc = await bot.upload_media(data, mime_type=mime)
