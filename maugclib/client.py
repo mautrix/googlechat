@@ -153,7 +153,9 @@ class Client:
         # listen cancels immediately.
         self._listen_future.cancel()
 
-    async def download_attachment(self, url: str | URL, max_size: int) -> tuple[bytes, str, str]:
+    async def download_attachment(
+        self, url: str | URL, max_size: int
+    ) -> tuple[bytearray, str, str]:
         """
         Download an attachment that was present in a chat message.
 
@@ -208,13 +210,14 @@ class Client:
                 await sess.close()
 
     @staticmethod
-    async def read_with_max_size(resp: aiohttp.ClientResponse, max_size: int) -> bytes:
+    async def read_with_max_size(resp: aiohttp.ClientResponse, max_size: int) -> bytearray:
         content_length = int(resp.headers.get("Content-Length", "0"))
         if 0 < max_size < content_length:
             raise exceptions.FileTooLargeError("File size larger than maximum")
         size_str = "unknown length" if content_length == 0 else f"{content_length} bytes"
         dl_log.info(f"Reading file download response with {size_str} (max: {max_size})")
-        blocks = []
+        data = bytearray(content_length)
+        mv = memoryview(data) if content_length > 0 else None
         read_size = 0
         max_size += 1
         while True:
@@ -224,10 +227,24 @@ class Client:
             max_size -= len(block)
             if max_size <= 0:
                 raise exceptions.FileTooLargeError("File size larger than maximum")
+            if len(data) >= read_size + len(block):
+                mv[read_size : read_size + len(block)] = block
+            elif len(data) > read_size:
+                dl_log.warning("File being downloaded is bigger than expected")
+                mv[read_size:] = block[: len(data) - read_size]
+                mv.release()
+                mv = None
+                data.extend(block[len(data) - read_size :])
+            else:
+                if mv is not None:
+                    mv.release()
+                    mv = None
+                data.extend(block)
             read_size += len(block)
-            blocks.append(block)
+        if mv is not None:
+            mv.release()
         dl_log.info(f"Successfully read {read_size} bytes of file download response")
-        return b"".join(blocks)
+        return data
 
     async def upload_file(
         self,

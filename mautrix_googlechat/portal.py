@@ -58,9 +58,9 @@ if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
 
 try:
-    from mautrix.crypto.attachments import decrypt_attachment, encrypt_attachment
+    from mautrix.crypto.attachments import async_inplace_encrypt_attachment, decrypt_attachment
 except ImportError:
-    decrypt_attachment = encrypt_attachment = None
+    decrypt_attachment = async_inplace_encrypt_attachment = None
 
 
 class FakeLock:
@@ -1166,7 +1166,7 @@ class Portal(DBPortal, BasePortal):
         await self._send_delivery_receipt(event_ids[-1][0])
 
     @staticmethod
-    async def _download_external_attachment(url: URL, max_size: int) -> tuple[bytes, str, str]:
+    async def _download_external_attachment(url: URL, max_size: int) -> tuple[bytearray, str, str]:
         async with aiohttp.ClientSession() as sess, sess.get(url) as resp:
             resp.raise_for_status()
             filename = url.path.split("/")[-1]
@@ -1271,8 +1271,8 @@ class Portal(DBPortal, BasePortal):
                 filename = msgtype.value + (mimetypes.guess_extension(mime) or "")
         upload_mime = mime
         decryption_info = None
-        if self.encrypted and encrypt_attachment:
-            data, decryption_info = encrypt_attachment(data)
+        if self.encrypted and async_inplace_encrypt_attachment:
+            decryption_info = await async_inplace_encrypt_attachment(data)
             upload_mime = "application/octet-stream"
         mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
         if decryption_info:
