@@ -167,6 +167,10 @@ class User(DBUser, BaseUser):
             return None
         return await pu.Puppet.get_by_gcid(self.gcid)
 
+    async def get_portal_with(self, puppet: pu.Puppet, create: bool = True) -> po.Portal | None:
+        # DMs need to be explicitly created on Google Chat, so we can't just get a chat by ID here.
+        return None
+
     async def fill_bridge_state(self, state: BridgeState) -> None:
         await super().fill_bridge_state(state)
         state.remote_id = str(self.gcid)

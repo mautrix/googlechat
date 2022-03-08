@@ -160,6 +160,8 @@ class Portal(DBPortal, BasePortal):
         NotificationDisabler.puppet_cls = p.Puppet
         NotificationDisabler.config_enabled = cls.config["bridge.backfill.disable_notifications"]
 
+    # region Properties
+
     @property
     def gcid_full(self) -> tuple[str, str]:
         return self.gcid, self.gc_receiver
@@ -179,19 +181,6 @@ class Portal(DBPortal, BasePortal):
     def gc_group_id(self) -> googlechat.GroupId:
         return maugclib.parsers.group_id_from_id(self.gcid)
 
-    # region DB conversion
-
-    async def delete(self) -> None:
-        if self.mxid:
-            await DBMessage.delete_all_by_room(self.mxid)
-            await DBReaction.delete_all_by_room(self.mxid)
-        self.by_gcid.pop(self.gcid_full, None)
-        self.by_mxid.pop(self.mxid, None)
-        await super().delete()
-
-    # endregion
-    # region Properties
-
     @property
     def is_direct(self) -> bool:
         return self.is_dm and bool(self.other_user_id)
@@ -207,7 +196,25 @@ class Portal(DBPortal, BasePortal):
         return self._main_intent
 
     # endregion
+    # region DB conversion
+
+    async def delete(self) -> None:
+        if self.mxid:
+            await DBMessage.delete_all_by_room(self.mxid)
+            await DBReaction.delete_all_by_room(self.mxid)
+        self.by_mxid.pop(self.mxid, None)
+        self.mxid = None
+        self.name_set = False
+        self.avatar_set = False
+        await super().save()
+
+    # endregion
     # region Chat info updating
+
+    async def get_dm_puppet(self) -> p.Puppet | None:
+        if not self.is_direct:
+            return None
+        return await p.Puppet.get_by_gcid(self.other_user_id)
 
     async def update_info(
         self, source: u.User | None = None, info: ChatInfo | None = None
@@ -233,7 +240,7 @@ class Portal(DBPortal, BasePortal):
 
     async def _update_name(self, info: ChatInfo) -> bool:
         if self.is_direct:
-            puppet = await p.Puppet.get_by_gcid(self.other_user_id)
+            puppet = await self.get_dm_puppet()
             name = puppet.name
         elif isinstance(info, googlechat.WorldItemLite) and info.HasField("room_name"):
             name = info.room_name
@@ -278,9 +285,7 @@ class Portal(DBPortal, BasePortal):
             user_ids.remove(source.gcid)
         if self.is_dm and len(user_ids) == 1 and not self.other_user_id:
             self.other_user_id = user_ids[0]
-            self._main_intent = (
-                await p.Puppet.get_by_gcid(self.other_user_id)
-            ).default_mxid_intent
+            self._main_intent = (await self.get_dm_puppet()).default_mxid_intent
             await self.save()
         if not self.mxid and not self.is_direct:
             return
@@ -1319,7 +1324,7 @@ class Portal(DBPortal, BasePortal):
             self.by_mxid[self.mxid] = self
         if self.other_user_id or not self.is_direct:
             self._main_intent = (
-                (await p.Puppet.get_by_gcid(self.other_user_id)).default_mxid_intent
+                (await self.get_dm_puppet()).default_mxid_intent
                 if self.is_direct
                 else self.az.intent
             )
