@@ -167,7 +167,6 @@ async def _fetch_youtube_oembed(url: str) -> dict[str, Any]:
         }
     )
     try:
-        print(oembed_url)
         async with aiohttp.ClientSession(headers=bot_hdrs) as sess, sess.get(oembed_url) as resp:
             if resp.status == 404:
                 log.debug(f"Didn't find oEmbed info for {url}")
