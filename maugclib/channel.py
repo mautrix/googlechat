@@ -245,7 +245,7 @@ class Channel:
 
         logger.error("Ran out of retries for long-polling request")
 
-    async def _register(self) -> str:
+    async def _register(self) -> str | None:
         # we need to clear our cookies because registering with a valid cookie
         # invalidates our cookie and doesn't get a new one sent back.
         self._session.clear_cookies()
@@ -253,39 +253,29 @@ class Channel:
         self._aid = 0
         self._ofs = 0
 
-        retries = 3
-        attempts = 0
+        headers = {"Content-Type": "application/x-protobuf"}
+        res = await self._session.fetch_raw("POST", CHANNEL_URL_BASE + "register", headers=headers)
 
-        while attempts < retries:
-            if attempts > 0:
-                logger.debug(f"retrying channel registration: attempt {attempts}/{retries}")
-
-            headers = {"Content-Type": "application/x-protobuf"}
-            res = await self._session.fetch_raw(
-                "POST", CHANNEL_URL_BASE + "register", headers=headers
+        if res.status != 200:
+            raise exceptions.NetworkError(
+                f"Request return unexpected status: {res.status}: {res.reason}"
             )
 
-            if res.status != 200:
-                raise exceptions.NetworkError(
-                    f"Request return unexpected status: {res.status}: {res.reason}"
-                )
+        body = await res.read()
 
-            body = await res.read()
-
-            morsel = self._session.get_cookie(CHANNEL_URL_BASE, "COMPASS")
-            logger.debug(f"morsel: {morsel}")
-            if morsel is None:
-                logger.debug(f"res: {body}")
-                logger.warning("Failed to register channel (didn't get COMPASS cookie)")
-                attempts = attempts + 1
-                continue
-            else:
-                logger.info("Registered new channel successfully")
-
-            if morsel.value.startswith("dynamite="):
-                return morsel.value[len("dynamite=") :]
-
-        raise ChannelSessionError("Failed to register new channel (ran out of retries)")
+        morsel = self._session.get_cookie(CHANNEL_URL_BASE, "COMPASS")
+        logger.debug("Cookies: %s", self._session._cookie_jar._cookies)
+        logger.debug("Register response: %s", body)
+        logger.debug("Status: %s", res.status)
+        logger.debug("Headers: %s", res.headers)
+        if morsel is None:
+            logger.warning("Failed to register channel (didn't get COMPASS cookie)")
+        elif morsel.value.startswith("dynamite="):
+            logger.info("Registered new channel successfully")
+            return morsel.value[len("dynamite=") :]
+        else:
+            logger.warning("COMPASS cookie doesn't start with dynamite= (value: %s)", morsel.value)
+        return None
 
     async def send_stream_event(self, events_request: googlechat_pb2.StreamEventsRequest):
         params = {
