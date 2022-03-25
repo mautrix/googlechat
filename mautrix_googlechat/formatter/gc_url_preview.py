@@ -44,7 +44,9 @@ YOUTUBE_OEMBED_URL = URL("https://www.youtube.com/oembed")
 bot_hdrs = {"User-Agent": "mautrix oembed bot +https://github.com/mautrix/googlechat"}
 
 
-async def _reupload_preview(source: u.User | None, url: str, encrypt: bool) -> dict:
+async def _reupload_preview(
+    source: u.User | None, url: str, encrypt: bool, async_upload: bool
+) -> dict:
     try:
         return _upload_cache[url]
     except KeyError:
@@ -71,7 +73,7 @@ async def _reupload_preview(source: u.User | None, url: str, encrypt: bool) -> d
         file = await async_inplace_encrypt_attachment(data)
         output["beeper:image:encryption"] = file.serialize()
         mime = "application/octet-stream"
-    mxc = await bot.upload_media(data, mime_type=mime)
+    mxc = await bot.upload_media(data, mime_type=mime, async_upload=async_upload)
     if file:
         output["beeper:image:encryption"]["url"] = mxc
     else:
@@ -92,6 +94,7 @@ async def gc_previews_to_beeper(
     text: str,
     annotations: list[googlechat.Annotation],
     encrypt: bool = False,
+    async_upload: bool = False,
 ) -> list[dict[str, Any]]:
     url_previews = []
     for ann in annotations:
@@ -103,11 +106,15 @@ async def gc_previews_to_beeper(
             and ann.url_metadata.title
             and not _has_matching_drive_annotation(annotations, ann.url_metadata.url.url)
         ):
-            preview = await gc_url_to_beeper(source, url, ann.url_metadata, encrypt)
+            preview = await gc_url_to_beeper(source, url, ann.url_metadata, encrypt, async_upload)
         elif ann.HasField("drive_metadata") and ann.drive_metadata.title:
-            preview = await gc_drive_to_beeper(source, url, ann.drive_metadata, encrypt)
+            preview = await gc_drive_to_beeper(
+                source, url, ann.drive_metadata, encrypt, async_upload
+            )
         elif ann.HasField("youtube_metadata"):
-            preview = await gc_youtube_to_beeper(source, url, ann.youtube_metadata, encrypt)
+            preview = await gc_youtube_to_beeper(
+                source, url, ann.youtube_metadata, encrypt, async_upload
+            )
         else:
             continue
         url_previews.append({k: v for k, v in preview.items() if v})
@@ -115,7 +122,11 @@ async def gc_previews_to_beeper(
 
 
 async def gc_url_to_beeper(
-    source: u.User, matched_url: str, meta: googlechat.UrlMetadata, encrypt: bool
+    source: u.User,
+    matched_url: str,
+    meta: googlechat.UrlMetadata,
+    encrypt: bool,
+    async_upload: bool,
 ) -> dict[str, Any]:
     preview = {
         "matched_url": matched_url,
@@ -124,14 +135,18 @@ async def gc_url_to_beeper(
         "og:description": meta.snippet,
     }
     if meta.image_url:
-        preview.update(await _reupload_preview(source, meta.image_url, encrypt))
+        preview.update(await _reupload_preview(source, meta.image_url, encrypt, async_upload))
         preview["og:image:width"] = meta.int_image_width
         preview["og:image:height"] = meta.int_image_height
     return preview
 
 
 async def gc_drive_to_beeper(
-    source: u.User, matched_url: str, meta: googlechat.DriveMetadata, encrypt: bool
+    source: u.User,
+    matched_url: str,
+    meta: googlechat.DriveMetadata,
+    encrypt: bool,
+    async_upload: bool = False,
 ) -> dict[str, Any]:
     open_url = str(DRIVE_OPEN_URL.with_query({"id": meta.id}))
     preview = {
@@ -149,7 +164,7 @@ async def gc_drive_to_beeper(
                     }
                 )
             )
-        preview.update(await _reupload_preview(source, meta.thumbnail_url, encrypt))
+        preview.update(await _reupload_preview(source, meta.thumbnail_url, encrypt, async_upload))
         preview["og:image:width"] = meta.thumbnail_width
         preview["og:image:height"] = meta.thumbnail_height
     return preview
@@ -182,7 +197,11 @@ async def _fetch_youtube_oembed(url: str) -> dict[str, Any]:
 
 
 async def gc_youtube_to_beeper(
-    source: u.User, matched_url: str, meta: googlechat.YoutubeMetadata, encrypt: bool
+    source: u.User,
+    matched_url: str,
+    meta: googlechat.YoutubeMetadata,
+    encrypt: bool,
+    async_upload: bool = False,
 ) -> dict[str, Any] | None:
     open_url = str(YOUTUBE_URL.with_query({"v": meta.id}))
     preview_meta = await _fetch_youtube_oembed(open_url)
@@ -195,7 +214,7 @@ async def gc_youtube_to_beeper(
         "og:video": open_url,
         "og:video:width": preview_meta.get("width"),
         "og:video:height": preview_meta.get("height"),
-        **await _reupload_preview(source, thumbnail_url, encrypt),
+        **await _reupload_preview(source, thumbnail_url, encrypt, async_upload),
         "og:image:width": preview_meta.get("thumbnail_width"),
         "og:image:height": preview_meta.get("thumbnail_height"),
     }
