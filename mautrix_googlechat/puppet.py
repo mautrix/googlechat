@@ -205,15 +205,19 @@ class Puppet(DBPuppet, BasePuppet):
             return True
         return False
 
-    @staticmethod
     async def _reupload_gc_photo(
-        url: str, intent: IntentAPI, filename: str | None = None
+        self, url: str, intent: IntentAPI, filename: str | None = None
     ) -> ContentURI:
         async with aiohttp.ClientSession() as session:
             resp = await session.get(URL(url).with_scheme("https"))
             data = await resp.read()
         mime = magic.mimetype(data)
-        return await intent.upload_media(data, mime_type=mime, filename=filename)
+        return await intent.upload_media(
+            data,
+            mime_type=mime,
+            filename=filename,
+            async_upload=self.config["homeserver.async_media"],
+        )
 
     # endregion
     # region Getters

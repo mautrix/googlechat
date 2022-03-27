@@ -1060,7 +1060,9 @@ class Portal(DBPortal, BasePortal):
             return
 
         self._preprocess_annotations(evt)
-        content = await fmt.googlechat_to_matrix(source, evt, self.encrypted)
+        content = await fmt.googlechat_to_matrix(
+            source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
+        )
         content.set_edit(target.mxid)
         event_id = await self._send_message(
             sender.intent_for(self), content, timestamp=edit_ts // 1000
@@ -1129,7 +1131,9 @@ class Portal(DBPortal, BasePortal):
 
         event_ids: list[tuple[EventID, MessageType]] = []
         if evt.text_body:
-            content = await fmt.googlechat_to_matrix(source, evt, self.encrypted)
+            content = await fmt.googlechat_to_matrix(
+                source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
+            )
             if reply_to:
                 content.set_reply(reply_to.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
@@ -1274,7 +1278,12 @@ class Portal(DBPortal, BasePortal):
         if self.encrypted and async_inplace_encrypt_attachment:
             decryption_info = await async_inplace_encrypt_attachment(data)
             upload_mime = "application/octet-stream"
-        mxc_url = await intent.upload_media(data, mime_type=upload_mime, filename=filename)
+        mxc_url = await intent.upload_media(
+            data,
+            mime_type=upload_mime,
+            filename=filename,
+            async_upload=self.config["homeserver.async_media"],
+        )
         if decryption_info:
             decryption_info.url = mxc_url
             mxc_url = None

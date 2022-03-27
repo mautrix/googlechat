@@ -26,14 +26,14 @@ from .util import FormatError, add_surrogate, del_surrogate
 
 
 async def googlechat_to_matrix(
-    source: u.User, evt: googlechat.Message, encrypt: bool = False
+    source: u.User, evt: googlechat.Message, encrypt: bool = False, async_upload: bool = False
 ) -> TextMessageEventContent:
     content = TextMessageEventContent(
         msgtype=MessageType.TEXT,
         body=add_surrogate(evt.text_body),
     )
     content["com.beeper.linkpreviews"] = await gc_previews_to_beeper(
-        source, content.body, evt.annotations or [], encrypt=encrypt
+        source, content.body, evt.annotations or [], encrypt=encrypt, async_upload=async_upload
     )
     if annotations:
         content.format = Format.HTML
