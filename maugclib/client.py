@@ -43,6 +43,12 @@ class Client:
             Defaults to 2.
     """
 
+    _session: http_utils.Session | None
+    _token_manager: auth.TokenManager
+    _channel: channel.Channel | None
+    _listen_future: asyncio.Future | None
+    _session_future: asyncio.Future | None
+
     def __init__(
         self, token_manager: auth.TokenManager, max_retries: int = 5, retry_backoff_base: int = 2
     ) -> None:
@@ -85,6 +91,8 @@ class Client:
         # Future for Channel.listen (populated by .connect()):
         self._listen_future = None
 
+        self._session_future = asyncio.get_running_loop().create_future()
+
         self.gc_request_header = googlechat_pb2.RequestHeader(
             client_type=googlechat_pb2.RequestHeader.ClientType.IOS,
             client_version=2440378181258,
@@ -117,6 +125,8 @@ class Client:
         """
         proxy = os.environ.get("HTTP_PROXY")
         self._session = http_utils.Session(self._token_manager, proxy=proxy)
+        if not self._session_future.done():
+            self._session_future.set_result(self._session)
         try:
             self._channel = channel.Channel(
                 self._session, self._max_retries, self._retry_backoff_base
@@ -141,6 +151,7 @@ class Client:
                 self._listen_future.cancel()
             logger.info("Client.connect returning because Channel.listen returned")
         finally:
+            self._session_future = asyncio.get_running_loop().create_future()
             await self._session.close()
 
     def disconnect(self) -> None:
@@ -180,6 +191,8 @@ class Client:
             while depth < 10:
                 depth += 1
                 if url.host.endswith(".google.com"):
+                    if self._session.closed:
+                        await self._wait_for_session()
                     logger.log(5, "Fetching %s with auth", url)
                     req = self._session.fetch_raw_ctx("GET", url, allow_redirects=False)
                 else:
@@ -519,6 +532,13 @@ class Client:
             )
         logger.debug("Received Protocol Buffer response:\n%s", response_pb)
 
+    async def _wait_for_session(self) -> None:
+        try:
+            await asyncio.wait_for(self._session_future, 5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            # Ignore these errors, it'll raise a RuntimeError anyway
+            pass
+
     async def _base_request(
         self,
         url: str,
@@ -569,6 +589,9 @@ class Client:
                 "key": API_KEY,
             }
         )
+
+        if self._session.closed:
+            await self._wait_for_session()
         res = await self._session.fetch(
             method,
             url,

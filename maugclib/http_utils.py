@@ -221,3 +221,7 @@ class Session:
     async def close(self) -> None:
         """Close the underlying aiohttp.ClientSession."""
         await self._session.close()
+
+    @property
+    def closed(self) -> bool:
+        return self._session.closed
