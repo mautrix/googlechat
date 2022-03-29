@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, AsyncIterable, Awaitable, cast
+from hashlib import sha256
 import asyncio
 
 from yarl import URL
@@ -57,6 +58,7 @@ class Puppet(DBPuppet, BasePuppet):
         access_token: str | None = None,
         next_batch: SyncToken | None = None,
         base_url: URL | None = None,
+        photo_hash: str | None = None,
     ) -> None:
         super().__init__(
             gcid=gcid,
@@ -70,6 +72,7 @@ class Puppet(DBPuppet, BasePuppet):
             access_token=access_token,
             next_batch=next_batch,
             base_url=base_url,
+            photo_hash=photo_hash,
         )
 
         self.default_mxid = self.get_mxid_from_id(gcid)
@@ -190,9 +193,16 @@ class Puppet(DBPuppet, BasePuppet):
         if photo_url != self.photo_id or not self.avatar_set:
             if photo_url != self.photo_id:
                 if photo_url:
-                    self.photo_mxc = await self._reupload_gc_photo(
+                    photo_mxc, photo_hash = await self._reupload_gc_photo(
                         photo_url, self.default_mxid_intent
                     )
+                    if not photo_hash:
+                        # photo did not change, but the URL did
+                        self.photo_id = photo_url
+                        return True
+                    else:
+                        self.photo_mxc = photo_mxc
+                        self.photo_hash = photo_hash
                 else:
                     self.photo_mxc = ContentURI("")
                 self.photo_id = photo_url
@@ -207,16 +217,25 @@ class Puppet(DBPuppet, BasePuppet):
 
     async def _reupload_gc_photo(
         self, url: str, intent: IntentAPI, filename: str | None = None
-    ) -> ContentURI:
+    ) -> tuple[ContentURI, str | None]:
         async with aiohttp.ClientSession() as session:
             resp = await session.get(URL(url).with_scheme("https"))
             data = await resp.read()
+        hasher = sha256()
+        hasher.update(data)
+        photo_hash = hasher.hexdigest()
+        if self.photo_hash == photo_hash:
+            # photo has not changed
+            return ContentURI(""), None
         mime = magic.mimetype(data)
-        return await intent.upload_media(
-            data,
-            mime_type=mime,
-            filename=filename,
-            async_upload=self.config["homeserver.async_media"],
+        return (
+            await intent.upload_media(
+                data,
+                mime_type=mime,
+                filename=filename,
+                async_upload=self.config["homeserver.async_media"],
+            ),
+            photo_hash,
         )
 
     # endregion
