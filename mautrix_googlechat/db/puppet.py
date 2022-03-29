@@ -35,6 +35,7 @@ class Puppet:
     name: str | None
     photo_id: str | None
     photo_mxc: ContentURI | None
+    photo_hash: str | None
     name_set: bool
     avatar_set: bool
     is_registered: bool
@@ -54,7 +55,7 @@ class Puppet:
 
     columns = (
         "gcid, name, photo_id, photo_mxc, name_set, avatar_set, is_registered, "
-        "custom_mxid, access_token, next_batch, base_url"
+        "custom_mxid, access_token, next_batch, base_url, photo_hash"
     )
 
     @classmethod
@@ -95,13 +96,14 @@ class Puppet:
             self.access_token,
             self.next_batch,
             str(self.base_url) if self.base_url else None,
+            self.photo_hash,
         )
 
     async def insert(self) -> None:
         q = (
             "INSERT INTO puppet (gcid, name, photo_id, photo_mxc, name_set, avatar_set, "
-            "                    is_registered, custom_mxid, access_token, next_batch, base_url) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            "                    is_registered, custom_mxid, access_token, next_batch, base_url, photo_hash) "
+            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
         )
         await self.db.execute(q, *self._values)
 
@@ -113,7 +115,7 @@ class Puppet:
         q = (
             "UPDATE puppet SET name=$2, photo_id=$3, photo_mxc=$4, name_set=$5, avatar_set=$6, "
             "                  is_registered=$7, custom_mxid=$8, access_token=$9, next_batch=$10,"
-            "                  base_url=$11 "
+            "                  base_url=$11, photo_hash=$12 "
             "WHERE gcid=$1"
         )
         await self.db.execute(q, *self._values)
