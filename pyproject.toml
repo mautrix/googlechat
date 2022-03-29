@@ -10,5 +10,4 @@ skip = ["maugclib/googlechat_pb2.py"]
 [tool.black]
 line-length = 99
 target-version = ["py38"]
-required-version = "22.1.0"
 force-exclude = "maugclib/googlechat_pb2.py"
