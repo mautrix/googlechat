@@ -537,7 +537,9 @@ class User(DBUser, BaseUser):
                 if limit is None:
                     await portal.update_matrix_room(self, info)
                 if portal.revision and info.group_revision.timestamp > portal.revision:
-                    msg_count = await portal.backfill(self, info.group_revision.timestamp)
+                    msg_count = await portal.backfill(
+                        self, info.group_revision.timestamp, read_state=info.read_state
+                    )
                     if msg_count > 0:
                         backfilled_count += 1
             else:

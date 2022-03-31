@@ -107,7 +107,7 @@ class Message:
         q = (
             f"SELECT {cls.columns} FROM message"
             " WHERE gc_chat=$1 AND gc_receiver=$2 AND timestamp<=$3"
-            " ORDER BY timestamp DESC LIMIT 1"
+            " ORDER BY timestamp DESC, index DESC LIMIT 1"
         )
         row = await cls.db.fetchrow(q, gc_chat, gc_receiver, timestamp)
         return cls._from_row(row)

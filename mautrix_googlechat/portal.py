@@ -302,7 +302,11 @@ class Portal(DBPortal, BasePortal):
     # region Backfill
 
     async def backfill(
-        self, source: u.User, latest_revision: int, is_initial: bool = False
+        self,
+        source: u.User,
+        latest_revision: int,
+        read_state: googlechat.GroupReadState,
+        is_initial: bool = False,
     ) -> int:
         try:
             with self.backfill_lock:
@@ -312,6 +316,7 @@ class Portal(DBPortal, BasePortal):
                     else:
                         total_handled = await self._catchup_backfill(source, latest_revision)
                 await self.set_revision(latest_revision)
+            await self.mark_read(source.gcid, read_state.last_read_time)
             return total_handled
         except Exception:
             self.log.exception(f"Failed to backfill portal ({latest_revision=}, {is_initial=})")
@@ -629,7 +634,14 @@ class Portal(DBPortal, BasePortal):
                     )
 
             await self.backfill(
-                source, latest_revision=info.group_revision.timestamp, is_initial=True
+                source,
+                latest_revision=info.group_revision.timestamp,
+                read_state=(
+                    info.group.group_read_state
+                    if isinstance(info, googlechat.GetGroupResponse)
+                    else info.read_state
+                ),
+                is_initial=True,
             )
 
         return self.mxid
