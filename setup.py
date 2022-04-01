@@ -36,6 +36,9 @@ setuptools.setup(
     name="mautrix-googlechat",
     version=version,
     url="https://github.com/mautrix/googlechat",
+    project_urls={
+        "Changelog": "https://github.com/mautrix/googlechat/blob/master/CHANGELOG.md",
+    },
 
     author="Tulir Asokan",
     author_email="tulir@maunium.net",
