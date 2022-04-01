@@ -268,13 +268,14 @@ class Channel:
         logger.debug("Register response: %s", body)
         logger.debug("Status: %s", res.status)
         logger.debug("Headers: %s", res.headers)
-        if morsel is None:
-            logger.warning("Failed to register channel (didn't get COMPASS cookie)")
-        elif morsel.value.startswith("dynamite="):
-            logger.info("Registered new channel successfully")
-            return morsel.value[len("dynamite=") :]
-        else:
-            logger.warning("COMPASS cookie doesn't start with dynamite= (value: %s)", morsel.value)
+        if morsel is not None:
+            if morsel.value.startswith("dynamite="):
+                logger.info("Registered new channel successfully")
+                return morsel.value[len("dynamite=") :]
+            else:
+                logger.warning(
+                    "COMPASS cookie doesn't start with dynamite= (value: %s)", morsel.value
+                )
         return None
 
     async def send_stream_event(self, events_request: googlechat_pb2.StreamEventsRequest):
