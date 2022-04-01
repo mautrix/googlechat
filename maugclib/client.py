@@ -44,10 +44,8 @@ class Client:
     """
 
     _session: http_utils.Session | None
-    _token_manager: auth.TokenManager
     _channel: channel.Channel | None
     _listen_future: asyncio.Future | None
-    _session_future: asyncio.Future | None
 
     def __init__(
         self, token_manager: auth.TokenManager, max_retries: int = 5, retry_backoff_base: int = 2
@@ -79,19 +77,13 @@ class Client:
             state_update: A ``StateUpdate`` message.
         """
 
-        # http_utils.Session instance (populated by .connect()):
-        self._session = None
-
-        # The token manager that renews our tokens for us.
-        self._token_manager = token_manager
+        self._session = http_utils.Session(token_manager, proxy=os.environ.get("HTTP_PROXY"))
 
         # channel.Channel instance (populated by .connect()):
         self._channel = None
 
         # Future for Channel.listen (populated by .connect()):
         self._listen_future = None
-
-        self._session_future = asyncio.get_running_loop().create_future()
 
         self.gc_request_header = googlechat_pb2.RequestHeader(
             client_type=googlechat_pb2.RequestHeader.ClientType.IOS,
@@ -123,36 +115,26 @@ class Client:
         Returns when an error has occurred, or :func:`disconnect` has been
         called.
         """
-        proxy = os.environ.get("HTTP_PROXY")
-        self._session = http_utils.Session(self._token_manager, proxy=proxy)
-        if not self._session_future.done():
-            self._session_future.set_result(self._session)
+        self._channel = channel.Channel(self._session, self._max_retries, self._retry_backoff_base)
+
+        # Forward the Channel events to the Client events.
+        self._channel.on_connect.add_observer(self.on_connect.fire)
+        self._channel.on_reconnect.add_observer(self.on_reconnect.fire)
+        self._channel.on_disconnect.add_observer(self.on_disconnect.fire)
+        self._channel.on_receive_array.add_observer(self._on_receive_array)
+
+        # Wrap the coroutine in a Future so it can be cancelled.
+        self._listen_future = asyncio.create_task(self._channel.listen(max_age))
+        # Listen for StateUpdate messages from the Channel until it
+        # disconnects.
         try:
-            self._channel = channel.Channel(
-                self._session, self._max_retries, self._retry_backoff_base
-            )
-
-            # Forward the Channel events to the Client events.
-            self._channel.on_connect.add_observer(self.on_connect.fire)
-            self._channel.on_reconnect.add_observer(self.on_reconnect.fire)
-            self._channel.on_disconnect.add_observer(self.on_disconnect.fire)
-            self._channel.on_receive_array.add_observer(self._on_receive_array)
-
-            # Wrap the coroutine in a Future so it can be cancelled.
-            self._listen_future = asyncio.ensure_future(self._channel.listen(max_age))
-            # Listen for StateUpdate messages from the Channel until it
-            # disconnects.
-            try:
-                await self._listen_future
-            except asyncio.CancelledError:
-                # If this task is cancelled, we need to cancel our child task
-                # as well. We don't need an additional yield because listen
-                # cancels immediately.
-                self._listen_future.cancel()
-            logger.info("Client.connect returning because Channel.listen returned")
-        finally:
-            self._session_future = asyncio.get_running_loop().create_future()
-            await self._session.close()
+            await self._listen_future
+        except asyncio.CancelledError:
+            # If this task is cancelled, we need to cancel our child task
+            # as well. We don't need an additional yield because listen
+            # cancels immediately.
+            self._listen_future.cancel()
+        logger.info("Client.connect returning because Channel.listen returned")
 
     def disconnect(self) -> None:
         """Gracefully disconnect from the server.
@@ -191,8 +173,6 @@ class Client:
             while depth < 10:
                 depth += 1
                 if url.host.endswith(".google.com"):
-                    if self._session.closed:
-                        await self._wait_for_session()
                     logger.log(5, "Fetching %s with auth", url)
                     req = self._session.fetch_raw_ctx("GET", url, allow_redirects=False)
                 else:
@@ -532,13 +512,6 @@ class Client:
             )
         logger.debug("Received Protocol Buffer response:\n%s", response_pb)
 
-    async def _wait_for_session(self) -> None:
-        try:
-            await asyncio.wait_for(self._session_future, 5)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            # Ignore these errors, it'll raise a RuntimeError anyway
-            pass
-
     async def _base_request(
         self,
         url: str,
@@ -590,8 +563,6 @@ class Client:
             }
         )
 
-        if self._session.closed:
-            await self._wait_for_session()
         res = await self._session.fetch(
             method,
             url,
