@@ -293,9 +293,9 @@ class Portal(DBPortal, BasePortal):
         await asyncio.gather(*[self._update_participant(source, user) for user in users])
 
     async def _update_participant(self, source: u.User, user: googlechat.User) -> None:
-        puppet = await p.Puppet.get_by_gcid(user.user_id.id)
+        puppet: p.Puppet = await p.Puppet.get_by_gcid(user.user_id.id)
         await puppet.update_info(source=source, info=user)
-        if self.mxid:
+        if self.mxid and (not puppet.is_real_user or puppet.gcid != source.gcid):
             await puppet.intent_for(self).ensure_joined(self.mxid, bot=self.main_intent)
 
     # endregion
