@@ -242,7 +242,7 @@ class User(DBUser, BaseUser):
         asyncio.create_task(self.start())
         if not self.periodic_sync_task:
             self.periodic_sync_task = asyncio.create_task(self._periodic_sync())
-        self.client.on_stream_event.add_observer(self._in_background(self.on_stream_event))
+        self.client.on_stream_event.add_observer(self.on_stream_event)
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)

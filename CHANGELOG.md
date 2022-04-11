@@ -6,6 +6,8 @@
   avatar on Matrix (thanks to [@kpfleming] in [#66]).
   * Usually avatar URLs are stable, but it seems that they aren't in some cases.
     This change should prevent unnecessary avatar change events on Matrix.
+* Changed event handling to work synchronously to make sure incoming messages
+  are bridged in the correct order.
 * Fixed bug where messages being sent while the bridge is reconnecting to
   Google Chat would fail completely.
 * Removed unnecessary warning log about `COMPASS` cookies.
