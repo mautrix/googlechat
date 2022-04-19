@@ -175,7 +175,7 @@ bridge:
     # except if the config file is not writable.
     resend_bridge_info: false
     # Whether or not unimportant bridge notices should be sent to the bridge notice room.
-    unimportant_bridge_notices: true
+    unimportant_bridge_notices: false
     # Whether or not bridge notices should be disabled entirely.
     disable_bridge_notices: false
 
