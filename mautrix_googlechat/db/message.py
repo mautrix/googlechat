@@ -70,18 +70,6 @@ class Message:
         return cls._from_row(row)
 
     @classmethod
-    async def get_last_in_thread(
-        cls, gc_parent_id: str, gc_chat: str, gc_receiver: str
-    ) -> Message | None:
-        q = (
-            f"SELECT {cls.columns} FROM message"
-            " WHERE (gc_parent_id=$1 OR gcid=$1) AND gc_chat=$2 AND gc_receiver=$3"
-            " ORDER BY timestamp DESC, index DESC LIMIT 1"
-        )
-        row = await cls.db.fetchrow(q, gc_parent_id, gc_chat, gc_receiver)
-        return cls._from_row(row)
-
-    @classmethod
     async def delete_all_by_room(cls, room_id: RoomID) -> None:
         await cls.db.execute("DELETE FROM message WHERE mx_room=$1", room_id)
 

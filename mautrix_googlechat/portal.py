@@ -794,7 +794,9 @@ class Portal(DBPortal, BasePortal):
         if message.get_edit():
             await self.handle_matrix_edit(sender, message, event_id)
             return
-        reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
+        reply_to = await DBMessage.get_by_mxid(
+            message.get_thread_parent() or message.get_reply_to(), self.mxid
+        )
         thread_id = (
             (reply_to.gc_parent_id or reply_to.gcid) if reply_to and self.is_threaded else None
         )
@@ -1133,10 +1135,10 @@ class Portal(DBPortal, BasePortal):
         intent = sender.intent_for(self)
         self.log.debug("Handling Google Chat message %s", msg_id)
 
-        reply_to = None
+        thread_parent = None
         parent_id = evt.id.parent_id.topic_id.topic_id
         if parent_id:
-            reply_to = await DBMessage.get_last_in_thread(parent_id, self.gcid, self.gc_receiver)
+            thread_parent = await DBMessage.get_by_gcid(parent_id, self.gcid, self.gc_receiver)
 
         # This also adds text to evt.text_body if necessary
         attachment_urls = self._preprocess_annotations(evt)
@@ -1146,15 +1148,15 @@ class Portal(DBPortal, BasePortal):
             content = await fmt.googlechat_to_matrix(
                 source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
             )
-            if reply_to:
-                content.set_reply(reply_to.mxid)
+            if thread_parent:
+                content.set_thread_parent(thread_parent.mxid)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
             event_ids.append((event_id, MessageType.TEXT))
 
         try:
             for att in attachment_urls:
                 resp = await self._process_googlechat_attachment(
-                    att, source=source, intent=intent, reply_to=reply_to, ts=timestamp
+                    att, source=source, intent=intent, thread_parent=thread_parent, ts=timestamp
                 )
                 if resp:
                     event_ids.append(resp)
@@ -1257,7 +1259,7 @@ class Portal(DBPortal, BasePortal):
         att: AttachmentURL,
         source: u.User,
         intent: IntentAPI,
-        reply_to: DBMessage | None,
+        thread_parent: DBMessage | None,
         ts: int,
     ) -> tuple[EventID, MessageType] | None:
         max_size = self.matrix.media_config.upload_size
@@ -1306,8 +1308,8 @@ class Portal(DBPortal, BasePortal):
             info=ImageInfo(size=len(data), mimetype=mime),
         )
         content.msgtype = msgtype
-        if reply_to:
-            content.set_reply(reply_to.mxid)
+        if thread_parent:
+            content.set_thread_parent(thread_parent.mxid)
         event_id = await self._send_message(intent, content, timestamp=ts)
         return event_id, content.msgtype
 
