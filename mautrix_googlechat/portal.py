@@ -1138,7 +1138,15 @@ class Portal(DBPortal, BasePortal):
         thread_parent = None
         parent_id = evt.id.parent_id.topic_id.topic_id
         if parent_id:
-            thread_parent = await DBMessage.get_by_gcid(parent_id, self.gcid, self.gc_receiver)
+            thread_parent_db = await DBMessage.get_by_gcid(parent_id, self.gcid, self.gc_receiver)
+            last_in_thread_db = await DBMessage.get_last_in_thread(
+                parent_id, self.gcid, self.gc_receiver
+            )
+            if thread_parent_db:
+                thread_parent = {
+                    "thread_parent": thread_parent_db.mxid,
+                    "last_event_in_thread": last_in_thread_db.mxid if last_in_thread_db else None,
+                }
 
         # This also adds text to evt.text_body if necessary
         attachment_urls = self._preprocess_annotations(evt)
@@ -1149,7 +1157,7 @@ class Portal(DBPortal, BasePortal):
                 source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
             )
             if thread_parent:
-                content.set_thread_parent(thread_parent.mxid)
+                content.set_thread_parent(**thread_parent)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
             event_ids.append((event_id, MessageType.TEXT))
 
@@ -1259,7 +1267,7 @@ class Portal(DBPortal, BasePortal):
         att: AttachmentURL,
         source: u.User,
         intent: IntentAPI,
-        thread_parent: DBMessage | None,
+        thread_parent: dict[str, EventID] | None,
         ts: int,
     ) -> tuple[EventID, MessageType] | None:
         max_size = self.matrix.media_config.upload_size
@@ -1309,7 +1317,7 @@ class Portal(DBPortal, BasePortal):
         )
         content.msgtype = msgtype
         if thread_parent:
-            content.set_thread_parent(thread_parent.mxid)
+            content.set_thread_parent(**thread_parent)
         event_id = await self._send_message(intent, content, timestamp=ts)
         return event_id, content.msgtype
 
