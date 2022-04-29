@@ -1152,6 +1152,15 @@ class Portal(DBPortal, BasePortal):
         attachment_urls = self._preprocess_annotations(evt)
 
         event_ids: list[tuple[EventID, MessageType]] = []
+
+        def _append_event_id(evt_id: EventID, msg_type: MessageType) -> None:
+            event_ids.append((evt_id, msg_type))
+            if self.is_threaded:
+                nonlocal thread_parent
+                if not thread_parent:
+                    thread_parent = {"thread_parent": evt_id}
+                thread_parent["last_event_in_thread"] = evt_id
+
         if evt.text_body:
             content = await fmt.googlechat_to_matrix(
                 source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
@@ -1159,7 +1168,7 @@ class Portal(DBPortal, BasePortal):
             if thread_parent:
                 content.set_thread_parent(**thread_parent)
             event_id = await self._send_message(intent, content, timestamp=timestamp)
-            event_ids.append((event_id, MessageType.TEXT))
+            _append_event_id(event_id, MessageType.TEXT)
 
         try:
             for att in attachment_urls:
@@ -1167,7 +1176,7 @@ class Portal(DBPortal, BasePortal):
                     att, source=source, intent=intent, thread_parent=thread_parent, ts=timestamp
                 )
                 if resp:
-                    event_ids.append(resp)
+                    _append_event_id(*resp)
         except Exception:
             self.log.exception("Failed to process attachments")
 
