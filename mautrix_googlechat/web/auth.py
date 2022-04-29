@@ -73,11 +73,7 @@ class GoogleChatAuthServer:
     shared_secret: str | None
     device_name: str
 
-    def __init__(
-        self,
-        shared_secret: str | None,
-        device_name: str
-    ) -> None:
+    def __init__(self, shared_secret: str | None, device_name: str) -> None:
         self.ongoing = {}
         self.device_name = device_name
         self.shared_secret = shared_secret

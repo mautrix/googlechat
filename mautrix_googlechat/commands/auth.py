@@ -15,14 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import textwrap
 
-from mautrix.types import EventID
-from mautrix.errors import MForbidden
-from mautrix.bridge.commands import HelpSection, command_handler
 from maugclib.auth import GoogleAuthError, TokenManager
+from mautrix.bridge.commands import HelpSection, command_handler
+from mautrix.errors import MForbidden
+from mautrix.types import EventID
 
 from .. import puppet as pu, user as u
-from .typehint import CommandEvent
 from ..web.auth import make_login_url
+from .typehint import CommandEvent
 
 SECTION_AUTH = HelpSection("Authentication", 10, "")
 
