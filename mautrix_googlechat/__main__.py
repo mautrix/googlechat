@@ -54,11 +54,11 @@ class GoogleChatBridge(Bridge):
     def prepare_bridge(self) -> None:
         super().prepare_bridge()
         self.auth_server = GoogleChatAuthServer(
-            self.config["bridge.web.auth.shared_secret"],
+            self.config["bridge.provisioning.shared_secret"],
             self.config["hangouts.device_name"],
-            self.loop,
         )
-        self.az.app.add_subapp(self.config["bridge.web.auth.prefix"], self.auth_server.app)
+        self.az.app.add_subapp("/login", self.auth_server.legacy_app)
+        self.az.app.add_subapp(self.config["bridge.provisioning.prefix"], self.auth_server.app)
 
     async def resend_bridge_info(self) -> None:
         self.config["bridge.resend_bridge_info"] = False

@@ -13,10 +13,16 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from mautrix.bridge.commands import HelpSection, command_handler
+import textwrap
 
-from .. import puppet as pu
+from mautrix.types import EventID
+from mautrix.errors import MForbidden
+from mautrix.bridge.commands import HelpSection, command_handler
+from maugclib.auth import GoogleAuthError, TokenManager
+
+from .. import puppet as pu, user as u
 from .typehint import CommandEvent
+from ..web.auth import make_login_url
 
 SECTION_AUTH = HelpSection("Authentication", 10, "")
 
@@ -27,11 +33,55 @@ SECTION_AUTH = HelpSection("Authentication", 10, "")
     help_section=SECTION_AUTH,
     help_text="Log in to Google Chat",
 )
-async def login(evt: CommandEvent) -> None:
-    token = evt.bridge.auth_server.make_token(evt.sender.mxid)
-    public_prefix = evt.config["bridge.web.auth.public"]
-    url = f"{public_prefix}#{token}"
-    await evt.reply(f"Please visit the [login portal]({url}) to log in.")
+async def login(evt: CommandEvent) -> EventID:
+    direct_login_url = make_login_url(evt.config["hangouts.device_name"])
+    instructions = f"""
+        1. Open [this link]({direct_login_url}) in your browser.
+        2. Log into your Google account normally.
+        3. When you reach the loading screen after logging in that says *"One moment please..."*,
+           press `F12` to open developer tools.
+        4. Select the "Application" (Chrome) or "Storage" (Firefox) tab.
+        5. In the sidebar, expand "Cookies" and select `https://accounts.google.com`.
+        6. In the cookie list, find the `oauth_code` row and double-click on the value,
+           then copy the value and send it here.
+    """
+    evt.sender.command_status = {
+        "action": "Login",
+        "room_id": evt.room_id,
+        "next": enter_oauth_code,
+    }
+    return await evt.reply(textwrap.dedent(instructions.lstrip("\n").rstrip()))
+
+
+async def enter_oauth_code(evt: CommandEvent) -> EventID:
+    if len(evt.args) == 0:
+        return await evt.reply(
+            "Please enter the value of the `oauth_code` cookie, "
+            "or use the `cancel` command to cancel."
+        )
+
+    try:
+        await evt.az.intent.redact(evt.room_id, evt.event_id)
+    except MForbidden as e:
+        evt.log.warning(f"Failed to redact OAuth token during login: {e}")
+
+    try:
+        token_mgr = await TokenManager.from_authorization_code(
+            evt.args[0], u.UserRefreshTokenCache(evt.sender)
+        )
+    except GoogleAuthError as e:
+        evt.log.exception(f"Login for {evt.sender.mxid} failed")
+        return await evt.reply(f"Failed to log in: {e}")
+    except Exception:
+        evt.log.exception(f"Login for {evt.sender.mxid} errored")
+        return await evt.reply("Unknown error logging in (see logs for more details)")
+    else:
+        evt.sender.login_complete(token_mgr)
+        await evt.sender.name_future
+        return await evt.reply(
+            f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "
+            f"({evt.sender.gcid})"
+        )
 
 
 @command_handler(

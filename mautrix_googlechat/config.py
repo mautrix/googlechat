@@ -67,12 +67,13 @@ class Config(BaseBridgeConfig):
         copy("bridge.unimportant_bridge_notices")
         copy("bridge.disable_bridge_notices")
 
-        copy("bridge.web.auth.public")
-        copy("bridge.web.auth.prefix")
-        if self["bridge.web.auth.shared_secret"] == "generate":
-            base["bridge.web.auth.shared_secret"] = self._new_token()
+        copy("bridge.provisioning.prefix")
+        if "bridge.web.auth.shared_secret" in self:
+            base["bridge.provisioning.shared_secret"] = self["bridge.web.auth.shared_secret"]
+        if self["bridge.provisioning.shared_secret"] == "generate":
+            base["bridge.provisioning.shared_secret"] = self._new_token()
         else:
-            copy("bridge.web.auth.shared_secret")
+            copy("bridge.provisioning.shared_secret")
 
         copy_dict("bridge.permissions")
 

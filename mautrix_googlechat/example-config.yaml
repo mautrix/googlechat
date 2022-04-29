@@ -179,21 +179,13 @@ bridge:
     # Whether or not bridge notices should be disabled entirely.
     disable_bridge_notices: false
 
-    # Public website and API configs
-    web:
-        # Auth server config
-        auth:
-            # Publicly accessible base URL for the login endpoints.
-            # The prefix below is not implicitly added. This URL and all subpaths should be proxied
-            # or otherwise pointed to the appservice's webserver to the path specified below (prefix).
-            # This path should usually include a trailing slash.
-            public: https://example.com/login/
-            # Internal prefix in the appservice web server for the login endpoints.
-            prefix: /login
-            # Shared secret for integration managers such as mautrix-manager.
-            # If set to "generate", a random string will be generated on the next startup.
-            # If null, integration manager access to the API will not be possible.
-            shared_secret: generate
+    provisioning:
+        # Internal prefix in the appservice web server for the login endpoints.
+        prefix: /_matrix/provision
+        # Shared secret for integration managers such as mautrix-manager.
+        # If set to "generate", a random string will be generated on the next startup.
+        # If null, integration manager access to the API will not be possible.
+        shared_secret: generate
 
     # Permissions for using the bridge.
     # Permitted values:
