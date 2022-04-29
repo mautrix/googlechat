@@ -1,3 +1,10 @@
+# unreleased
+
+* Switched to using native Matrix threads for bridging Google Chat threads.
+* Removed web login interface and added support for logging in inside Matrix.
+  * The provisioning API is still available, but it has moved from `/login/api`
+    to `/_matrix/provision/v1`.
+
 # v0.3.2 (2022-04-19)
 
 **N.B.** This release drops support for old homeservers which don't support the
