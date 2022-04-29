@@ -887,7 +887,6 @@ class Portal(DBPortal, BasePortal):
         evt_type: EventType,
         msgtype: MessageType | None = None,
     ) -> None:
-        await self._send_delivery_receipt(event_id)
         _ = user.send_remote_checkpoint(
             status=MessageSendCheckpointStatus.SUCCESS,
             event_id=event_id,
@@ -895,6 +894,7 @@ class Portal(DBPortal, BasePortal):
             event_type=evt_type,
             message_type=msgtype,
         )
+        await self._send_delivery_receipt(event_id)
 
     @staticmethod
     def _get_send_response(
