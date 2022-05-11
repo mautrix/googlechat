@@ -46,7 +46,7 @@ class User:
     async def all_logged_in(cls) -> list[User]:
         q = (
             'SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" '
-            "WHERE gcid IS NOT NULL AND refresh_token IS NOT NULL"
+            "WHERE refresh_token IS NOT NULL"
         )
         rows = await cls.db.fetch(q)
         return [cls._from_row(row) for row in rows]

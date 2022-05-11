@@ -234,10 +234,13 @@ class User(DBUser, BaseUser):
                 important=True,
             )
             self.log.exception("Failed to resume session with stored refresh token")
+            self.refresh_token = None
+            await self.save()
         else:
             self.login_complete(token_mgr)
 
     def login_complete(self, token_manager: TokenManager) -> None:
+        self.log.debug("Running post-login actions")
         self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
         asyncio.create_task(self.start())
         if not self.periodic_sync_task:
@@ -427,6 +430,8 @@ class User(DBUser, BaseUser):
             self_info = await self.get_self()
         except Exception:
             self.log.exception("Failed to get own info")
+            if not self.name_future.done():
+                self.name_future.set_exception(Exception("failed to get own info"))
             return
         await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
 
@@ -586,6 +591,7 @@ class UserRefreshTokenCache(RefreshTokenCache):
         return self.user.refresh_token
 
     async def set(self, refresh_token: str) -> None:
+        self.user.log.debug("Got new refresh token")
         self.user.log.trace("New refresh token: %s", refresh_token)
         self.user.refresh_token = refresh_token
         await self.user.save()

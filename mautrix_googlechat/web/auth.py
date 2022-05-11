@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 from typing import Any
+import asyncio
 import logging
 import urllib.parse
 
@@ -185,6 +186,7 @@ class GoogleChatAuthServer:
                 400, "Request body did not contain authorization field", "M_BAD_REQUEST"
             )
 
+        user.log.debug("Trying to log in with auth code")
         try:
             token_mgr = await TokenManager.from_authorization_code(
                 auth, u.UserRefreshTokenCache(user)
@@ -208,7 +210,7 @@ class GoogleChatAuthServer:
             )
         else:
             user.login_complete(token_mgr)
-            await user.name_future
+            await asyncio.wait_for(asyncio.shield(user.name_future), 20)
             return web.json_response(
                 {
                     "status": "success",
