@@ -45,6 +45,11 @@ METRIC_LOGGED_IN = Gauge("bridge_logged_in", "Number of users logged into the br
 METRIC_CONNECTED = Gauge("bridge_connected", "Number of users connected to Google Chat")
 
 
+BridgeState.human_readable_errors.update(
+    {"get-self-fail": "Failed to get user info from Google Chat"}
+)
+
+
 class User(DBUser, BaseUser):
     by_mxid: dict[UserID, User] = {}
     by_gcid: dict[str, User] = {}
@@ -432,6 +437,7 @@ class User(DBUser, BaseUser):
             self.log.exception("Failed to get own info")
             if not self.name_future.done():
                 self.name_future.set_exception(Exception("failed to get own info"))
+            await self.push_bridge_state(BridgeStateEvent.BAD_CREDENTIALS, error="get-self-fail")
             return
         await self.push_bridge_state(BridgeStateEvent.BACKFILLING)
 
