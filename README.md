@@ -13,8 +13,8 @@ All setup and usage instructions are located on
 [docs.mau.fi](https://docs.mau.fi/bridges/python/googlechat/index.html).
 Some quick links:
 
-* [Bridge setup](https://docs.mau.fi/bridges/python/setup/index.html?bridge=googlechat)
-  (or [with Docker](https://docs.mau.fi/bridges/python/setup/docker.html?bridge=googlechat))
+* [Bridge setup](https://docs.mau.fi/bridges/python/setup.html?bridge=googlechat)
+  (or [with Docker](https://docs.mau.fi/bridges/general/docker-setup.html?bridge=googlechat))
 * Basic usage: [Authentication](https://docs.mau.fi/bridges/python/googlechat/authentication.html)
 
 ### Features & Roadmap
