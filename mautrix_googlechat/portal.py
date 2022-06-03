@@ -30,6 +30,7 @@ from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
 from mautrix.errors import IntentError, MatrixError, MForbidden
 from mautrix.types import (
+    BeeperMessageStatusEventContent,
     ContentURI,
     EncryptionAlgorithm,
     EventID,
@@ -38,8 +39,11 @@ from mautrix.types import (
     MediaMessageEventContent,
     Membership,
     MessageEventContent,
+    MessageStatusReason,
     MessageType,
     PowerLevelStateEventContent,
+    RelatesTo,
+    RelationType,
     RoomID,
     TextMessageEventContent,
     UserID,
@@ -704,7 +708,7 @@ class Portal(DBPortal, BasePortal):
         try:
             await sender.client.react(target.gc_chat, target.gc_parent_id, target.gcid, reaction)
         except Exception as e:
-            self._rec_error(sender, e, reaction_id, EventType.REACTION)
+            await self._rec_error(sender, e, reaction_id, EventType.REACTION)
         else:
             await self._rec_success(sender, reaction_id, EventType.REACTION)
 
@@ -719,7 +723,7 @@ class Portal(DBPortal, BasePortal):
                     target.gc_chat, target.gc_parent_id, target.gcid
                 )
             except Exception as e:
-                self._rec_error(sender, e, redaction_id, EventType.ROOM_REDACTION)
+                await self._rec_error(sender, e, redaction_id, EventType.ROOM_REDACTION)
             else:
                 await self._rec_success(sender, redaction_id, EventType.ROOM_REDACTION)
             return
@@ -739,7 +743,7 @@ class Portal(DBPortal, BasePortal):
                     remove=True,
                 )
             except Exception as e:
-                self._rec_error(sender, e, redaction_id, EventType.ROOM_REDACTION)
+                await self._rec_error(sender, e, redaction_id, EventType.ROOM_REDACTION)
             else:
                 await self._rec_success(sender, redaction_id, EventType.ROOM_REDACTION)
             return
@@ -784,7 +788,7 @@ class Portal(DBPortal, BasePortal):
                 )
                 self._edit_dedup[target.gcid] = resp.message.last_edit_time
         except Exception as e:
-            self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
+            await self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
         else:
             await self._rec_success(sender, event_id, EventType.ROOM_MESSAGE, message.msgtype)
 
@@ -812,9 +816,9 @@ class Portal(DBPortal, BasePortal):
                 elif message.msgtype.is_media:
                     resp = await self._handle_matrix_media(sender, message, thread_id, local_id)
                 else:
-                    raise ValueError(f"Unsupported msgtype {message.msgtype}")
+                    raise NotImplementedError(f"Unsupported msgtype {message.msgtype}")
             except Exception as e:
-                self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
+                await self._rec_error(sender, e, event_id, EventType.ROOM_MESSAGE, message.msgtype)
             else:
                 self.log.debug(f"Handled Matrix message {event_id} -> {local_id} -> {resp.gcid}")
                 await self._rec_success(sender, event_id, EventType.ROOM_MESSAGE, message.msgtype)
@@ -848,10 +852,11 @@ class Portal(DBPortal, BasePortal):
             room_id=self.mxid,
             event_type=evt_type,
             message_type=msgtype,
-            error=Exception(reason),
+            error=reason,
         )
+        asyncio.create_task(self._send_message_status(event_id, NotImplementedError(reason)))
 
-    def _rec_error(
+    async def _rec_error(
         self,
         user: u.User,
         err: Exception,
@@ -860,17 +865,14 @@ class Portal(DBPortal, BasePortal):
         msgtype: MessageType | None = None,
         edit: bool = False,
     ) -> None:
-        if evt_type == EventType.ROOM_MESSAGE:
-            if edit:
-                self.log.exception(f"Failed handling Matrix edit {event_id}", exc_info=err)
-            else:
-                self.log.exception(f"Failed handling Matrix message {event_id}", exc_info=err)
+        type_name = "message"
+        if evt_type == EventType.ROOM_MESSAGE and edit:
+            type_name = "edit"
         elif evt_type == EventType.ROOM_REDACTION:
-            self.log.exception(f"Failed handling Matrix redaction {event_id}", exc_info=err)
+            type_name = "redaction"
         elif evt_type == EventType.REACTION:
-            self.log.exception(f"Failed handling Matrix reaction {event_id}", exc_info=err)
-        else:
-            self.log.exception(f"Failed handling unknown Matrix event {event_id}", exc_info=err)
+            type_name = "reaction"
+        self.log.exception(f"Failed handling Matrix {type_name} {event_id}", exc_info=err)
         user.send_remote_checkpoint(
             status=MessageSendCheckpointStatus.PERM_FAILURE,
             event_id=event_id,
@@ -879,6 +881,15 @@ class Portal(DBPortal, BasePortal):
             message_type=msgtype,
             error=err,
         )
+        asyncio.create_task(self._send_message_status(event_id, err))
+        if self.config["bridge.delivery_error_reports"]:
+            await self._send_message(
+                self.main_intent,
+                TextMessageEventContent(
+                    msgtype=MessageType.NOTICE,
+                    body=f"\u26a0 Your {type_name} may not have been bridged: {err}",
+                ),
+            )
 
     async def _rec_success(
         self,
@@ -887,7 +898,7 @@ class Portal(DBPortal, BasePortal):
         evt_type: EventType,
         msgtype: MessageType | None = None,
     ) -> None:
-        _ = user.send_remote_checkpoint(
+        user.send_remote_checkpoint(
             status=MessageSendCheckpointStatus.SUCCESS,
             event_id=event_id,
             room_id=self.mxid,
@@ -895,6 +906,34 @@ class Portal(DBPortal, BasePortal):
             message_type=msgtype,
         )
         await self._send_delivery_receipt(event_id)
+        asyncio.create_task(self._send_message_status(event_id, err=None))
+
+    async def _send_message_status(self, event_id: EventID, err: Exception | None) -> None:
+        if not self.config["bridge.message_status_events"]:
+            return
+        intent = self.az.intent if self.encrypted else self.main_intent
+        status = BeeperMessageStatusEventContent(
+            network=self.bridge_info_state_key,
+            relates_to=RelatesTo(
+                rel_type=RelationType.REFERENCE,
+                event_id=event_id,
+            ),
+            success=err is None,
+        )
+        if err:
+            status.reason = MessageStatusReason.GENERIC_ERROR
+            status.error = str(err)
+            status.is_certain = True
+            status.can_retry = True
+            if isinstance(err, NotImplementedError):
+                status.can_retry = False
+                status.reason = MessageStatusReason.UNSUPPORTED
+
+        await intent.send_message_event(
+            room_id=self.mxid,
+            event_type=EventType.BEEPER_MESSAGE_STATUS,
+            content=status,
+        )
 
     @staticmethod
     def _get_send_response(

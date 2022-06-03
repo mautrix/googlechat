@@ -4,6 +4,8 @@
 * Removed web login interface and added support for logging in inside Matrix.
   * The provisioning API is still available, but it has moved from `/login/api`
     to `/_matrix/provision/v1`.
+* Added error messages and optionally custom status events to detect when
+  a message fails to bridge.
 
 # v0.3.2 (2022-04-19)
 
