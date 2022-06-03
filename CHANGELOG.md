@@ -1,4 +1,4 @@
-# unreleased
+# v0.3.3 (2022-06-03)
 
 * Switched to using native Matrix threads for bridging Google Chat threads.
 * Removed web login interface and added support for logging in inside Matrix.
