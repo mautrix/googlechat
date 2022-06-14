@@ -1255,17 +1255,16 @@ class Portal(DBPortal, BasePortal):
         attachment_urls = []
         for annotation in evt.annotations:
             if annotation.HasField("upload_metadata"):
-                url_type = (
-                    "FIFE_URL"
-                    if annotation.upload_metadata.content_type.startswith("image/")
-                    else "DOWNLOAD_URL"
-                )
-                url = URL("https://chat.google.com/api/get_attachment_url").with_query(
-                    {
-                        "url_type": url_type,
-                        "attachment_token": annotation.upload_metadata.attachment_token,
-                    }
-                )
+                query = {
+                    "url_type": "DOWNLOAD_URL",
+                    "attachment_token": annotation.upload_metadata.attachment_token,
+                }
+                if annotation.upload_metadata.content_type.startswith("image/"):
+                    # TODO maybe it should just always use DOWNLOAD_URL?
+                    query["url_type"] = "FIFE_URL"
+                    query["sz"] = "w10000-h10000"
+                    query["content_type"] = annotation.upload_metadata.content_type
+                url = URL("https://chat.google.com/api/get_attachment_url").with_query(query)
                 au = AttachmentURL(
                     url=url,
                     name=annotation.upload_metadata.content_name,
