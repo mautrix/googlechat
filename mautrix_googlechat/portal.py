@@ -1116,9 +1116,7 @@ class Portal(DBPortal, BasePortal):
             return
 
         self._preprocess_annotations(evt)
-        content = await fmt.googlechat_to_matrix(
-            source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
-        )
+        content = await fmt.googlechat_to_matrix(source, evt, self)
         content.set_edit(target.mxid)
         event_id = await self._send_message(
             sender.intent_for(self), content, timestamp=edit_ts // 1000
@@ -1204,9 +1202,7 @@ class Portal(DBPortal, BasePortal):
                 thread_parent["last_event_in_thread"] = evt_id
 
         if evt.text_body:
-            content = await fmt.googlechat_to_matrix(
-                source, evt, self.encrypted, async_upload=self.config["homeserver.async_media"]
-            )
+            content = await fmt.googlechat_to_matrix(source, evt, self)
             if thread_parent:
                 content.set_thread_parent(**thread_parent)
             event_id = await self._send_message(intent, content, timestamp=timestamp)

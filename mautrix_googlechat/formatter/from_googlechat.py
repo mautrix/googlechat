@@ -21,25 +21,31 @@ from maugclib import googlechat_pb2 as googlechat
 from mautrix.types import Format, MessageType, TextMessageEventContent
 from mautrix.util.formatter import parse_html
 
-from .. import puppet as pu, user as u
+from .. import portal as po, puppet as pu, user as u
 from .gc_url_preview import gc_previews_to_beeper
 from .util import FormatError, add_surrogate, del_surrogate
 
 
 async def googlechat_to_matrix(
-    source: u.User, evt: googlechat.Message, encrypt: bool = False, async_upload: bool = False
+    source: u.User,
+    evt: googlechat.Message,
+    portal: po.Portal,
 ) -> TextMessageEventContent:
     content = TextMessageEventContent(
         msgtype=MessageType.TEXT,
         body=add_surrogate(evt.text_body),
     )
     content["com.beeper.linkpreviews"] = await gc_previews_to_beeper(
-        source, content.body, evt.annotations or [], encrypt=encrypt, async_upload=async_upload
+        source,
+        content.body,
+        evt.annotations or [],
+        encrypt=portal.encrypted,
+        async_upload=portal.config["homeserver.async_media"],
     )
     if annotations:
         content.format = Format.HTML
         content.formatted_body = await _gc_annotations_to_matrix_catch(
-            content.body, evt.annotations
+            portal, content.body, evt.annotations
         )
 
     if content.formatted_body:
@@ -52,10 +58,10 @@ async def googlechat_to_matrix(
 
 
 async def _gc_annotations_to_matrix_catch(
-    text: str, annotations: list[googlechat.Annotation]
+    portal: po.Portal, text: str, annotations: list[googlechat.Annotation]
 ) -> str:
     try:
-        return await _gc_annotations_to_matrix(text, annotations)
+        return await _gc_annotations_to_matrix(portal, text, annotations)
     except Exception as e:
         raise FormatError("Failed to convert Google Chat format") from e
 
@@ -108,7 +114,11 @@ def _normalize_annotations(
 
 
 async def _gc_annotations_to_matrix(
-    text: str, annotations: list[googlechat.Annotation], offset: int = 0, length: int = None
+    portal: po.Portal,
+    text: str,
+    annotations: list[googlechat.Annotation],
+    offset: int = 0,
+    length: int = None,
 ) -> str:
     if not annotations:
         return escape(text)
@@ -133,6 +143,7 @@ async def _gc_annotations_to_matrix(
 
         skip_entity = False
         entity_text = await _gc_annotations_to_matrix(
+            portal=portal,
             text=text[relative_offset : relative_offset + annotation.length],
             annotations=annotations[i + 1 :],
             offset=annotation.start_index,
@@ -174,9 +185,14 @@ async def _gc_annotations_to_matrix(
                 html.append("@room")
             else:
                 gcid = annotation.user_mention_metadata.id.id
-                user = await u.User.get_by_gcid(gcid)
+                user: u.User = await u.User.get_by_gcid(gcid)
                 mxid = user.mxid if user else pu.Puppet.get_mxid_from_id(gcid)
-                html.append(f"<a href='https://matrix.to/#/{mxid}'>{entity_text}</a>")
+                mention_text = entity_text
+                if user:
+                    member = await portal.bridge.state_store.get_member(portal.mxid, user.mxid)
+                    if member and member.displayname:
+                        mention_text = member.displayname
+                html.append(f"<a href='https://matrix.to/#/{mxid}'>{mention_text}</a>")
         else:
             skip_entity = True
         last_offset = relative_offset + (0 if skip_entity else annotation.length)
