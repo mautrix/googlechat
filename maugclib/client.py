@@ -465,6 +465,7 @@ class Client:
                 # the top level body field and fire the event like it was the
                 # toplevel body.
                 for evt in self.split_event_bodies(resp.event):
+                    logger.debug("Dispatching stream event: %s", evt)
                     await self.on_stream_event.fire(evt)
 
     @staticmethod
