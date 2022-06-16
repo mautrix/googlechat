@@ -1,3 +1,10 @@
+# unreleased
+
+* Added support for bridging room mentions in both directions.
+* Updated formatter to insert Matrix displayname into mentions when bridging
+  from Google Chat. This ensures that the Matrix user gets mentioned correctly.
+* Fixed images from Google Chat not being bridged with full resolution.
+
 # v0.3.3 (2022-06-03)
 
 * Switched to using native Matrix threads for bridging Google Chat threads.

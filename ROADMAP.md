@@ -11,7 +11,7 @@
       * [x] Images
       * [ ] Locations
     * [x] Formatting
-    * [x] Replies (into threads)
+    * [x] Threads
   * [x] Message redactions
   * [x] Message reactions
   * [x] Message editing (text only)
@@ -26,7 +26,7 @@
   * [ ] Room metadata changes
     * [ ] Name
 * Google Chat → Matrix
-  * [ ] Message content
+  * [x] Message content
     * [x] Text
     * [x] Media
       * [x] Files
@@ -34,7 +34,7 @@
       * [x] Images
       * [x] Google Drive file links
     * [x] Formatting
-    * [x] Threads (as replies)
+    * [x] Threads
   * [x] Message deletions
   * [x] Message reactions
   * [x] Message editing (text only)
