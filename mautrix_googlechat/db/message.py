@@ -49,7 +49,7 @@ class Message:
 
     columns = (
         "mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, "
-        "index, timestamp, msgtype, gc_sender"
+        "`index`, timestamp, msgtype, gc_sender"
     )
 
     @classmethod
@@ -64,7 +64,7 @@ class Message:
     ) -> Message | None:
         q = (
             f"SELECT {cls.columns} FROM message"
-            " WHERE gcid=$1 AND gc_chat=$2 AND gc_receiver=$3 AND index=$4"
+            " WHERE gcid=$1 AND gc_chat=$2 AND gc_receiver=$3 AND `index`=$4"
         )
         row = await cls.db.fetchrow(q, gcid, gc_chat, gc_receiver, index)
         return cls._from_row(row)
@@ -76,7 +76,7 @@ class Message:
         q = (
             f"SELECT {cls.columns} FROM message"
             " WHERE (gc_parent_id=$1 OR gcid=$1) AND gc_chat=$2 AND gc_receiver=$3"
-            " ORDER BY timestamp DESC, index DESC LIMIT 1"
+            " ORDER BY timestamp DESC, `index` DESC LIMIT 1"
         )
         row = await cls.db.fetchrow(q, gc_parent_id, gc_chat, gc_receiver)
         return cls._from_row(row)
@@ -107,7 +107,7 @@ class Message:
         q = (
             f"SELECT {cls.columns} FROM message"
             " WHERE gc_chat=$1 AND gc_receiver=$2 AND timestamp<=$3"
-            " ORDER BY timestamp DESC, index DESC LIMIT 1"
+            " ORDER BY timestamp DESC, `index` DESC LIMIT 1"
         )
         row = await cls.db.fetchrow(q, gc_chat, gc_receiver, timestamp)
         return cls._from_row(row)
@@ -115,7 +115,7 @@ class Message:
     async def insert(self) -> None:
         q = (
             "INSERT INTO message (mxid, mx_room, gcid, gc_chat, gc_receiver, gc_parent_id, "
-            "                     index, timestamp, msgtype, gc_sender) "
+            "                     `index`, timestamp, msgtype, gc_sender) "
             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
         )
         await self.db.execute(
@@ -133,5 +133,5 @@ class Message:
         )
 
     async def delete(self) -> None:
-        q = "DELETE FROM message WHERE gcid=$1 AND gc_receiver=$2 AND index=$3"
+        q = "DELETE FROM message WHERE gcid=$1 AND gc_receiver=$2 AND `index`=$3"
         await self.db.execute(q, self.gcid, self.gc_receiver, self.index)
