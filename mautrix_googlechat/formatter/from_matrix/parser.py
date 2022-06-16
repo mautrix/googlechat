@@ -29,6 +29,10 @@ async def parse_html(input_html: str) -> tuple[str, list[googlechat.Annotation] 
     return msg.text, msg.googlechat_entities
 
 
+MX_ROOM_MENTION = "@room"
+GC_ROOM_MENTION = "@all"
+
+
 class MatrixParser(BaseMatrixParser[GCMessage]):
     e = GCEntityType
     fs = GCMessage
@@ -77,3 +81,18 @@ class MatrixParser(BaseMatrixParser[GCMessage]):
         children = msg.trim().split("\n")
         children = [child.prepend("> ") for child in children]
         return GCMessage.join(children, "\n")
+
+    async def text_to_fstring(
+        self, text: str, ctx: RecursionContext, strip_leading_whitespace: bool = False
+    ) -> GCMessage:
+        if MX_ROOM_MENTION in text and not ctx.preserve_whitespace:
+            idx = text.index(MX_ROOM_MENTION)
+            prefix, suffix = text[:idx], text[idx + len(MX_ROOM_MENTION) :]
+            return self.fs.concat(
+                await self.text_to_fstring(prefix, ctx, strip_leading_whitespace),
+                self.fs(GC_ROOM_MENTION).format(GCEntityType.MENTION_ALL),
+                await self.text_to_fstring(suffix, ctx, strip_leading_whitespace),
+            )
+        return await super(MatrixParser, self).text_to_fstring(
+            text, ctx, strip_leading_whitespace=strip_leading_whitespace
+        )

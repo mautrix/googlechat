@@ -15,18 +15,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import html
+
 from maugclib import googlechat_pb2 as googlechat
 from mautrix.types import Format, TextMessageEventContent
 
 from ..util import FormatError, add_surrogate, del_surrogate
-from .parser import parse_html
+from .parser import MX_ROOM_MENTION, parse_html
 
 
 async def matrix_to_googlechat(
     content: TextMessageEventContent,
 ) -> tuple[str, list[googlechat.Annotation] | None]:
     if content.format != Format.HTML or not content.formatted_body:
-        return content.body, None
+        if MX_ROOM_MENTION in content.body:
+            content.formatted_body = html.escape(content.body)
+        else:
+            return content.body, None
     try:
         text, entities = await parse_html(add_surrogate(content.formatted_body))
         return del_surrogate(text), entities

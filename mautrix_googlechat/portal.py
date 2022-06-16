@@ -565,6 +565,9 @@ class Portal(DBPortal, BasePortal):
         info = await self.update_info(source=source, info=info)
         self.log.debug("Creating Matrix room")
         power_levels = PowerLevelStateEventContent()
+        if "notifications" not in power_levels:
+            power_levels["notifications"] = {}
+        power_levels["notifications"]["room"] = 0
         invites = []
         if self.is_direct:
             power_levels.users[source.mxid] = 50

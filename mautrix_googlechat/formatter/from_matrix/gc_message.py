@@ -53,6 +53,7 @@ class GCEntityType(Enum):
     URL = auto()
     EMAIL = auto()
     USER_MENTION = GCUserMentionType.MENTION
+    MENTION_ALL = GCUserMentionType.MENTION_ALL
     PREFORMATTED = GCFormatType.MONOSPACE_BLOCK
     INLINE_CODE = GCFormatType.MONOSPACE
     COLOR = GCFormatType.FONT_COLOR
@@ -92,16 +93,20 @@ class GCEntity(SemiAbstractEntity):
                 ),
             )
         elif isinstance(gc_type, GCUserMentionType):
+            if gc_type == GCUserMentionType.MENTION:
+                mention_meta = googlechat.UserMentionMetadata(
+                    type=gc_type.value,
+                    id=googlechat.UserId(id=extra_info["user_id"]),
+                    display_name=extra_info.get("displayname"),
+                )
+            else:
+                mention_meta = googlechat.UserMentionMetadata(type=gc_type.value)
             self.internal = googlechat.Annotation(
                 type=googlechat.USER_MENTION,
                 chip_render_type=googlechat.Annotation.DO_NOT_RENDER,
                 start_index=offset,
                 length=length,
-                user_mention_metadata=googlechat.UserMentionMetadata(
-                    type=gc_type.value,
-                    id=googlechat.UserId(id=extra_info["user_id"]),
-                    display_name=extra_info.get("displayname"),
-                ),
+                user_mention_metadata=mention_meta,
             )
         elif self.type == GCEntityType.URL:
             self.internal = googlechat.Annotation(

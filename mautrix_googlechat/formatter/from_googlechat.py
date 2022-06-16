@@ -19,6 +19,7 @@ from html import escape
 
 from maugclib import googlechat_pb2 as googlechat
 from mautrix.types import Format, MessageType, TextMessageEventContent
+from mautrix.util.formatter import parse_html
 
 from .. import puppet as pu, user as u
 from .gc_url_preview import gc_previews_to_beeper
@@ -41,10 +42,11 @@ async def googlechat_to_matrix(
             content.body, evt.annotations
         )
 
-    content.body = del_surrogate(content.body)
-
     if content.formatted_body:
         content.formatted_body = del_surrogate(content.formatted_body.replace("\n", "<br/>"))
+        content.body = await parse_html(content.formatted_body)
+    else:
+        content.body = del_surrogate(content.body)
 
     return content
 
@@ -167,10 +169,14 @@ async def _gc_annotations_to_matrix(
         elif annotation.HasField("url_metadata"):
             html.append(f"<a href='{annotation.url_metadata.url.url}'>{entity_text}</a>")
         elif annotation.HasField("user_mention_metadata"):
-            gcid = annotation.user_mention_metadata.id.id
-            user = await u.User.get_by_gcid(gcid)
-            mxid = user.mxid if user else pu.Puppet.get_mxid_from_id(gcid)
-            html.append(f"<a href='https://matrix.to/#/{mxid}'>{entity_text}</a>")
+            mention_type = annotation.user_mention_metadata.type
+            if mention_type == googlechat.UserMentionMetadata.MENTION_ALL:
+                html.append("@room")
+            else:
+                gcid = annotation.user_mention_metadata.id.id
+                user = await u.User.get_by_gcid(gcid)
+                mxid = user.mxid if user else pu.Puppet.get_mxid_from_id(gcid)
+                html.append(f"<a href='https://matrix.to/#/{mxid}'>{entity_text}</a>")
         else:
             skip_entity = True
         last_offset = relative_offset + (0 if skip_entity else annotation.length)
