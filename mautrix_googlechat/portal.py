@@ -594,7 +594,7 @@ class Portal(DBPortal, BasePortal):
             initial_state.append(
                 {
                     "type": str(EventType.ROOM_ENCRYPTION),
-                    "content": {"algorithm": str(EncryptionAlgorithm.MEGOLM_V1)},
+                    "content": self.get_encryption_state_event_json(),
                 }
             )
             if self.is_direct:
