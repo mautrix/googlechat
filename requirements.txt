@@ -5,4 +5,4 @@ ruamel.yaml>=0.15.94,<0.18
 commonmark>=0.8,<0.10
 python-magic>=0.4,<0.5
 protobuf>=3,<4
-mautrix>=0.17.1,<0.18
+mautrix>=0.17.2,<0.18
