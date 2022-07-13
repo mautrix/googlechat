@@ -39,6 +39,7 @@ from mautrix.types import (
     MediaMessageEventContent,
     Membership,
     MessageEventContent,
+    MessageStatus,
     MessageStatusReason,
     MessageType,
     PowerLevelStateEventContent,
@@ -921,16 +922,17 @@ class Portal(DBPortal, BasePortal):
                 rel_type=RelationType.REFERENCE,
                 event_id=event_id,
             ),
-            success=err is None,
         )
         if err:
             status.reason = MessageStatusReason.GENERIC_ERROR
+            status.status = MessageStatus.RETRIABLE
             status.error = str(err)
-            status.is_certain = True
-            status.can_retry = True
             if isinstance(err, NotImplementedError):
-                status.can_retry = False
                 status.reason = MessageStatusReason.UNSUPPORTED
+                status.status = MessageStatus.FAIL
+        else:
+            status.status = MessageStatus.SUCCESS
+        status.fill_legacy_booleans()
 
         await intent.send_message_event(
             room_id=self.mxid,
