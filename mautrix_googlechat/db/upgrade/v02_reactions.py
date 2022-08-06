@@ -25,7 +25,7 @@ async def upgrade_v2(conn: Connection, dialect: str) -> None:
         await conn.execute(
             "ALTER TABLE message"
             "  DROP CONSTRAINT message_pkey,"
-            "  ADD PRIMARY KEY (gcid, gc_chat, gc_receiver, `index`)"
+            '  ADD PRIMARY KEY (gcid, gc_chat, gc_receiver, "index")'
         )
     await conn.execute("ALTER TABLE message ADD COLUMN msgtype TEXT")
     await conn.execute("ALTER TABLE message ADD COLUMN gc_sender TEXT")
@@ -45,7 +45,7 @@ async def upgrade_v2(conn: Connection, dialect: str) -> None:
                 REFERENCES portal(gcid, gc_receiver)
                 ON UPDATE CASCADE ON DELETE CASCADE,
             FOREIGN KEY (gc_msgid, gc_chat, gc_receiver, _index)
-                REFERENCES message(gcid, gc_chat, gc_receiver, `index`)
+                REFERENCES message(gcid, gc_chat, gc_receiver, "index")
                 ON UPDATE CASCADE ON DELETE CASCADE,
             UNIQUE (mxid, mx_room)
         )"""
