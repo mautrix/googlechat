@@ -1,9 +1,27 @@
-# unreleased
+# v0.4.0 (unreleased)
 
 * Added support for bridging room mentions in both directions.
 * Updated formatter to insert Matrix displayname into mentions when bridging
   from Google Chat. This ensures that the Matrix user gets mentioned correctly.
 * Fixed images from Google Chat not being bridged with full resolution.
+* Added SQLite support (thanks to [@durin42] in [#74]).
+* Updated Docker image to Alpine 3.16.
+* Enabled appservice ephemeral events by default for new installations.
+  * Existing bridges can turn it on by enabling `ephemeral_events` and disabling
+    `sync_with_custom_puppets` in the config, then regenerating the registration
+    file.
+* Added options to make encryption more secure.
+  * The `encryption` -> `verification_levels` config options can be used to
+    make the bridge require encrypted messages to come from cross-signed
+    devices, with trust-on-first-use validation of the cross-signing master
+    key.
+  * The `encryption` -> `require` option can be used to make the bridge ignore
+    any unencrypted messages.
+  * Key rotation settings can be configured with the `encryption` -> `rotation`
+    config.
+
+[@durin42]: https://github.com/durin42
+[#74]: https://github.com/mautrix/googlechat/pull/74
 
 # v0.3.3 (2022-06-03)
 
