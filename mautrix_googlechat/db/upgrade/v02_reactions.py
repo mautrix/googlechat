@@ -13,14 +13,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from asyncpg import Connection
+from mautrix.util.async_db import Connection, Scheme
 
 from . import upgrade_table
 
 
 @upgrade_table.register(description="Add reaction table and update message table")
-async def upgrade_v2(conn: Connection, dialect: str) -> None:
-    if dialect != "sqlite":
+async def upgrade_v2(conn: Connection, scheme: Scheme) -> None:
+    if scheme != Scheme.SQLITE:
         # This change was backported to the v1 db schema before SQLite support was added
         await conn.execute(
             "ALTER TABLE message"

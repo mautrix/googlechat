@@ -8,3 +8,6 @@ unpaddedbase64>=1,<3
 
 #/metrics
 prometheus_client>=0.6,<0.15
+
+#/sqlite
+aiosqlite>=0.16,<0.18

@@ -13,19 +13,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from asyncpg import Connection
+from mautrix.util.async_db import Connection
 
 from . import upgrade_table
 
 
-@upgrade_table.register(description="Initial revision")
-async def upgrade_v1(conn: Connection) -> None:
+@upgrade_table.register(description="Latest revision", upgrades_to=4)
+async def upgrade_latest(conn: Connection) -> None:
     await conn.execute(
         """CREATE TABLE "user" (
             mxid          TEXT PRIMARY KEY,
             gcid          TEXT UNIQUE,
             refresh_token TEXT,
-            notice_room   TEXT
+            notice_room   TEXT,
+            revision      BIGINT
         )"""
     )
     await conn.execute(
@@ -39,15 +40,18 @@ async def upgrade_v1(conn: Connection) -> None:
             name_set      BOOLEAN NOT NULL DEFAULT false,
             avatar_set    BOOLEAN NOT NULL DEFAULT false,
             encrypted     BOOLEAN NOT NULL DEFAULT false,
+            revision      BIGINT,
+            is_threaded   BOOLEAN,
             PRIMARY KEY (gcid, gc_receiver)
         )"""
     )
     await conn.execute(
         """CREATE TABLE puppet (
-            gcid      TEXT PRIMARY KEY,
-            name      TEXT,
-            photo_id  TEXT,
-            photo_mxc TEXT,
+            gcid       TEXT PRIMARY KEY,
+            name       TEXT,
+            photo_id   TEXT,
+            photo_mxc  TEXT,
+            photo_hash TEXT,
 
             name_set      BOOLEAN NOT NULL DEFAULT false,
             avatar_set    BOOLEAN NOT NULL DEFAULT false,
@@ -67,10 +71,33 @@ async def upgrade_v1(conn: Connection) -> None:
             gc_chat      TEXT NOT NULL,
             gc_receiver  TEXT,
             gc_parent_id TEXT,
-            "index"        SMALLINT NOT NULL,
+            gc_sender    TEXT,
+            "index"      SMALLINT NOT NULL,
             timestamp    BIGINT   NOT NULL,
+            msgtype      TEXT,
             PRIMARY KEY (gcid, gc_chat, gc_receiver, "index"),
             FOREIGN KEY (gc_chat, gc_receiver) REFERENCES portal(gcid, gc_receiver)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            UNIQUE (mxid, mx_room)
+        )"""
+    )
+    await conn.execute(
+        """CREATE TABLE reaction (
+            mxid         TEXT NOT NULL,
+            mx_room      TEXT NOT NULL,
+            emoji        TEXT,
+            gc_sender    TEXT,
+            gc_msgid     TEXT,
+            gc_chat      TEXT,
+            gc_receiver  TEXT,
+            timestamp    BIGINT NOT NULL,
+            _index       SMALLINT DEFAULT 0,
+            PRIMARY KEY (emoji, gc_sender, gc_msgid, gc_chat, gc_receiver),
+            FOREIGN KEY (gc_chat, gc_receiver)
+                REFERENCES portal(gcid, gc_receiver)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (gc_msgid, gc_chat, gc_receiver, _index)
+                REFERENCES message(gcid, gc_chat, gc_receiver, "index")
                 ON UPDATE CASCADE ON DELETE CASCADE,
             UNIQUE (mxid, mx_room)
         )"""
