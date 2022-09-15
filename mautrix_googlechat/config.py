@@ -25,8 +25,6 @@ class Config(BaseBridgeConfig):
 
         copy, copy_dict, base = helper
 
-        copy("homeserver.asmux")
-
         copy("hangouts.device_name")
 
         copy("metrics.enabled")
