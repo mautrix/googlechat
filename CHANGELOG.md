@@ -1,4 +1,4 @@
-# v0.4.0 (unreleased)
+# v0.4.0 (2022-11-15)
 
 * Added support for bridging room mentions in both directions.
 * Updated formatter to insert Matrix displayname into mentions when bridging
