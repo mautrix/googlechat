@@ -806,7 +806,7 @@ class Portal(DBPortal, BasePortal):
             message.get_thread_parent() or message.get_reply_to(), self.mxid
         )
         thread_id = (
-            (reply_to.gc_parent_id or reply_to.gcid) if reply_to and self.is_threaded else None
+            (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
         )
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
         self._local_dedup.add(local_id)
