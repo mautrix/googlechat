@@ -11,6 +11,6 @@
 *.log
 *.log.*
 
-*.db
+*.db*
 *.pickle
 *.bak
