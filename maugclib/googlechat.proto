@@ -1098,10 +1098,14 @@ message Topic {
 	optional int64 sort_time = 2;
 	optional int64 create_time_usec = 15;
 	repeated Message replies = 7;
-	//optional DYNProtoTopicReadState topic_read_state = 11;
+	optional TopicReadState topic_read_state = 11;
 	optional bool is_system_message = 12;
 	optional RetentionSettings retention_settings = 13;
 	optional bool contains_more_unread_replies = 14;
+}
+
+message TopicReadState {
+	optional int64 thread_created_usec = 2;
 }
 
 message MessageInfo {

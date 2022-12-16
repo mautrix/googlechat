@@ -32,7 +32,6 @@ from mautrix.errors import IntentError, MatrixError, MForbidden
 from mautrix.types import (
     BeeperMessageStatusEventContent,
     ContentURI,
-    EncryptionAlgorithm,
     EventID,
     EventType,
     ImageInfo,
@@ -353,7 +352,7 @@ class Portal(DBPortal, BasePortal):
         for topic in sorted_topics:
             await self.handle_googlechat_message(source, topic.replies[0])
             message_count += 1
-            if self.is_threaded:
+            if self.is_threaded or topic.topic_read_state.thread_created_usec > 0:
                 msg_req = googlechat.ListMessagesRequest(
                     request_header=source.client.gc_request_header,
                     parent_id=googlechat.MessageParentId(topic_id=topic.id),
