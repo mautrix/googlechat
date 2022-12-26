@@ -3681,6 +3681,7 @@ class Group(google.protobuf.message.Message):
     GROUP_SUPPORT_LEVEL_FIELD_NUMBER: builtins.int
     GROUP_UNSUPPORTED_REASON_FIELD_NUMBER: builtins.int
     TYPING_INDICATORS_ENABLED_FIELD_NUMBER: builtins.int
+    FLAT_THREADS_ENABLED_FIELD_NUMBER: builtins.int
     @property
     def group_id(self) -> global___GroupId: ...
     name: builtins.str
@@ -3728,6 +3729,7 @@ class Group(google.protobuf.message.Message):
     """optional DYNProtoHubGroupProperties hub_group_properties = 41;
     optional ?? ufr_upgrade_info = 42;
     """
+    flat_threads_enabled: builtins.bool
     def __init__(
         self,
         *,
@@ -3755,9 +3757,10 @@ class Group(google.protobuf.message.Message):
         group_support_level: global___GroupSupportLevel.ValueType | None = ...,
         group_unsupported_reason: global___GroupUnsupportedReason.ValueType | None = ...,
         typing_indicators_enabled: builtins.bool | None = ...,
+        flat_threads_enabled: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> None: ...
     def WhichOneof(self, oneof_group: typing_extensions.Literal["ThreadedModel", b"ThreadedModel"]) -> typing_extensions.Literal["flat_group", "threaded_group"] | None: ...
 
 global___Group = Group
@@ -7331,6 +7334,7 @@ class WorldItemLite(google.protobuf.message.Message):
     ATTRIBUTE_CHECKER_GROUP_TYPE_FIELD_NUMBER: builtins.int
     GROUP_SUPPORT_LEVEL_FIELD_NUMBER: builtins.int
     GROUP_UNSUPPORTED_REASON_FIELD_NUMBER: builtins.int
+    FLAT_THREADS_ENABLED_FIELD_NUMBER: builtins.int
     @property
     def group_id(self) -> global___GroupId: ...
     @property
@@ -7366,6 +7370,7 @@ class WorldItemLite(google.protobuf.message.Message):
     """
     group_support_level: global___GroupSupportLevel.ValueType
     group_unsupported_reason: global___GroupUnsupportedReason.ValueType
+    flat_threads_enabled: builtins.bool
     """optional ?? group_policies = 26;"""
     def __init__(
         self,
@@ -7388,9 +7393,10 @@ class WorldItemLite(google.protobuf.message.Message):
         attribute_checker_group_type: global___SharedAttributeCheckerGroupType.ValueType | None = ...,
         group_support_level: global___GroupSupportLevel.ValueType | None = ...,
         group_unsupported_reason: global___GroupUnsupportedReason.ValueType | None = ...,
+        flat_threads_enabled: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "dm_members", b"dm_members", "flat_group", b"flat_group", "group_id", b"group_id", "group_lite", b"group_lite", "group_revision", b"group_revision", "group_support_level", b"group_support_level", "group_unsupported_reason", b"group_unsupported_reason", "is_message_blocked", b"is_message_blocked", "message", b"message", "name_users", b"name_users", "read_state", b"read_state", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time_micros", b"retention_horizon_time_micros", "room_name", b"room_name", "sort_timestamp", b"sort_timestamp", "threaded_group", b"threaded_group"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "dm_members", b"dm_members", "flat_group", b"flat_group", "group_id", b"group_id", "group_lite", b"group_lite", "group_revision", b"group_revision", "group_support_level", b"group_support_level", "group_unsupported_reason", b"group_unsupported_reason", "is_message_blocked", b"is_message_blocked", "message", b"message", "name_users", b"name_users", "read_state", b"read_state", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time_micros", b"retention_horizon_time_micros", "room_name", b"room_name", "sort_timestamp", b"sort_timestamp", "threaded_group", b"threaded_group"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "dm_members", b"dm_members", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_id", b"group_id", "group_lite", b"group_lite", "group_revision", b"group_revision", "group_support_level", b"group_support_level", "group_unsupported_reason", b"group_unsupported_reason", "is_message_blocked", b"is_message_blocked", "message", b"message", "name_users", b"name_users", "read_state", b"read_state", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time_micros", b"retention_horizon_time_micros", "room_name", b"room_name", "sort_timestamp", b"sort_timestamp", "threaded_group", b"threaded_group"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "dm_members", b"dm_members", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_id", b"group_id", "group_lite", b"group_lite", "group_revision", b"group_revision", "group_support_level", b"group_support_level", "group_unsupported_reason", b"group_unsupported_reason", "is_message_blocked", b"is_message_blocked", "message", b"message", "name_users", b"name_users", "read_state", b"read_state", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time_micros", b"retention_horizon_time_micros", "room_name", b"room_name", "sort_timestamp", b"sort_timestamp", "threaded_group", b"threaded_group"]) -> None: ...
 
 global___WorldItemLite = WorldItemLite
 

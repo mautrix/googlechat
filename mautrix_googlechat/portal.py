@@ -122,7 +122,8 @@ class Portal(DBPortal, BasePortal):
         avatar_set: bool = False,
         encrypted: bool = False,
         revision: int | None = None,
-        is_threaded: bool | None = None,
+        threads_only: bool | None = None,
+        threads_enabled: bool | None = None,
     ) -> None:
         super().__init__(
             gcid=gcid,
@@ -135,7 +136,8 @@ class Portal(DBPortal, BasePortal):
             avatar_set=avatar_set,
             encrypted=encrypted,
             revision=revision,
-            is_threaded=is_threaded,
+            threads_only=threads_only,
+            threads_enabled=threads_enabled,
         )
         self.log = self.log.getChild(self.gcid_log)
 
@@ -233,11 +235,18 @@ class Portal(DBPortal, BasePortal):
             )
 
         changed = False
-        is_threaded = (
-            info if isinstance(info, googlechat.WorldItemLite) else info.group
-        ).HasField("threaded_group")
-        if is_threaded != self.is_threaded:
-            self.is_threaded = is_threaded
+        group_meta = info if isinstance(info, googlechat.WorldItemLite) else info.group
+        threads_only = group_meta.HasField("threaded_group")
+        if threads_only != self.threads_only:
+            self.threads_only = threads_only
+            changed = True
+        threads_enabled = bool(group_meta.flat_threads_enabled or threads_only)
+        if threads_enabled != self.threads_enabled:
+            self.log.debug(
+                f"{self.gcid}/{self.name} changed threads_enabled "
+                f"from {self.threads_enabled} to {threads_enabled}"
+            )
+            self.threads_enabled = threads_enabled
             changed = True
         changed = await self._update_participants(source, info) or changed
         changed = await self._update_name(info) or changed
@@ -336,7 +345,7 @@ class Portal(DBPortal, BasePortal):
             request_header=source.client.gc_request_header,
             page_size_for_topics=(
                 self.config["bridge.backfill.initial_thread_limit"]
-                if self.is_threaded
+                if self.threads_only
                 else self.config["bridge.backfill.initial_nonthread_limit"]
             ),
             group_id=self.gc_group_id,
@@ -346,7 +355,7 @@ class Portal(DBPortal, BasePortal):
             f"Got {len(resp.topics)} topics from server "
             f"(up to revision {resp.group_revision.timestamp})"
         )
-        if self.is_threaded:
+        if self.threads_only:
             # Store the group revision already now, we can't continue from the middle anyway.
             await self.set_revision(resp.group_revision.timestamp)
         topic: googlechat.Topic
@@ -356,7 +365,7 @@ class Portal(DBPortal, BasePortal):
         for topic in sorted_topics:
             await self.handle_googlechat_message(source, topic.replies[0])
             message_count += 1
-            if self.is_threaded or topic.topic_read_state.thread_created_usec > 0:
+            if self.threads_only or topic.topic_read_state.thread_created_usec > 0:
                 msg_req = googlechat.ListMessagesRequest(
                     request_header=source.client.gc_request_header,
                     parent_id=googlechat.MessageParentId(topic_id=topic.id),
@@ -370,7 +379,7 @@ class Portal(DBPortal, BasePortal):
             else:
                 await self.set_revision(topic.replies[0].create_time)
         self.log.info(f"Initial backfill complete, handled {message_count} messages in total")
-        if not self.is_threaded:
+        if not self.threads_only:
             await self.set_revision(resp.group_revision.timestamp)
         return message_count
 
@@ -533,7 +542,8 @@ class Portal(DBPortal, BasePortal):
             "channel": {
                 "id": self.gcid,
                 "displayname": self.name,
-                "fi.mau.googlechat.is_threaded": self.is_threaded,
+                "fi.mau.googlechat.threads_only": self.threads_only,
+                "fi.mau.googlechat.threads_enabled": self.threads_enabled,
             },
         }
 
@@ -809,7 +819,7 @@ class Portal(DBPortal, BasePortal):
             message.get_thread_parent() or message.get_reply_to(), self.mxid
         )
         thread_id = (
-            (reply_to.gc_parent_id or reply_to.gcid) if reply_to and self.is_space else None
+            (reply_to.gc_parent_id or reply_to.gcid) if reply_to and self.threads_enabled else None
         )
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
         self._local_dedup.add(local_id)
@@ -1200,8 +1210,8 @@ class Portal(DBPortal, BasePortal):
 
         def _append_event_id(evt_id: EventID, msg_type: MessageType) -> None:
             event_ids.append((evt_id, msg_type))
-            if self.is_threaded:
-                nonlocal thread_parent
+            nonlocal thread_parent
+            if thread_parent or self.threads_only:
                 if not thread_parent:
                     thread_parent = {"thread_parent": evt_id}
                 thread_parent["last_event_in_thread"] = evt_id

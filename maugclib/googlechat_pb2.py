@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x19maugclib/googlechat.proto\"-\n\x06UserId\x12\n\n\x02id\x18\x01 \x01(\t\x12\x17\n\x04type\x18\x02 \x01(\x0e\x32\t.UserType\"\xe3\x01\n\x04User\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\navatar_url\x18\x03 \x01(\t\x12\r\n\x05\x65mail\x18\x04 \x01(\t\x12\x12\n\nfirst_name\x18\x05 \x01(\t\x12\x11\n\tlast_name\x18\x06 \x01(\t\x12\x0f\n\x07\x64\x65leted\x18\x07 \x01(\x08\x12\x14\n\x0cis_anonymous\x18\x08 \x01(\x08\x12\x0e\n\x06gender\x18\n \x01(\t\x12\x32\n\x12\x62lock_relationship\x18\r \x01(\x0b\x32\x16.UserBlockRelationship\"W\n\x15UserBlockRelationship\x12\x1f\n\x17is_blocked_by_requester\x18\x01 \x01(\x08\x12\x1d\n\x15has_blocked_requester\x18\x02 \x01(\x08\"\xb9\x01\n\x0b\x44ndSettings\x12.\n\tdnd_state\x18\x01 \x01(\x0e\x32\x1b.DndSettings.DndState_State\x12\x1c\n\x14\x64nd_expiry_time_usec\x18\x02 \x01(\x03\x12%\n\x1dstate_remaining_duration_usec\x18\x03 \x01(\x03\"5\n\x0e\x44ndState_State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tAVAILABLE\x10\x01\x12\x07\n\x03\x44ND\x10\x02\"%\n\x05\x45moji\x12\x11\n\x07unicode\x18\x01 \x01(\tH\x00\x42\t\n\x07\x43ontent\"u\n\x0c\x43ustomStatus\x12\x13\n\x0bstatus_text\x18\x01 \x01(\t\x12\x14\n\x0cstatus_emoji\x18\x02 \x01(\t\x12#\n\x1bstate_expiry_timestamp_usec\x18\x03 \x01(\x03\x12\x15\n\x05\x65moji\x18\x04 \x01(\x0b\x32\x06.Emoji\"\xa0\x02\n\nUserStatus\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\"\n\x0c\x64nd_settings\x18\x02 \x01(\x0b\x32\x0c.DndSettings\x12\x1d\n\x15update_timestamp_usec\x18\x03 \x01(\x03\x12*\n\"dnd_settings_update_timestamp_usec\x18\x07 \x01(\x03\x12\x1d\n\x15status_timestamp_usec\x18\x04 \x01(\x03\x12\x17\n\x0fpresence_shared\x18\x05 \x01(\x08\x12$\n\rcustom_status\x18\x06 \x01(\x0b\x32\r.CustomStatus\x12+\n#custom_status_update_timestamp_usec\x18\x08 \x01(\x03\":\n\x16UserStatusUpdatedEvent\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\"Y\n\x14GetUserStatusRequest\x12\x19\n\x08user_ids\x18\x01 \x03(\x0b\x32\x07.UserId\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\";\n\x15GetUserStatusResponse\x12\"\n\ruser_statuses\x18\x01 \x03(\x0b\x32\x0b.UserStatus\"B\n\x18GetSelfUserStatusRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\"c\n\x19GetSelfUserStatusResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12$\n\ruser_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\"\xc3\x04\n\x19\x43lientFeatureCapabilities\x12\x1b\n\x13\x65nable_all_features\x18\x01 \x01(\x08\x12L\n\x18spaces_level_for_testing\x18\x02 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12I\n\x15\x64ms_level_for_testing\x18\x03 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12\x44\n\x10post_rooms_level\x18\x04 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12K\n\x17spam_room_invites_level\x18\x05 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12\x43\n\x0ftombstone_level\x18\x06 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12K\n\x17rich_text_viewing_level\x18\x07 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\"K\n\x0f\x43\x61pabilityLevel\x12\x0f\n\x0bUNSUPPORTED\x10\x00\x12\x12\n\x0e\x44\x41TA_SUPPORTED\x10\x01\x12\x13\n\x0f\x46ULLY_SUPPORTED\x10\x02\"\xc0\x02\n\rRequestHeader\x12\x10\n\x08trace_id\x18\x01 \x01(\x03\x12.\n\x0b\x63lient_type\x18\x02 \x01(\x0e\x32\x19.RequestHeader.ClientType\x12\x16\n\x0e\x63lient_version\x18\x03 \x01(\x03\x12\x0e\n\x06locale\x18\x04 \x01(\t\x12?\n\x1b\x63lient_feature_capabilities\x18\x05 \x01(\x0b\x32\x1a.ClientFeatureCapabilities\"\x83\x01\n\nClientType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x41NDROID\x10\x01\x12\x07\n\x03IOS\x10\x02\x12\x07\n\x03WEB\x10\x03\x12\x13\n\x0f\x43LASSIC_INTEROP\x10\x04\x12\x14\n\x10INTERNAL_TESTING\x10\x05\x12\x0f\n\x0bWEB_DESKTOP\x10\x06\x12\r\n\tWEB_GMAIL\x10\x07\"*\n\x06Member\x12\x15\n\x04user\x18\x01 \x01(\x0b\x32\x05.UserH\x00\x42\t\n\x07Profile\",\n\x08MemberId\x12\x1a\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserIdH\x00\x42\x04\n\x02Id\"d\n\x0cMembershipId\x12\x1c\n\tmember_id\x18\x01 \x01(\x0b\x32\t.MemberId\x12\x1a\n\x08space_id\x18\x02 \x01(\x0b\x32\x08.SpaceId\x12\x1a\n\x08group_id\x18\x03 \x01(\x0b\x32\x08.GroupId\"\xbc\x01\n\nMembership\x12\x19\n\x02id\x18\x01 \x01(\x0b\x32\r.MembershipId\x12\x13\n\x0b\x63reate_time\x18\x02 \x01(\x03\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\x12(\n\x0finvite_category\x18\x04 \x01(\x0e\x32\x0f.InviteCategory\x12(\n\x0fmembership_role\x18\x05 \x01(\x0e\x32\x0f.MembershipRole\"C\n\rMemberProfile\x12\x19\n\x02id\x18\x01 \x01(\x0b\x32\r.MembershipId\x12\x17\n\x06member\x18\x02 \x01(\x0b\x32\x07.Member\"\x81\x01\n\x11GetMembersRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1d\n\nmember_ids\x18\x01 \x03(\x0b\x32\t.MemberId\x12%\n\x0emembership_ids\x18\x02 \x03(\x0b\x32\r.MembershipId\"W\n\x12GetMembersResponse\x12\x18\n\x07members\x18\x01 \x03(\x0b\x32\x07.Member\x12\'\n\x0fmember_profiles\x18\x02 \x03(\x0b\x32\x0e.MemberProfile\"\xa1\x01\n\x0cUserPresence\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x1b\n\x08presence\x18\x02 \x01(\x0e\x32\t.Presence\x12\x14\n\x0c\x61\x63tive_until\x18\x04 \x01(\x03\x12\"\n\tdnd_state\x18\x03 \x01(\x0e\x32\x0f.DndState_State\x12 \n\x0buser_status\x18\x05 \x01(\x0b\x32\x0b.UserStatus\"\x96\x01\n\x16GetUserPresenceRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x19\n\x08user_ids\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x1c\n\x14include_active_until\x18\x02 \x01(\x08\x12\x1b\n\x13include_user_status\x18\x03 \x01(\x08\"@\n\x17GetUserPresenceResponse\x12%\n\x0euser_presences\x18\x01 \x03(\x0b\x32\r.UserPresence\"\x1f\n\x11JAddOnsIdentifier\x12\n\n\x02id\x18\x01 \x01(\t\"\xd2\x08\n\x14JAddOnsFormattedText\x12\x1e\n\x02id\x18\x04 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x15\n\roriginal_text\x18\x01 \x01(\t\x12K\n\x17\x66ormatted_text_elements\x18\x02 \x03(\x0b\x32*.JAddOnsFormattedText.FormattedTextElement\x12\x33\n\ntext_align\x18\x03 \x01(\x0e\x32\x1f.JAddOnsFormattedText.TextAlign\x1a\xd2\x06\n\x14\x46ormattedTextElement\x12L\n\x0bstyled_text\x18\x01 \x01(\x0b\x32\x35.JAddOnsFormattedText.FormattedTextElement.StyledTextH\x00\x12I\n\thyperlink\x18\x02 \x01(\x0b\x32\x34.JAddOnsFormattedText.FormattedTextElement.HyperLinkH\x00\x1ak\n\x08\x44\x61teTime\x12\x13\n\x0btime_millis\x18\x01 \x01(\x03\x12 \n\x18time_zone_offset_minutes\x18\x02 \x01(\x05\x12\x11\n\tdate_only\x18\x03 \x01(\x08\x12\x15\n\rfloating_time\x18\x04 \x01(\x08\x1a\xe8\x03\n\nStyledText\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x45\n\x08\x64\x61tetime\x18\x04 \x01(\x0b\x32\x33.JAddOnsFormattedText.FormattedTextElement.DateTime\x12K\n\x06styles\x18\x02 \x03(\x0e\x32;.JAddOnsFormattedText.FormattedTextElement.StyledText.Style\x12U\n\x0b\x66ont_weight\x18\x05 \x01(\x0e\x32@.JAddOnsFormattedText.FormattedTextElement.StyledText.FontWeight\x12\r\n\x05\x63olor\x18\x03 \x01(\x05\x12)\n\x0ctheme_colors\x18\x07 \x01(\x0b\x32\x13.JAddOnsThemeColors\"k\n\x05Style\x12\x08\n\x04NONE\x10\x00\x12\x13\n\x0f\x42OLD_DEPRECATED\x10\x01\x12\n\n\x06ITALIC\x10\x02\x12\r\n\tUNDERLINE\x10\x03\x12\x11\n\rSTRIKETHROUGH\x10\x04\x12\x06\n\x02\x42R\x10\x05\x12\r\n\tUPPERCASE\x10\x06\":\n\nFontWeight\x12\x0b\n\x07REGULAR\x10\x00\x12\t\n\x05LIGHT\x10\x01\x12\n\n\x06MEDIUM\x10\x02\x12\x08\n\x04\x42OLD\x10\x03\x1a>\n\tHyperLink\x12\x0c\n\x04link\x18\x01 \x01(\t\x12\x15\n\roriginal_link\x18\x03 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\tB\t\n\x07\x45lement\",\n\tTextAlign\x12\x08\n\x04LEFT\x10\x00\x12\n\n\x06\x43\x45NTER\x10\x01\x12\t\n\x05RIGHT\x10\x02\"\xca\x01\n\x15JAddOnsImageCropStyle\x12\x32\n\x04type\x18\x01 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\x14\n\x0c\x61spect_ratio\x18\x02 \x01(\x01\"g\n\rImageCropType\x12\x15\n\x11\x43ROP_TYPE_NOT_SET\x10\x00\x12\n\n\x06SQUARE\x10\x01\x12\n\n\x06\x43IRCLE\x10\x02\x12\x14\n\x10RECTANGLE_CUSTOM\x10\x03\x12\x11\n\rRECTANGLE_4_3\x10\x04\"I\n\x12JAddOnsThemeColors\x12\x19\n\x11light_theme_color\x18\x01 \x01(\x05\x12\x18\n\x10\x64\x61rk_theme_color\x18\x02 \x01(\x05\"\xbc\x02\n\x0fJAddOnsOpenLink\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x15\n\roriginal_link\x18\x05 \x01(\t\x12(\n\x07open_as\x18\x02 \x01(\x0e\x32\x17.JAddOnsOpenLink.OpenAs\x12*\n\x08on_close\x18\x03 \x01(\x0e\x32\x18.JAddOnsOpenLink.OnClose\x12\x36\n\x0eload_indicator\x18\x04 \x01(\x0e\x32\x1e.JAddOnsOpenLink.LoadIndicator\"$\n\x06OpenAs\x12\r\n\tFULL_SIZE\x10\x00\x12\x0b\n\x07OVERLAY\x10\x01\")\n\x07OnClose\x12\x0b\n\x07NOTHING\x10\x00\x12\x11\n\rRELOAD_ADD_ON\x10\x01\"&\n\rLoadIndicator\x12\x08\n\x04NONE\x10\x00\x12\x0b\n\x07SPINNER\x10\x01\"\xe5\t\n\x0fJAddOnsCardItem\x12/\n\x06header\x18\x01 \x01(\x0b\x32\x1f.JAddOnsCardItem.CardItemHeader\x12\x32\n\x08sections\x18\x02 \x03(\x0b\x32 .JAddOnsCardItem.CardItemSection\x12\x35\n\x0c\x63\x61rd_actions\x18\x03 \x03(\x0b\x32\x1f.JAddOnsCardItem.CardItemAction\x12\x0c\n\x04name\x18\x04 \x01(\t\x12:\n\x0c\x66ixed_footer\x18\x05 \x01(\x0b\x32$.JAddOnsCardItem.CardItemFixedFooter\x12>\n\x0erefresh_action\x18\x06 \x01(\x0b\x32&.JAddOnsCardItem.CardItemRefreshAction\x12\x34\n\rdisplay_style\x18\x07 \x01(\x0e\x32\x1d.JAddOnsCardItem.DisplayStyle\x12\x39\n\x10peek_card_header\x18\x08 \x01(\x0b\x32\x1f.JAddOnsCardItem.CardItemHeader\x12\x34\n\x17\x62\x61\x63kground_theme_colors\x18\t \x01(\x0b\x32\x13.JAddOnsThemeColors\x1a\xc5\x01\n\x0e\x43\x61rdItemHeader\x12$\n\x05title\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\'\n\x08subtitle\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x39\n\x0bimage_style\x18\x03 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\x11\n\timage_url\x18\x04 \x01(\t\x12\x16\n\x0eimage_alt_text\x18\x05 \x01(\t\x1a\xc6\x01\n\x0f\x43\x61rdItemSection\x12\x1e\n\x02id\x18\x06 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12%\n\x06header\x18\x05 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x1f\n\x07widgets\x18\x02 \x03(\x0b\x32\x0e.JAddOnsWidget\x12\x13\n\x0b\x63ollapsable\x18\x03 \x01(\x08\x12!\n\x19num_uncollapsable_widgets\x18\x04 \x01(\x05\x1aI\n\x0e\x43\x61rdItemAction\x12\x14\n\x0c\x61\x63tion_label\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\xa5\x01\n\x13\x43\x61rdItemFixedFooter\x12&\n\x07\x62uttons\x18\x01 \x03(\x0b\x32\x15.JAddOnsWidget.Button\x12\x31\n\x0eprimary_button\x18\x02 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x12\x33\n\x10secondary_button\x18\x03 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x1a;\n\x15\x43\x61rdItemRefreshAction\x12\"\n\x06method\x18\x01 \x01(\x0b\x32\x12.JAddOnsFormAction\"D\n\x0c\x44isplayStyle\x12\x1d\n\x19\x44ISPLAY_STYLE_UNSPECIFIED\x10\x00\x12\x08\n\x04PEEK\x10\x01\x12\x0b\n\x07REPLACE\x10\x02\"1\n\x0fJAddOnsPushCard\x12\x1e\n\x04\x63\x61rd\x18\x01 \x01(\x0b\x32\x10.JAddOnsCardItem\"\xd0\x01\n\x0eJAddOnsOnClick\x12\x0e\n\x04link\x18\x01 \x01(\tH\x00\x12$\n\x06\x61\x63tion\x18\x02 \x01(\x0b\x32\x12.JAddOnsFormActionH\x00\x12%\n\topen_link\x18\x05 \x01(\x0b\x32\x10.JAddOnsOpenLinkH\x00\x12.\n\x10open_link_action\x18\x07 \x01(\x0b\x32\x12.JAddOnsFormActionH\x00\x12%\n\tpush_card\x18\x08 \x01(\x0b\x32\x10.JAddOnsPushCardH\x00\x42\n\n\x08\x44\x61taCase\"!\n\x11JAddOnsTextWidget\x12\x0c\n\x04line\x18\x01 \x03(\t\"\x93\x01\n\x15JAddOnsImageComponent\x12\x11\n\timage_url\x18\x01 \x01(\t\x12\x10\n\x08\x61lt_text\x18\x02 \x01(\t\x12*\n\ncrop_style\x18\x03 \x01(\x0b\x32\x16.JAddOnsImageCropStyle\x12)\n\x0c\x62order_style\x18\x04 \x01(\x0b\x32\x13.JAddOnsBorderStyle\"\xfe\x03\n\x0bJAddOnsGrid\x12\x1e\n\x02id\x18\x01 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\r\n\x05title\x18\x02 \x01(\t\x12$\n\x05items\x18\x03 \x03(\x0b\x32\x15.JAddOnsGrid.GridItem\x12)\n\x0c\x62order_style\x18\x04 \x01(\x0b\x32\x13.JAddOnsBorderStyle\x12\x13\n\x0bnum_columns\x18\x05 \x01(\x05\x12!\n\x08on_click\x18\x06 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\xb6\x02\n\x08GridItem\x12\x12\n\nidentifier\x18\x01 \x01(\t\x12%\n\x05image\x18\x02 \x01(\x0b\x32\x16.JAddOnsImageComponent\x12\r\n\x05title\x18\x03 \x01(\t\x12\x10\n\x08subtitle\x18\x04 \x01(\t\x12\x36\n\x0etext_alignment\x18\x05 \x01(\x0e\x32\x1e.JAddOnsWidget.HorizontalAlign\x12\x34\n\x06layout\x18\t \x01(\x0e\x32$.JAddOnsGrid.GridItem.GridItemLayout\x12!\n\x08on_click\x18\n \x01(\x0b\x32\x0f.JAddOnsOnClick\"=\n\x0eGridItemLayout\x12\x0b\n\x07NOT_SET\x10\x00\x12\x0e\n\nTEXT_BELOW\x10\x01\x12\x0e\n\nTEXT_ABOVE\x10\x02\"\xc6\x01\n\x12JAddOnsBorderStyle\x12,\n\x04type\x18\x01 \x01(\x0e\x32\x1e.JAddOnsBorderStyle.BorderType\x12)\n\x0cstroke_color\x18\x02 \x01(\x0b\x32\x13.JAddOnsThemeColors\x12\x15\n\rcorner_radius\x18\x03 \x01(\x05\"@\n\nBorderType\x12\x17\n\x13\x42ORDER_TYPE_NOT_SET\x10\x00\x12\r\n\tNO_BORDER\x10\x01\x12\n\n\x06STROKE\x10\x02\"9\n\x17JAddOnsLabelContentPair\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\"U\n\x1dJAddOnsLabelContentPairWidget\x12\x34\n\x12label_content_pair\x18\x01 \x03(\x0b\x32\x18.JAddOnsLabelContentPair\"\xaa!\n\rJAddOnsWidget\x12)\n\x0btext_widget\x18\x01 \x01(\x0b\x32\x12.JAddOnsTextWidgetH\x00\x12\x43\n\x19label_content_pair_widget\x18\x02 \x01(\x0b\x32\x1e.JAddOnsLabelContentPairWidgetH\x00\x12\x36\n\x0etext_paragraph\x18\x03 \x01(\x0b\x32\x1c.JAddOnsWidget.TextParagraphH\x00\x12\x35\n\x0etext_key_value\x18\x04 \x01(\x0b\x32\x1b.JAddOnsWidget.TextKeyValueH\x00\x12\x37\n\x0fimage_key_value\x18\x05 \x01(\x0b\x32\x1c.JAddOnsWidget.ImageKeyValueH\x00\x12%\n\x05image\x18\t \x01(\x0b\x32\x14.JAddOnsWidget.ImageH\x00\x12,\n\tkey_value\x18\r \x01(\x0b\x32\x17.JAddOnsWidget.KeyValueH\x00\x12)\n\x07\x64ivider\x18\x10 \x01(\x0b\x32\x16.JAddOnsWidget.DividerH\x00\x12\x1c\n\x04grid\x18\x11 \x01(\x0b\x32\x0c.JAddOnsGridH\x00\x12#\n\x04menu\x18\n \x01(\x0b\x32\x13.JAddOnsWidget.MenuH\x00\x12.\n\ntext_field\x18\x0b \x01(\x0b\x32\x18.JAddOnsWidget.TextFieldH\x00\x12<\n\x11selection_control\x18\x0c \x01(\x0b\x32\x1f.JAddOnsWidget.SelectionControlH\x00\x12\x39\n\x10\x64\x61te_time_picker\x18\x0e \x01(\x0b\x32\x1d.JAddOnsWidget.DateTimePickerH\x00\x12&\n\x07\x62uttons\x18\x08 \x03(\x0b\x32\x15.JAddOnsWidget.Button\x12\x38\n\x10horizontal_align\x18\x0f \x01(\x0e\x32\x1e.JAddOnsWidget.HorizontalAlign\x1a\x34\n\rTextParagraph\x12#\n\x04text\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x1az\n\x0cTextKeyValue\x12\"\n\x03key\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12#\n\x04text\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x03 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1ai\n\rImageKeyValue\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12#\n\x04text\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x03 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\x8a\x01\n\x05Image\x12\x1e\n\x02id\x18\x05 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x16\n\x0e\x66ife_image_url\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\x14\n\x0c\x61spect_ratio\x18\x03 \x01(\x01\x12\x10\n\x08\x61lt_text\x18\x04 \x01(\t\x1a\x65\n\x04Icon\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12\x10\n\x08\x61lt_text\x18\x02 \x01(\t\x12\x39\n\x0bimage_style\x18\x03 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x1a\xf9\x05\n\x08KeyValue\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12\x15\n\ricon_alt_text\x18\t \x01(\t\x12\x39\n\x0bimage_style\x18\n \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\'\n\nstart_icon\x18\x0b \x01(\x0b\x32\x13.JAddOnsWidget.Icon\x12(\n\ttop_label\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12&\n\x07\x63ontent\x18\x03 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x19\n\x11\x63ontent_multiline\x18\x08 \x01(\x08\x12+\n\x0c\x62ottom_label\x18\x04 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x05 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\'\n\x06\x62utton\x18\x06 \x01(\x0b\x32\x15.JAddOnsWidget.ButtonH\x00\x12=\n\rswitch_widget\x18\x07 \x01(\x0b\x32$.JAddOnsWidget.KeyValue.SwitchWidgetH\x00\x12\'\n\x08\x65nd_icon\x18\x0c \x01(\x0b\x32\x13.JAddOnsWidget.IconH\x00\x1a\x86\x02\n\x0cSwitchWidget\x12\x1e\n\x02id\x18\x05 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\x12\x10\n\x08selected\x18\x03 \x01(\x08\x12%\n\ton_change\x18\x04 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\x46\n\x0c\x63ontrol_type\x18\x06 \x01(\x0e\x32\x30.JAddOnsWidget.KeyValue.SwitchWidget.ControlType\"8\n\x0b\x43ontrolType\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\n\n\x06SWITCH\x10\x01\x12\x0c\n\x08\x43HECKBOX\x10\x02\x42\t\n\x07\x43ontrol\x1a\t\n\x07\x44ivider\x1a\xb2\x01\n\x04Menu\x12\x0c\n\x04name\x18\x01 \x01(\t\x12+\n\x05items\x18\x02 \x03(\x0b\x32\x1c.JAddOnsWidget.Menu.MenuItem\x12%\n\ton_change\x18\x04 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\r\n\x05label\x18\x05 \x01(\t\x1a\x39\n\x08MenuItem\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\r\n\x05value\x18\x04 \x01(\t\x12\x10\n\x08selected\x18\x03 \x01(\x08\x1am\n\x0c\x41utoComplete\x12;\n\x05items\x18\x01 \x03(\x0b\x32,.JAddOnsWidget.AutoComplete.AutoCompleteItem\x1a \n\x10\x41utoCompleteItem\x12\x0c\n\x04text\x18\x01 \x01(\t\x1a\xf5\x03\n\tTextField\x12\x1e\n\x02id\x18\x0b \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tmax_lines\x18\x02 \x01(\x05\x12\x34\n\x04type\x18\x05 \x01(\x0e\x32&.JAddOnsWidget.TextField.TextFieldType\x12\r\n\x05label\x18\x03 \x01(\t\x12\x11\n\thint_text\x18\x04 \x01(\t\x12\r\n\x05value\x18\x06 \x01(\t\x12\x34\n\tline_type\x18\x07 \x01(\x0e\x32!.JAddOnsWidget.TextField.LineType\x12%\n\ton_change\x18\x08 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\x32\n\rauto_complete\x18\t \x01(\x0b\x32\x1b.JAddOnsWidget.AutoComplete\x12\x32\n\x16\x61uto_complete_callback\x18\n \x01(\x0b\x32\x12.JAddOnsFormAction\x12)\n!auto_complete_multiple_selections\x18\x0c \x01(\x08\"*\n\rTextFieldType\x12\x0b\n\x07REGULAR\x10\x00\x12\x0c\n\x08\x46LOATING\x10\x01\"$\n\x08LineType\x12\n\n\x06SINGLE\x10\x00\x12\x0c\n\x08MULTIPLE\x10\x01\x1a\x9d\x03\n\x10SelectionControl\x12\x1e\n\x02id\x18\x06 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04name\x18\x01 \x01(\t\x12;\n\x04type\x18\x02 \x01(\x0e\x32-.JAddOnsWidget.SelectionControl.SelectionType\x12<\n\x05items\x18\x03 \x03(\x0b\x32-.JAddOnsWidget.SelectionControl.SelectionItem\x12%\n\ton_change\x18\x04 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\r\n\x05label\x18\x05 \x01(\t\x1a^\n\rSelectionItem\x12\x1e\n\x02id\x18\x04 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x10\n\x08selected\x18\x02 \x01(\x08\x12\r\n\x05value\x18\x03 \x01(\t\"J\n\rSelectionType\x12\r\n\tCHECK_BOX\x10\x00\x12\x10\n\x0cRADIO_BUTTON\x10\x01\x12\n\n\x06SWITCH\x10\x02\x12\x0c\n\x08\x44ROPDOWN\x10\x03\x1a\xe1\x02\n\x0e\x44\x61teTimePicker\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05label\x18\x02 \x01(\t\x12>\n\x04type\x18\x03 \x01(\x0e\x32\x30.JAddOnsWidget.DateTimePicker.DateTimePickerType\x12\x16\n\x0evalue_ms_epoch\x18\x04 \x01(\x03\x12\x1c\n\x14timezone_offset_date\x18\x05 \x01(\x05\x12%\n\ton_change\x18\x06 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\r\n\x05\x63olor\x18\x07 \x01(\x05\x12)\n\x0ctheme_colors\x18\x08 \x01(\x0b\x32\x13.JAddOnsThemeColors\"[\n\x12\x44\x61teTimePickerType\x12\x14\n\x10UNSPECIFIED_TYPE\x10\x00\x12\x11\n\rDATE_AND_TIME\x10\x01\x12\r\n\tDATE_ONLY\x10\x02\x12\r\n\tTIME_ONLY\x10\x03\x1a\xc8\x02\n\nTextButton\x12\x1e\n\x02id\x18\x03 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12#\n\x04text\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\x10\n\x08\x64isabled\x18\x04 \x01(\x08\x12.\n\x05style\x18\x05 \x01(\x0e\x32\x1f.JAddOnsWidget.TextButton.Style\x12\x18\n\x10\x62\x61\x63kground_color\x18\x06 \x01(\x05\x12\x34\n\x17\x62\x61\x63kground_theme_colors\x18\x07 \x01(\x0b\x32\x13.JAddOnsThemeColors\x12\x10\n\x08\x61lt_text\x18\x08 \x01(\t\".\n\x05Style\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\x08\n\x04TEXT\x10\x01\x12\n\n\x06\x46ILLED\x10\x02\x1ap\n\x0bImageButton\x12\x1e\n\x02id\x18\x04 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\x0c\n\x04name\x18\x03 \x01(\t\x1av\n\x06\x42utton\x12\x30\n\x0btext_button\x18\x01 \x01(\x0b\x32\x19.JAddOnsWidget.TextButtonH\x00\x12\x32\n\x0cimage_button\x18\x02 \x01(\x0b\x32\x1a.JAddOnsWidget.ImageButtonH\x00\x42\x06\n\x04Type\">\n\x0fHorizontalAlign\x12\x0b\n\x07NOT_SET\x10\x00\x12\t\n\x05START\x10\x01\x12\n\n\x06\x43\x45NTER\x10\x02\x12\x07\n\x03\x45ND\x10\x03\x42\x06\n\x04\x44\x61ta\"\xc9\x02\n\x11JAddOnsFormAction\x12\x1a\n\x12\x61\x63tion_method_name\x18\x01 \x01(\t\x12\x36\n\nparameters\x18\x04 \x03(\x0b\x32\".JAddOnsFormAction.ActionParameter\x12\x1d\n\x15parameters_deprecated\x18\x03 \x03(\t\x12\x18\n\x10\x65ncrypted_action\x18\x07 \x01(\t\x12\x38\n\x0eload_indicator\x18\x05 \x01(\x0e\x32 .JAddOnsFormAction.LoadIndicator\x12\x16\n\x0epersist_values\x18\x06 \x01(\x08\x1a-\n\x0f\x41\x63tionParameter\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"&\n\rLoadIndicator\x12\x0b\n\x07SPINNER\x10\x00\x12\x08\n\x04NONE\x10\x01\"\x95\n\n\x16JAddOnsContextualAddOn\x12\x30\n\x07toolbar\x18\x01 \x01(\x0b\x32\x1f.JAddOnsContextualAddOn.Toolbar\x12+\n\x05\x63\x61rds\x18\x02 \x03(\x0b\x32\x1c.JAddOnsContextualAddOn.Card\x1az\n\x07Toolbar\x12#\n\x04name\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x10\n\x08icon_url\x18\x02 \x01(\t\x12\r\n\x05\x63olor\x18\x03 \x01(\x05\x12)\n\x0ctheme_colors\x18\x04 \x01(\x0b\x32\x13.JAddOnsThemeColors\x1a\x9f\x08\n\x04\x43\x61rd\x12\x37\n\x06header\x18\x01 \x01(\x0b\x32\'.JAddOnsContextualAddOn.Card.CardHeader\x12\x36\n\x08sections\x18\x02 \x03(\x0b\x32$.JAddOnsContextualAddOn.Card.Section\x12=\n\x0c\x63\x61rd_actions\x18\x03 \x03(\x0b\x32\'.JAddOnsContextualAddOn.Card.CardAction\x12\x0c\n\x04name\x18\x04 \x01(\t\x12>\n\x0c\x66ixed_footer\x18\x05 \x01(\x0b\x32(.JAddOnsContextualAddOn.Card.FixedFooter\x12\x42\n\x0erefresh_action\x18\x06 \x01(\x0b\x32*.JAddOnsContextualAddOn.Card.RefreshAction\x12\x34\n\x17\x62\x61\x63kground_theme_colors\x18\x07 \x01(\x0b\x32\x13.JAddOnsThemeColors\x1a\xc1\x01\n\nCardHeader\x12$\n\x05title\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\'\n\x08subtitle\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x39\n\x0bimage_style\x18\x03 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\x11\n\timage_url\x18\x04 \x01(\t\x12\x16\n\x0eimage_alt_text\x18\x05 \x01(\t\x1a\xbe\x01\n\x07Section\x12\x1e\n\x02id\x18\x06 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12%\n\x06header\x18\x05 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x1f\n\x07widgets\x18\x02 \x03(\x0b\x32\x0e.JAddOnsWidget\x12\x13\n\x0b\x63ollapsable\x18\x03 \x01(\x08\x12!\n\x19num_uncollapsable_widgets\x18\x04 \x01(\x05\x1a\x45\n\nCardAction\x12\x14\n\x0c\x61\x63tion_label\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\x9d\x01\n\x0b\x46ixedFooter\x12&\n\x07\x62uttons\x18\x01 \x03(\x0b\x32\x15.JAddOnsWidget.Button\x12\x31\n\x0eprimary_button\x18\x02 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x12\x33\n\x10secondary_button\x18\x03 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x1a\x33\n\rRefreshAction\x12\"\n\x06method\x18\x01 \x01(\x0b\x32\x12.JAddOnsFormAction\"\x14\n\x04Html\x12\x0c\n\x04html\x18\x02 \x01(\t\"%\n\x0eHtmlAttachment\x12\x13\n\x04html\x18\x02 \x01(\x0b\x32\x05.Html\"\x97\x01\n\nAttachment\x12\x1f\n\x04html\x18\x01 \x01(\x0b\x32\x0f.HtmlAttachmentH\x00\x12.\n\x0b\x61\x64\x64_on_data\x18\x02 \x01(\x0b\x32\x17.JAddOnsContextualAddOnH\x00\x12\x17\n\x06\x61pp_id\x18\x05 \x01(\x0b\x32\x07.UserId\x12\x17\n\x08\x61pp_user\x18\x06 \x01(\x0b\x32\x05.UserB\x06\n\x04Type\"m\n\x08Reaction\x12\x15\n\x05\x65moji\x18\x01 \x01(\x0b\x32\x06.Emoji\x12\r\n\x05\x63ount\x18\x02 \x01(\x05\x12!\n\x19\x63urrent_user_participated\x18\x03 \x01(\x08\x12\x18\n\x10\x63reate_timestamp\x18\x04 \x01(\x03\"9\n\x0fMessageParentId\x12\x1c\n\x08topic_id\x18\x04 \x01(\x0b\x32\x08.TopicIdH\x00\x42\x08\n\x06Parent\"D\n\tMessageId\x12#\n\tparent_id\x18\x01 \x01(\x0b\x32\x10.MessageParentId\x12\x12\n\nmessage_id\x18\x02 \x01(\t\"\xf8\x05\n\x07Message\x12\x16\n\x02id\x18\x01 \x01(\x0b\x32\n.MessageId\x12,\n\rmessage_state\x18\x14 \x01(\x0e\x32\x15.Message.MessageState\x12\x16\n\x07\x63reator\x18\x02 \x01(\x0b\x32\x05.User\x12\x13\n\x0b\x63reate_time\x18\x03 \x01(\x03\x12\x18\n\x10last_update_time\x18\x04 \x01(\x03\x12\x13\n\x0b\x64\x65lete_time\x18\x08 \x01(\x03\x12\x16\n\x0elast_edit_time\x18\x11 \x01(\x03\x12\x11\n\ttext_body\x18\n \x01(\t\x12 \n\x0b\x61nnotations\x18\x0b \x03(\x0b\x32\x0b.Annotation\x12\x10\n\x08local_id\x18\x0e \x01(\t\x12 \n\x0b\x61ttachments\x18\x0f \x03(\x0b\x32\x0b.Attachment\x12.\n\x12retention_settings\x18\x12 \x01(\x0b\x32\x12.RetentionSettings\x12\x1c\n\treactions\x18\x15 \x03(\x0b\x32\t.Reaction\x12\x17\n\x0flast_reply_time\x18\x05 \x01(\x03\x12\x16\n\x0elast_view_time\x18\x06 \x01(\x03\x12\x19\n\x11last_mention_time\x18\x07 \x01(\x03\x12\x1a\n\x12num_unread_replies\x18\t \x01(\x03\x12\x1c\n\nlast_reply\x18\x0c \x01(\x0b\x32\x08.Message\x12\x11\n\tsort_time\x18\r \x01(\x03\x12*\n\x0cmessage_type\x18\x1c \x01(\x0e\x32\x14.Message.MessageType\x12\'\n\x12\x63reator_membership\x18\x1e \x01(\x0b\x32\x0b.Membership\";\n\x0cMessageState\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x11\n\rGROUP_VISIBLE\x10\x01\x12\x0b\n\x07ON_HOLD\x10\x02\"Q\n\x0bMessageType\x12\x1c\n\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x10\n\x0cUSER_MESSAGE\x10\x01\x12\x12\n\x0eSYSTEM_MESSAGE\x10\x02\"\xa0\x03\n\rDriveMetadata\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x15\n\rthumbnail_url\x18\x03 \x01(\t\x12\x17\n\x0fthumbnail_width\x18\x07 \x01(\x05\x12\x18\n\x10thumbnail_height\x18\x08 \x01(\x05\x12\x10\n\x08mimetype\x18\x04 \x01(\t\x12\x19\n\x11\x65xternal_mimetype\x18\x0e \x01(\t\x12!\n\x19organization_display_name\x18\r \x01(\t\x12\x18\n\x10\x65ncrypted_doc_id\x18\n \x01(\x08\x12\x14\n\x0curl_fragment\x18\x10 \x01(\t\x12&\n\tembed_url\x18\x12 \x01(\x0b\x32\x13.TrustedResourceUrl\x12\x10\n\x08is_owner\x18\x13 \x01(\x08\x12\x11\n\tcan_share\x18\x05 \x01(\x08\x12\x10\n\x08\x63\x61n_edit\x18\x0f \x01(\x08\x12\x10\n\x08\x63\x61n_view\x18\x06 \x01(\x08\x12\x19\n\x11should_not_render\x18\t \x01(\x08\x12\x1e\n\x16is_download_restricted\x18\x11 \x01(\x08\"\x12\n\x03Url\x12\x0b\n\x03url\x18\x03 \x01(\t\"*\n\x12TrustedResourceUrl\x12\x14\n\x0cresource_url\x18\x04 \x01(\t\"\x1d\n\x0fYoutubeMetadata\x12\n\n\x02id\x18\x01 \x01(\t\"\xc8\x02\n\x0bUrlMetadata\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0f\n\x07snippet\x18\x02 \x01(\t\x12\x11\n\timage_url\x18\x03 \x01(\t\x12\x14\n\x0cimage_height\x18\x04 \x01(\t\x12\x13\n\x0bimage_width\x18\x05 \x01(\t\x12\x11\n\x03url\x18\x07 \x01(\x0b\x32\x04.Url\x12\x15\n\x07gws_url\x18\r \x01(\x0b\x32\x04.Url\x12\x1a\n\x0credirect_url\x18\x0e \x01(\x0b\x32\x04.Url\x12$\n\x1cgws_url_expiration_timestamp\x18\x0f \x01(\x03\x12\x0e\n\x06\x64omain\x18\x08 \x01(\t\x12\x19\n\x11should_not_render\x18\t \x01(\x08\x12\x18\n\x10int_image_height\x18\n \x01(\x05\x12\x17\n\x0fint_image_width\x18\x0b \x01(\x05\x12\x11\n\tmime_type\x18\x0c \x01(\t\"\x8e\x01\n\x0eUploadMetadata\x12\x1a\n\x10\x61ttachment_token\x18\x01 \x01(\tH\x00\x12\x14\n\x0c\x63ontent_name\x18\x03 \x01(\t\x12\x14\n\x0c\x63ontent_type\x18\x04 \x01(\t\x12\x10\n\x08local_id\x18\x06 \x01(\t\x12\x17\n\x0f\x63loned_drive_id\x18\t \x01(\tB\t\n\x07Payload\"\xba\x02\n\x0e\x46ormatMetadata\x12/\n\x0b\x66ormat_type\x18\x01 \x01(\x0e\x32\x1a.FormatMetadata.FormatType\x12\x12\n\nfont_color\x18\x02 \x01(\x05\"\xe2\x01\n\nFormatType\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x08\n\x04\x42OLD\x10\x01\x12\n\n\x06ITALIC\x10\x02\x12\n\n\x06STRIKE\x10\x03\x12\x0f\n\x0bSOURCE_CODE\x10\x04\x12\r\n\tMONOSPACE\x10\x05\x12\n\n\x06HIDDEN\x10\x06\x12\x13\n\x0fMONOSPACE_BLOCK\x10\x07\x12\r\n\tUNDERLINE\x10\x08\x12\x0e\n\nFONT_COLOR\x10\t\x12\x11\n\rBULLETED_LIST\x10\n\x12\x16\n\x12\x42ULLETED_LIST_ITEM\x10\x0b\x12\x11\n\rCLIENT_HIDDEN\x10\x0c\"\x8a\x06\n\nAnnotation\x12\x1d\n\x04type\x18\x01 \x01(\x0e\x32\x0f.AnnotationType\x12\x13\n\x0bstart_index\x18\x02 \x01(\x05\x12\x0e\n\x06length\x18\x03 \x01(\x05\x12\x10\n\x08local_id\x18\t \x01(\t\x12\x11\n\tunique_id\x18\x13 \x01(\t\x12\x34\n\x10\x63hip_render_type\x18\x14 \x01(\x0e\x32\x1a.Annotation.ChipRenderType\x12\x1a\n\x12server_invalidated\x18\r \x01(\x08\x12\x35\n\x15user_mention_metadata\x18\x05 \x01(\x0b\x32\x14.UserMentionMetadataH\x00\x12*\n\x0f\x66ormat_metadata\x18\x08 \x01(\x0b\x32\x0f.FormatMetadataH\x00\x12\x37\n\x16slash_command_metadata\x18\x0f \x01(\x0b\x32\x15.SlashCommandMetadataH\x00\x12(\n\x0e\x64rive_metadata\x18\x04 \x01(\x0b\x32\x0e.DriveMetadataH\x00\x12,\n\x10youtube_metadata\x18\x06 \x01(\x0b\x32\x10.YoutubeMetadataH\x00\x12$\n\x0curl_metadata\x18\x07 \x01(\x0b\x32\x0c.UrlMetadataH\x00\x12*\n\x0fupload_metadata\x18\n \x01(\x0b\x32\x0f.UploadMetadataH\x00\x12\x38\n\x12membership_changed\x18\x0b \x01(\x0b\x32\x1a.MembershipChangedMetadataH\x00\x12\x31\n\x13video_call_metadata\x18\x0c \x01(\x0b\x32\x12.VideoCallMetadataH\x00\x12,\n\x0croom_updated\x18\x0e \x01(\x0b\x32\x14.RoomUpdatedMetadataH\x00\"T\n\x0e\x43hipRenderType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06RENDER\x10\x01\x12\x16\n\x12RENDER_IF_POSSIBLE\x10\x02\x12\x11\n\rDO_NOT_RENDER\x10\x03\x42\n\n\x08Metadata\"V\n\rTypingContext\x12\x1c\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupIdH\x00\x12\x1c\n\x08topic_id\x18\x02 \x01(\x0b\x32\x08.TopicIdH\x00\x42\t\n\x07\x43ontext\"}\n\x15SetTypingStateRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1b\n\x05state\x18\x01 \x01(\x0e\x32\x0c.TypingState\x12\x1f\n\x07\x63ontext\x18\x02 \x01(\x0b\x32\x0e.TypingContext\"6\n\x16SetTypingStateResponse\x12\x1c\n\x14start_timestamp_usec\x18\x01 \x01(\x03\"\x15\n\x04\x44mId\x12\r\n\x05\x64m_id\x18\x01 \x01(\t\"\x1b\n\x07SpaceId\x12\x10\n\x08space_id\x18\x01 \x01(\t\"E\n\x07GroupId\x12\x1c\n\x08space_id\x18\x01 \x01(\x0b\x32\x08.SpaceIdH\x00\x12\x16\n\x05\x64m_id\x18\x03 \x01(\x0b\x32\x05.DmIdH\x00\x42\x04\n\x02Id\"\xae\x07\n\x05Group\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x16\n\x07\x63reator\x18\x04 \x01(\x0b\x32\x05.User\x12\x13\n\x0b\x63reate_time\x18\x05 \x01(\x03\x12\x1a\n\x12last_modified_time\x18\x06 \x01(\x03\x12\x11\n\tsort_time\x18\x07 \x01(\x03\x12\x15\n\rrevision_time\x18\r \x01(\x03\x12)\n\x10group_read_state\x18\x0c \x01(\x0b\x32\x0f.GroupReadState\x12\x1e\n\x16retention_horizon_time\x18\x0e \x01(\x03\x12.\n\x12retention_settings\x18\x10 \x01(\x0b\x32\x12.RetentionSettings\x12\x0f\n\x07is_flat\x18\x11 \x01(\x08\x12\x17\n\x0finterop_enabled\x18\x12 \x01(\x08\x12\"\n\x1aretention_duration_seconds\x18\x13 \x01(\x03\x12$\n\ngroup_type\x18\x16 \x01(\x0e\x32\x10.Group.GroupType\x12$\n\nvisibility\x18\x17 \x01(\x0b\x32\x10.GroupVisibility\x12\x14\n\x0croster_email\x18\x19 \x01(\t\x12&\n\nflat_group\x18\x1a \x01(\x0b\x32\x10.Group.FlatGroupH\x00\x12.\n\x0ethreaded_group\x18\x1b \x01(\x0b\x32\x14.Group.ThreadedGroupH\x00\x12\x12\n\navatar_url\x18\x1c \x01(\t\x12\x46\n\x1c\x61ttribute_checker_group_type\x18! \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12\x1e\n\nname_users\x18\" \x01(\x0b\x32\n.NameUsers\x12/\n\x13group_support_level\x18& \x01(\x0e\x32\x12.GroupSupportLevel\x12\x39\n\x18group_unsupported_reason\x18\' \x01(\x0e\x32\x17.GroupUnsupportedReason\x12!\n\x19typing_indicators_enabled\x18+ \x01(\x08\x1a\x0b\n\tFlatGroup\x1a\x0f\n\rThreadedGroup\"K\n\tGroupType\x12\x1a\n\x16GROUP_TYPE_UNSPECIFIED\x10\x00\x12\x08\n\x04ROOM\x10\x01\x12\x0c\n\x08HUMAN_DM\x10\x02\x12\n\n\x06\x42OT_DM\x10\x03\x42\x0f\n\rThreadedModel\"H\n\x10GroupReadStateId\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x1a\n\x08group_id\x18\x02 \x01(\x0b\x32\x08.GroupId\"\x96\x01\n\x0bInviteState\x12 \n\x0finviter_user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12)\n\x15invitation_message_id\x18\x02 \x01(\x0b\x32\n.MessageId\x12\x18\n\x10show_welcome_mat\x18\x03 \x01(\x08\x12 \n\x0binvite_type\x18\x05 \x01(\x0b\x32\x0b.InviteType\"\x88\x06\n\x0eGroupReadState\x12\x1d\n\x02id\x18\x01 \x01(\x0b\x32\x11.GroupReadStateId\x12\x16\n\x0elast_read_time\x18\x02 \x01(\x03\x12\x1c\n\x14unread_message_count\x18\x04 \x01(\x03\x12\x0f\n\x07starred\x18\x05 \x01(\x08\x12\x18\n\x10update_timestamp\x18\x06 \x01(\x03\x12%\n\x1dunread_subscribed_topic_count\x18\x07 \x01(\x03\x12;\n3unread_subscribed_topic_count_consistency_timestamp\x18\x0b \x01(\x03\x12*\n\x18unread_subscribed_topics\x18\x08 \x03(\x0b\x32\x08.TopicId\x12\x16\n\x0ehide_timestamp\x18\t \x01(\x03\x12\x1f\n\x17\x63lear_history_timestamp\x18\x0e \x01(\x03\x12\"\n\x0cinvite_state\x18\n \x01(\x0b\x32\x0c.InviteState\x12\x39\n\x15notification_settings\x18\x0c \x01(\x0b\x32\x1a.GroupNotificationSettings\x12.\n\x12retention_settings\x18\r \x01(\x0b\x32\x12.RetentionSettings\x12\x0f\n\x07\x62locked\x18\x0f \x01(\x08\x12(\n\x0fmembership_role\x18\x16 \x01(\x0e\x32\x0f.MembershipRole\x12*\n\x10membership_state\x18\x10 \x01(\x0e\x32\x10.MembershipState\x12(\n\x0finvite_category\x18\x11 \x01(\x0e\x32\x0f.InviteCategory\x12%\n\x1dmark_as_unread_timestamp_usec\x18\x12 \x01(\x03\x12\x1d\n\x15visible_in_world_view\x18\x13 \x01(\x08\x12(\n show_notification_card_in_stream\x18\x14 \x01(\x08\x12\x1d\n\x0cjoined_users\x18\x17 \x03(\x0b\x32\x07.UserId\"\xe6\x02\n\x19GroupNotificationSettings\x12@\n\x05state\x18\x01 \x01(\x0e\x32\x31.GroupNotificationSettings.GroupNotificationState\x12\x44\n\nroom_state\x18\x02 \x01(\x0e\x32\x30.GroupNotificationSettings.RoomNotificationState\"P\n\x16GroupNotificationState\x12\x1e\n\x1aUNKNOWN_NOTIFICATION_STATE\x10\x00\x12\t\n\x05MUTED\x10\x01\x12\x0b\n\x07UNMUTED\x10\x02\"o\n\x15RoomNotificationState\x12\x11\n\rNOTIFY_ALWAYS\x10\x00\x12 \n\x1cNOTIFY_LESS_WITH_NEW_THREADS\x10\x01\x12\x0f\n\x0bNOTIFY_LESS\x10\x02\x12\x10\n\x0cNOTIFY_NEVER\x10\x03\"\xb4\x01\n\x11RetentionSettings\x12\x30\n\x05state\x18\x01 \x01(\x0e\x32!.RetentionSettings.RetentionState\x12\x18\n\x10\x65xpiry_timestamp\x18\x02 \x01(\x03\"S\n\x0eRetentionState\x12\x1b\n\x17UNKNOWN_RETENTION_STATE\x10\x00\x12\r\n\tPERMANENT\x10\x01\x12\x15\n\x11\x45PHEMERAL_ONE_DAY\x10\x02\"G\n\tGroupData\x12:\n\x0fretention_state\x18\x01 \x01(\x0e\x32!.RetentionSettings.RetentionState\"7\n\x07TopicId\x12\x1a\n\x08group_id\x18\x03 \x01(\x0b\x32\x08.GroupId\x12\x10\n\x08topic_id\x18\x02 \x01(\t\"\x81\x02\n\x05Topic\x12\x14\n\x02id\x18\x01 \x01(\x0b\x32\x08.TopicId\x12\x11\n\tsort_time\x18\x02 \x01(\x03\x12\x18\n\x10\x63reate_time_usec\x18\x0f \x01(\x03\x12\x19\n\x07replies\x18\x07 \x03(\x0b\x32\x08.Message\x12)\n\x10topic_read_state\x18\x0b \x01(\x0b\x32\x0f.TopicReadState\x12\x19\n\x11is_system_message\x18\x0c \x01(\x08\x12.\n\x12retention_settings\x18\r \x01(\x0b\x32\x12.RetentionSettings\x12$\n\x1c\x63ontains_more_unread_replies\x18\x0e \x01(\x08\"-\n\x0eTopicReadState\x12\x1b\n\x13thread_created_usec\x18\x02 \x01(\x03\"0\n\x0bMessageInfo\x12!\n\x19\x61\x63\x63\x65pt_format_annotations\x18\x01 \x01(\x08\"\xa5\x02\n\x12\x43reateTopicRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x05 \x01(\x0b\x32\x08.GroupId\x12\x11\n\ttext_body\x18\x02 \x01(\t\x12 \n\x0b\x61nnotations\x18\x03 \x03(\x0b\x32\x0b.Annotation\x12.\n\x12retention_settings\x18\x06 \x01(\x0b\x32\x12.RetentionSettings\x12\x10\n\x08local_id\x18\x04 \x01(\t\x12\x1c\n\x14topic_and_message_id\x18\x07 \x01(\t\x12\x12\n\nhistory_v2\x18\x08 \x01(\x08\x12\"\n\x0cmessage_info\x18\t \x01(\x0b\x32\x0c.MessageInfo\"\x83\x01\n\x13\x43reateTopicResponse\x12\x15\n\x05topic\x18\x01 \x01(\x0b\x32\x06.Topic\x12&\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\x12-\n\x16\x63urrent_group_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\"\xe2\x01\n\x14\x43reateMessageRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12#\n\tparent_id\x18\x01 \x01(\x0b\x32\x10.MessageParentId\x12\x11\n\ttext_body\x18\x02 \x01(\t\x12 \n\x0b\x61nnotations\x18\x03 \x03(\x0b\x32\x0b.Annotation\x12\x10\n\x08local_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x06 \x01(\t\x12\"\n\x0cmessage_info\x18\x07 \x01(\x0b\x32\x0c.MessageInfo\"\x89\x01\n\x15\x43reateMessageResponse\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12-\n\x16\x63urrent_group_revision\x18\x04 \x01(\x0b\x32\r.ReadRevision\"\xda\x01\n\x15UpdateReactionRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x15\n\x05\x65moji\x18\x02 \x01(\x0b\x32\x06.Emoji\x12\x37\n\x04type\x18\x03 \x01(\x0e\x32).UpdateReactionRequest.ReactionUpdateType\")\n\x12ReactionUpdateType\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06REMOVE\x10\x02\"@\n\x16UpdateReactionResponse\x12&\n\x0egroup_revision\x18\x01 \x01(\x0b\x32\x0e.WriteRevision\"^\n\x14\x44\x65leteMessageRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\"q\n\x15\x44\x65leteMessageResponse\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12\x17\n\x0fgroup_sort_time\x18\x04 \x01(\x03\x12\x17\n\x0ftopic_sort_time\x18\x05 \x01(\x03\"\xb5\x01\n\x12\x45\x64itMessageRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x11\n\ttext_body\x18\x02 \x01(\t\x12 \n\x0b\x61nnotations\x18\x03 \x03(\x0b\x32\x0b.Annotation\x12\"\n\x0cmessage_info\x18\x05 \x01(\x0b\x32\x0c.MessageInfo\"X\n\x13\x45\x64itMessageResponse\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\"6\n\x0bInviteeInfo\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\r\n\x05\x65mail\x18\x02 \x01(\t\"?\n\x11InviteeMemberInfo\x12$\n\x0cinvitee_info\x18\x01 \x01(\x0b\x32\x0c.InviteeInfoH\x00\x42\x04\n\x02Id\"\xc8\x03\n\x11SpaceCreationInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12$\n\nvisibility\x18\x04 \x01(\x0b\x32\x10.GroupVisibility\x12\x30\n\nflat_group\x18\x05 \x01(\x0b\x32\x1c.SpaceCreationInfo.FlatGroup\x12\x38\n\x0ethreaded_group\x18\x06 \x01(\x0b\x32 .SpaceCreationInfo.ThreadedGroup\x12!\n\x19has_server_generated_name\x18\x07 \x01(\x08\x12\x30\n\x14invitee_member_infos\x18\x08 \x03(\x0b\x32\x12.InviteeMemberInfo\x12\x30\n\nspace_type\x18\x0b \x01(\x0b\x32\x1c.SpaceCreationInfo.SpaceType\x12\x46\n\x1c\x61ttribute_checker_group_type\x18\r \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12\x19\n\x11shared_drive_name\x18\x0e \x01(\t\x1a\x0b\n\tFlatGroup\x1a\x0f\n\rThreadedGroup\x1a\x0b\n\tSpaceType\"\xa7\x01\n\x12\x43reateGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12#\n\x05space\x18\x01 \x01(\x0b\x32\x12.SpaceCreationInfoH\x00\x12\x10\n\x08local_id\x18\x03 \x01(\t\x12\"\n\x1ashould_find_existing_space\x18\x04 \x01(\x08\x42\x0e\n\x0c\x43reationInfo\"9\n\x16\x43reateMembershipResult\x12\x1f\n\nmembership\x18\x01 \x01(\x0b\x32\x0b.Membership\"\xa5\x01\n\x13\x43reateGroupResponse\x12\x15\n\x05group\x18\x01 \x01(\x0b\x32\x06.Group\x12&\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\x12%\n\ruser_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12(\n\x07results\x18\x04 \x03(\x0b\x32\x17.CreateMembershipResult\"\xcf\x02\n\x0f\x43reateDmRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x34\n\rfetch_options\x18\x08 \x03(\x0e\x32\x1d.CreateDmRequest.FetchOptions\x12\x18\n\x07members\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x1e\n\x08invitees\x18\x07 \x03(\x0b\x32\x0c.InviteeInfo\x12.\n\x12retention_settings\x18\x03 \x01(\x0b\x32\x12.RetentionSettings\x12\x10\n\x08local_id\x18\x04 \x01(\t\x12\x1c\n\x14topic_and_message_id\x18\x05 \x01(\t\"D\n\x0c\x46\x65tchOptions\x12\x0b\n\x07UNKNOWN\x10\x00\x12\'\n#INCLUDE_BOT_MEMBERSHIPS_IN_RESPONSE\x10\x01\"\x87\x01\n\x10\x43reateDmResponse\x12\x12\n\x02\x64m\x18\x01 \x01(\x0b\x32\x06.Group\x12\x15\n\x05topic\x18\x02 \x01(\x0b\x32\x06.Topic\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12 \n\x0bmemberships\x18\x04 \x03(\x0b\x32\x0b.Membership\"\xdf\x01\n\x12ListTopicsResponse\x12\x16\n\x06topics\x18\x01 \x03(\x0b\x32\x06.Topic\x12$\n\ruser_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\x12%\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\x12\x1c\n\x14\x63ontains_first_topic\x18\x04 \x01(\x08\x12\x1b\n\x13\x63ontains_last_topic\x18\x05 \x01(\x08\x12)\n\x10read_receipt_set\x18\x06 \x01(\x0b\x32\x0f.ReadReceiptSet\"\xc0\x03\n\x11ListTopicsRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x08 \x01(\x0b\x32\x08.GroupId\x12\x1c\n\x14page_size_for_topics\x18\x02 \x01(\x05\x12$\n\x1cpage_size_for_unread_replies\x18\x06 \x01(\x05\x12\"\n\x1apage_size_for_read_replies\x18\x07 \x01(\x05\x12\x1d\n\x15page_size_for_replies\x18\x03 \x01(\x05\x12\x36\n\rfetch_options\x18\x05 \x03(\x0e\x32\x1f.ListTopicsRequest.FetchOptions\x12/\n\x13user_not_older_than\x18\t \x01(\x0b\x32\x12.ReferenceRevision\x12\x30\n\x14group_not_older_than\x18\n \x01(\x0b\x32\x12.ReferenceRevision\"E\n\x0c\x46\x65tchOptions\x12\x08\n\x04USER\x10\x01\x12\x18\n\x14TOTAL_MESSAGE_COUNTS\x10\x02\x12\x11\n\rREAD_RECEIPTS\x10\x03\"u\n\x13ListMessagesRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12#\n\tparent_id\x18\x01 \x01(\x0b\x32\x10.MessageParentId\x12\x11\n\tpage_size\x18\x02 \x01(\x05\"Y\n\x14ListMessagesResponse\x12\x1a\n\x08messages\x18\x01 \x03(\x0b\x32\x08.Message\x12%\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\"\xc7\x01\n\x12ListMembersRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08space_id\x18\x01 \x01(\x0b\x32\x08.SpaceId\x12\x1a\n\x08group_id\x18\x05 \x01(\x0b\x32\x08.GroupId\x12\x11\n\tpage_size\x18\x03 \x01(\x05\x12\x12\n\npage_token\x18\x04 \x01(\t\x12*\n\x0enot_older_than\x18\x06 \x01(\x0b\x32\x12.ReferenceRevision\"\xd7\x01\n\x13ListMembersResponse\x12 \n\x0bmemberships\x18\x01 \x03(\x0b\x32\x0b.Membership\x12\x18\n\x07members\x18\x02 \x03(\x0b\x32\x07.Member\x12\x1d\n\nmember_ids\x18\x05 \x03(\x0b\x32\t.MemberId\x12\x17\n\x0fnext_page_token\x18\x03 \x01(\t\x12%\n\x0egroup_revision\x18\x04 \x01(\x0b\x32\r.ReadRevision\x12%\n\x12invited_member_ids\x18\x06 \x03(\x0b\x32\t.MemberId\"<\n\x0bReadReceipt\x12\x18\n\x10read_time_micros\x18\x02 \x01(\x03\x12\x13\n\x04user\x18\x03 \x01(\x0b\x32\x05.User\"F\n\x0eReadReceiptSet\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x12#\n\rread_receipts\x18\x02 \x03(\x0b\x32\x0c.ReadReceipt\"\x97\x01\n\x13WebPushNotification\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12\x13\n\x0bsender_name\x18\x02 \x01(\t\x12\x19\n\x11sender_avatar_url\x18\x03 \x01(\t\x12\x12\n\ngroup_name\x18\x04 \x01(\t\x12!\n\x05\x63\x61use\x18\x05 \x01(\x0e\x32\x12.NotificationCause\"\xaa\x01\n\x18\x41ndroidLocalNotification\x12\x11\n\tthread_id\x18\x01 \x01(\t\x12\x0f\n\x07type_id\x18\x02 \x01(\t\x12\x12\n\ngroup_name\x18\x03 \x01(\t\x12\x11\n\ttext_body\x18\x06 \x01(\t\x12\x10\n\x08icon_url\x18\x04 \x01(\t\x12\r\n\x05title\x18\x07 \x01(\t\x12\x10\n\x08group_id\x18\x08 \x01(\t\x12\x10\n\x08sub_text\x18\t \x01(\t\"\x88\x02\n\x14IosLocalNotification\x12\x18\n\x10\x61pns_collapse_id\x18\x01 \x01(\t\x12\x11\n\tthread_id\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\x12\x10\n\x08\x63\x61tegory\x18\x05 \x01(\t\x12\x15\n\rgroup_is_flat\x18\x06 \x01(\x08\x12!\n\x19message_is_off_the_record\x18\x07 \x01(\x08\x12\x46\n\x1c\x61ttribute_checker_group_type\x18\t \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12\x12\n\nnavigation\x18\x08 \x01(\t\"\x8f\x01\n\x17MobileLocalNotification\x12=\n\x1a\x61ndroid_local_notification\x18\x01 \x01(\x0b\x32\x19.AndroidLocalNotification\x12\x35\n\x16ios_local_notification\x18\x02 \x01(\x0b\x32\x15.IosLocalNotification\"\x82\x01\n\x0cMessageEvent\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12\"\n\x1alast_message_in_topic_time\x18\x04 \x01(\x03\x12\x1a\n\x12prev_revision_time\x18\x05 \x01(\x03\x12\x17\n\x0fis_head_message\x18\x06 \x01(\x08\"\xdb\x01\n\x14MessageReactionEvent\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x15\n\x05\x65moji\x18\x02 \x01(\x0b\x32\x06.Emoji\x12\x18\n\x07user_id\x18\x03 \x01(\x0b\x32\x07.UserId\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12\x35\n\x04type\x18\x05 \x01(\x0e\x32\'.MessageReactionEvent.ReactionEventType\"(\n\x11ReactionEventType\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06REMOVE\x10\x02\"H\n\x13MessageDeletedEvent\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\"\x8f\x01\n\x17TypingStateChangedEvent\x12\x1b\n\x05state\x18\x01 \x01(\x0e\x32\x0c.TypingState\x12\x18\n\x07user_id\x18\x02 \x01(\x0b\x32\x07.UserId\x12\x1f\n\x07\x63ontext\x18\x03 \x01(\x0b\x32\x0e.TypingContext\x12\x1c\n\x14start_timestamp_usec\x18\x04 \x01(\x03\"\x9f\x01\n\x16MembershipChangedEvent\x12#\n\x0enew_membership\x18\x01 \x01(\x0b\x32\x0b.Membership\x12\x30\n\x16prior_membership_state\x18\x02 \x01(\x0e\x32\x10.MembershipState\x12.\n\x15prior_membership_role\x18\x03 \x01(\x0e\x32\x0f.MembershipRole\"`\n\x17ReadReceiptChangedEvent\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12)\n\x10read_receipt_set\x18\x02 \x01(\x0b\x32\x0f.ReadReceiptSet\"A\n\x10GroupViewedEvent\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x11\n\tview_time\x18\x02 \x01(\x03\"\xce\x01\n\x11GroupUpdatedEvent\x12\x13\n\x03new\x18\x01 \x01(\x0b\x32\x06.Group\x12\x13\n\x03old\x18\x02 \x01(\x0b\x32\x06.Group\x12\x32\n\x0bupdate_type\x18\x04 \x01(\x0e\x32\x1d.GroupUpdatedEvent.UpdateType\"[\n\nUpdateType\x12\x17\n\x13UPDATE_TYPE_UNKNOWN\x10\x00\x12\x0b\n\x07\x43REATED\x10\x01\x12\x0b\n\x07UPDATED\x10\x02\x12\x0b\n\x07\x44\x45LETED\x10\x03\x12\r\n\tUNDELETED\x10\x04\"\xa2\x04\n\x18WebPushNotificationEvent\x12*\n\x0cnotification\x18\x01 \x01(\x0b\x32\x14.WebPushNotification\x12N\n\x16\x64ispatch_approach_type\x18\x02 \x01(\x0e\x32..WebPushNotificationEvent.DispatchApproachType\x12;\n\x19mobile_local_notification\x18\x03 \x01(\x0b\x32\x18.MobileLocalNotification\x12>\n\x0e\x65ndpoint_types\x18\x04 \x03(\x0e\x32&.WebPushNotificationEvent.EndpointType\"\xae\x01\n\x14\x44ispatchApproachType\x12&\n\"DISPATCH_APPROACH_TYPE_UNSPECIFIED\x10\x00\x12\x17\n\x13INTERACTIVE_SESSION\x10\x01\x12\x1d\n\x19\x42ROADCAST_TO_WEB_SESSIONS\x10\x02\x12\x36\n2INTERACTIVE_SESSIONS_INCLUDE_VISIBLE_WEB_UNDER_TTL\x10\x03\"\\\n\x0c\x45ndpointType\x12\x1d\n\x19\x45NDPOINT_TYPE_UNSPECIFIED\x10\x00\x12\x15\n\x11MOBILE_WEBCHANNEL\x10\x01\x12\x16\n\x12\x44\x45SKTOP_WEBCHANNEL\x10\x02\"\xbb\x02\n\x13StreamEventsRequest\x12\x1b\n\x08platform\x18\x04 \x01(\x0e\x32\t.Platform\x12 \n\x0b\x63lient_info\x18\x05 \x01(\x0b\x32\x0b.ClientInfo\x12\x19\n\x11\x63lient_session_id\x18\x06 \x01(\x03\x12\x11\n\tsample_id\x18\x01 \x01(\t\x12\x12\n\nsample_ids\x18\x07 \x03(\t\x12\x1e\n\nping_event\x18\x02 \x01(\x0b\x32\n.PingEvent\x12-\n\x12\x63lock_sync_request\x18\x03 \x01(\x0b\x32\x11.ClockSyncRequest\x12\x39\n\x18group_subscription_event\x18\x08 \x01(\x0b\x32\x17.GroupSubscriptionEvent\x12\x19\n\x11test_user_gaia_id\x18\x64 \x01(\x03\"_\n\nClientInfo\x12\x1b\n\x08platform\x18\x01 \x01(\x0e\x32\t.Platform\x12\x1c\n\x06origin\x18\x02 \x01(\x0e\x32\x0c.EventOrigin\x12\x16\n\x0esource_machine\x18\x03 \x01(\t\"\x89\x02\n\x18\x43lientNotificationsState\x12V\n\x14\x64\x65vice_setting_state\x18\x01 \x01(\x0e\x32\x38.ClientNotificationsState.DeviceNotificationSettingState\"\x94\x01\n\x1e\x44\x65viceNotificationSettingState\x12-\n)DEVICE_NOTIFICATION_SETTING_STATE_UNKNOWN\x10\x00\x12 \n\x1c\x44\x45VICE_NOTIFICATIONS_ENABLED\x10\x01\x12!\n\x1d\x44\x45VICE_NOTIFICATIONS_DISABLED\x10\x02\"\xfb\x05\n\tPingEvent\x12\x1f\n\x05state\x18\x01 \x01(\x0e\x32\x10.PingEvent.State\x12\x41\n\x17\x61pplication_focus_state\x18\x03 \x01(\x0e\x32 .PingEvent.ApplicationFocusState\x12 \n\x18last_interactive_time_ms\x18\x04 \x01(\x03\x12\x43\n\x18\x63lient_interactive_state\x18\x05 \x01(\x0e\x32!.PingEvent.ClientInteractiveState\x12$\n\x1c\x63lient_notifications_enabled\x18\x06 \x01(\x08\x12\x36\n\x13notifications_state\x18\x07 \x01(\x0b\x32\x19.ClientNotificationsState\x12\x1a\n\x12pwa_dedupe_enabled\x18\x08 \x01(\x08\x12\x39\n\x13\x64\x65vice_active_state\x18\t \x01(\x0e\x32\x1c.PingEvent.DeviceActiveState\"8\n\x05State\x12\x15\n\x11STATE_UNSPECIFIED\x10\x00\x12\n\n\x06\x41\x43TIVE\x10\x01\x12\x0c\n\x08INACTIVE\x10\x02\"l\n\x15\x41pplicationFocusState\x12\x1b\n\x17\x46OCUS_STATE_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x46OCUS_STATE_FOREGROUND\x10\x01\x12\x1a\n\x16\x46OCUS_STATE_BACKGROUND\x10\x02\"\\\n\x16\x43lientInteractiveState\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0f\n\x0bINTERACTIVE\x10\x01\x12\x0b\n\x07\x46OCUSED\x10\x02\x12\x0b\n\x07VISIBLE\x10\x03\x12\n\n\x06HIDDEN\x10\x04\"h\n\x11\x44\x65viceActiveState\x12\x11\n\rSTATE_UNKNOWN\x10\x00\x12\x15\n\x11STATE_IDLE_LOCKED\x10\x01\x12\x17\n\x13STATE_IDLE_UNLOCKED\x10\x02\x12\x10\n\x0cSTATE_ACTIVE\x10\x03\",\n\x10\x43lockSyncRequest\x12\x18\n\x10origin_time_msec\x18\x01 \x01(\x03\"d\n\x11\x43lockSyncResponse\x12\x18\n\x10origin_time_msec\x18\x01 \x01(\x03\x12\x19\n\x11receive_time_msec\x18\x02 \x01(\x03\x12\x1a\n\x12transmit_time_msec\x18\x03 \x01(\x03\"5\n\x16GroupSubscriptionEvent\x12\x1b\n\tgroup_ids\x18\x01 \x03(\x0b\x32\x08.GroupId\"q\n\x14StreamEventsResponse\x12\x15\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x06.Event\x12\x11\n\tsample_id\x18\x02 \x01(\t\x12/\n\x13\x63lock_sync_response\x18\x03 \x01(\x0b\x32\x12.ClockSyncResponse\"\xc2\x11\n\x05\x45vent\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x1e\n\x04type\x18\x03 \x01(\x0e\x32\x10.Event.EventType\x12\x1e\n\x04\x62ody\x18\x04 \x01(\x0b\x32\x10.Event.EventBody\x12\x18\n\x07user_id\x18\x05 \x01(\x0b\x32\x07.UserId\x12\'\n\ruser_revision\x18\x06 \x01(\x0b\x32\x0e.WriteRevisionH\x00\x12(\n\x0egroup_revision\x18\x07 \x01(\x0b\x32\x0e.WriteRevisionH\x00\x12 \n\x06\x62odies\x18\x08 \x03(\x0b\x32\x10.Event.EventBody\x1a\xcf\x04\n\tEventBody\x12)\n\x0cgroup_viewed\x18\x03 \x01(\x0b\x32\x11.GroupViewedEventH\x00\x12+\n\rgroup_updated\x18\x05 \x01(\x0b\x32\x12.GroupUpdatedEventH\x00\x12\'\n\x0emessage_posted\x18\x06 \x01(\x0b\x32\r.MessageEventH\x00\x12:\n\x15web_push_notification\x18\n \x01(\x0b\x32\x19.WebPushNotificationEventH\x00\x12\x35\n\x12membership_changed\x18\x0e \x01(\x0b\x32\x17.MembershipChangedEventH\x00\x12/\n\x0fmessage_deleted\x18\x12 \x01(\x0b\x32\x14.MessageDeletedEventH\x00\x12\x31\n\x10message_reaction\x18\x16 \x01(\x0b\x32\x15.MessageReactionEventH\x00\x12\x36\n\x13user_status_updated\x18\x17 \x01(\x0b\x32\x17.UserStatusUpdatedEventH\x00\x12\x38\n\x14typing_state_changed\x18\x1a \x01(\x0b\x32\x18.TypingStateChangedEventH\x00\x12\x38\n\x14read_receipt_changed\x18! \x01(\x0b\x32\x18.ReadReceiptChangedEventH\x00\x12$\n\nevent_type\x18\x0c \x01(\x0e\x32\x10.Event.EventType\x12\x10\n\x08trace_id\x18\x14 \x01(\x03\x42\x06\n\x04Type\"\xeb\n\n\tEventType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x17\n\x13USER_ADDED_TO_GROUP\x10\x01\x12\x1b\n\x17USER_REMOVED_FROM_GROUP\x10\x02\x12\x10\n\x0cGROUP_VIEWED\x10\x03\x12\x10\n\x0cTOPIC_VIEWED\x10\x04\x12\x11\n\rGROUP_UPDATED\x10\x05\x12\x12\n\x0eMESSAGE_POSTED\x10\x06\x12\x13\n\x0fMESSAGE_UPDATED\x10\x07\x12\x13\n\x0fMESSAGE_DELETED\x10\x08\x12\x16\n\x12TOPIC_MUTE_CHANGED\x10\t\x12\x19\n\x15USER_SETTINGS_CHANGED\x10\n\x12\x11\n\rGROUP_STARRED\x10\x0b\x12\x19\n\x15WEB_PUSH_NOTIFICATION\x10\x0c\x12/\n+GROUP_UNREAD_SUBSCRIBED_TOPIC_COUNT_UPDATED\x10\r\x12\x18\n\x14INVITE_COUNT_UPDATED\x10\x0e\x12\x16\n\x12MEMBERSHIP_CHANGED\x10\x0f\x12\x16\n\x12GROUP_HIDE_CHANGED\x10\x10\x12\x1b\n\x17\x44RIVE_ACL_FIX_PROCESSED\x10\x11\x12\'\n#GROUP_NOTIFICATION_SETTINGS_UPDATED\x10\x12\x12\x1e\n\x1aRETENTION_SETTINGS_UPDATED\x10\x13\x12\x11\n\rTOPIC_CREATED\x10\x14\x12\x1a\n\x16ON_HOLD_MESSAGE_POSTED\x10\x15\x12\x1b\n\x17ON_HOLD_MESSAGE_UPDATED\x10\x16\x12\x1d\n\x19ON_HOLD_MESSAGE_PUBLISHED\x10\x17\x12\x13\n\x0fMESSAGE_REACTED\x10\x18\x12\x1d\n\x19USER_STATUS_UPDATED_EVENT\x10\x19\x12$\n GROUP_RETENTION_SETTINGS_UPDATED\x10\x1a\x12$\n USER_WORKING_HOURS_UPDATED_EVENT\x10\x1b\x12\x19\n\x15MESSAGE_SMART_REPLIES\x10\x1c\x12\x18\n\x14TYPING_STATE_CHANGED\x10\x1d\x12\x11\n\rGROUP_DELETED\x10\x1e\x12\x17\n\x13\x42LOCK_STATE_CHANGED\x10\x1f\x12\x11\n\rCLEAR_HISTORY\x10 \x12\x11\n\rSESSION_READY\x10!\x12 \n\x1cGROUP_SORT_TIMESTAMP_CHANGED\x10\"\x12\x1e\n\x1aGSUITE_INTEGRATION_UPDATED\x10#\x12\x18\n\x14READ_RECEIPT_CHANGED\x10$\x12\x12\n\x0eMARK_AS_UNREAD\x10%\x12\x0f\n\x0bGROUP_NO_OP\x10&\x12\x1a\n\x16INVALIDATE_GROUP_CACHE\x10\'\x12\x0e\n\nUSER_NO_OP\x10(\x12\x19\n\x15INVALIDATE_USER_CACHE\x10)\x12#\n\x1fUSER_DENORMALIZED_GROUP_UPDATED\x10*\x12&\n\"USER_PRESENCE_SHARED_UPDATED_EVENT\x10+\x12\x1e\n\x1aNOTIFICATIONS_CARD_UPDATED\x10,\x12\'\n#USER_HUB_AVAILABILITY_UPDATED_EVENT\x10-\x12\x1a\n\x16USER_OWNERSHIP_UPDATED\x10.\x12!\n\x1dSHARED_DRIVE_CREATE_SCHEDULED\x10/\x12\x18\n\x14SHARED_DRIVE_UPDATED\x10\x30\x12\"\n\x1eMESSAGE_PERSONAL_LABEL_UPDATED\x10\x31\x12\x17\n\x13USER_QUOTA_EXCEEDED\x10\x32\x42\x0e\n\x0cRevisionType\"A\n\nInviteType\"3\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0e\n\nAT_MENTION\x10\x01\x12\x0e\n\nDIRECT_ADD\x10\x02\"7\n\x0cGroupDetails\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12\x12\n\nguidelines\x18\x02 \x01(\t\"\xca\x03\n\x13RoomUpdatedMetadata\x12\x0c\n\x04name\x18\x02 \x01(\t\x12$\n\nvisibility\x18\x03 \x01(\x0b\x32\x10.GroupVisibility\x12\"\n\x1agroup_link_sharing_enabled\x18\x05 \x01(\x08\x12@\n\x0frename_metadata\x18\x06 \x01(\x0b\x32\'.RoomUpdatedMetadata.RoomRenameMetadata\x12P\n\x16group_details_metadata\x18\x07 \x01(\x0b\x32\x30.RoomUpdatedMetadata.GroupDetailsUpdatedMetadata\x12\x18\n\tinitiator\x18\x04 \x01(\x0b\x32\x05.User\x1a\x39\n\x12RoomRenameMetadata\x12\x10\n\x08new_name\x18\x01 \x01(\t\x12\x11\n\tprev_name\x18\x02 \x01(\t\x1ar\n\x1bGroupDetailsUpdatedMetadata\x12(\n\x11new_group_details\x18\x01 \x01(\x0b\x32\r.GroupDetails\x12)\n\x12prev_group_details\x18\x02 \x01(\x0b\x32\r.GroupDetails\"\xbb\x19\n\x0cMeetingSpace\x12\x18\n\x10meeting_space_id\x18\x01 \x01(\t\x12\x14\n\x0cmeeting_code\x18\x02 \x01(\t\x12\x13\n\x0bmeeting_url\x18\x03 \x01(\t\x12/\n\x0cphone_access\x18\x05 \x03(\x0b\x32\x19.MeetingSpace.PhoneAccess\x12\x42\n\x16universal_phone_access\x18\x08 \x01(\x0b\x32\".MeetingSpace.UniversalPhoneAccess\x12)\n\tcall_info\x18\x06 \x01(\x0b\x32\x16.MeetingSpace.CallInfo\x12\x15\n\rmeeting_alias\x18\x07 \x01(\t\x12\x33\n\x0egateway_access\x18\t \x01(\x0b\x32\x1b.MeetingSpace.GatewayAccess\x12\x15\n\rmore_join_url\x18\n \x01(\t\x12\x31\n\x15\x61\x63\x63\x65pted_number_class\x18\x0b \x03(\x0e\x32\x12.DialInNumberClass\x12:\n\x12gateway_sip_access\x18\r \x03(\x0b\x32\x1e.MeetingSpace.GatewaySipAccess\x12\x37\n\x10\x62roadcast_access\x18\x0e \x01(\x0b\x32\x1d.MeetingSpace.BroadcastAccess\x12(\n\x08settings\x18\x0f \x01(\x0b\x32\x16.MeetingSpace.Settings\x1a|\n\x0bPhoneAccess\x12\x14\n\x0cphone_number\x18\x01 \x01(\t\x12\x1e\n\x16\x66ormatted_phone_number\x18\x05 \x01(\t\x12\x0b\n\x03pin\x18\x02 \x01(\t\x12\x13\n\x0bregion_code\x18\x03 \x01(\t\x12\x15\n\rlanguage_code\x18\x04 \x01(\t\x1a:\n\x14UniversalPhoneAccess\x12\x0b\n\x03pin\x18\x01 \x01(\t\x12\x15\n\rpstn_info_url\x18\x02 \x01(\t\x1a>\n\tPresenter\x12\x1b\n\x13presenter_device_id\x18\x01 \x01(\t\x12\x14\n\x0c\x62y_device_id\x18\x02 \x01(\t\x1a\xcd\x04\n\rRecordingInfo\x12\x45\n\x10recording_status\x18\x01 \x01(\x0e\x32+.MeetingSpace.RecordingInfo.RecordingStatus\x12\x14\n\x0crecording_id\x18\x02 \x01(\t\x12\x1a\n\x12producer_device_id\x18\x03 \x01(\t\x12J\n\x16latest_recording_event\x18\x04 \x01(\x0b\x32*.MeetingSpace.RecordingInfo.RecordingEvent\x12\x1a\n\x12owner_display_name\x18\x05 \x01(\t\x12=\n\x1arecording_application_type\x18\x06 \x01(\x0e\x32\x19.RecordingApplicationType\x1a\xa6\x01\n\x0eRecordingEvent\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12\x42\n\x04type\x18\x02 \x01(\x0e\x32\x34.MeetingSpace.RecordingInfo.RecordingEvent.EventType\"=\n\tEventType\x12\x1f\n\x1bRECORDING_EVENT_UNSPECIFIED\x10\x00\x12\x0f\n\x0bUSER_ACTION\x10\x01\"s\n\x0fRecordingStatus\x12\x19\n\x15RECORDING_UNSPECIFIED\x10\x00\x12\x16\n\x12RECORDING_INACTIVE\x10\x01\x12\x16\n\x12RECORDING_STARTING\x10\x02\x12\x15\n\x11RECORDING_STARTED\x10\x03\x1a\xaf\x05\n\x14StreamingSessionInfo\x12\x39\n\x06status\x18\x01 \x01(\x0e\x32).MeetingSpace.StreamingSessionInfo.Status\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x33\n\x10\x61pplication_type\x18\x03 \x01(\x0e\x32\x19.RecordingApplicationType\x12M\n\x14latest_session_event\x18\x04 \x01(\x0b\x32/.MeetingSpace.StreamingSessionInfo.SessionEvent\x12\x1a\n\x12owner_display_name\x18\x05 \x01(\t\x12\x34\n\x14viewer_access_policy\x18\x06 \x01(\x0e\x32\x16.BroadcastAccessPolicy\x12\x18\n\x10training_enabled\x18\x07 \x01(\x08\x12J\n\x0cviewer_stats\x18\x08 \x01(\x0b\x32\x34.MeetingSpace.StreamingSessionInfo.StreamViewerStats\x1a\x8e\x01\n\x0cSessionEvent\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12G\n\x04type\x18\x02 \x01(\x0e\x32\x39.MeetingSpace.StreamingSessionInfo.SessionEvent.EventType\"\"\n\tEventType\x12\x15\n\x11\x45VENT_UNSPECIFIED\x10\x00\x1a\x33\n\x11StreamViewerStats\x12\x1e\n\x16\x65stimated_viewer_count\x18\x01 \x01(\x03\"F\n\x06Status\x12\x16\n\x12STATUS_UNSPECIFIED\x10\x00\x12\x0c\n\x08INACTIVE\x10\x01\x12\x0c\n\x08STARTING\x10\x02\x12\x08\n\x04LIVE\x10\x03\x1a\xf4\x06\n\x08\x43\x61llInfo\x12*\n\tpresenter\x18\x01 \x01(\x0b\x32\x17.MeetingSpace.Presenter\x12\x33\n\x0erecording_info\x18\x02 \x01(\x0b\x32\x1b.MeetingSpace.RecordingInfo\x12\x19\n\x11\x63\x61lendar_event_id\x18\x03 \x01(\t\x12\x19\n\x11organization_name\x18\x04 \x01(\t\x12\x1a\n\x12max_joined_devices\x18\x06 \x01(\x05\x12\x1a\n\x12media_backend_info\x18\x08 \x01(\t\x12>\n\x12streaming_sessions\x18\t \x03(\x0b\x32\".MeetingSpace.StreamingSessionInfo\x12\x35\n\x08settings\x18\x0b \x01(\x0b\x32#.MeetingSpace.CallInfo.CallSettings\x12\x38\n\x0cpaygate_info\x18\r \x01(\x0b\x32\".MeetingSpace.CallInfo.PaygateInfo\x12#\n\x1bsupported_caption_languages\x18\x0e \x03(\t\x12\x30\n\x08\x63se_info\x18\x0f \x01(\x0b\x32\x1e.MeetingSpace.CallInfo.CseInfo\x1a\xc8\x01\n\x0c\x43\x61llSettings\x12\x13\n\x0b\x61\x63\x63\x65ss_lock\x18\x01 \x01(\x08\x12\x11\n\tchat_lock\x18\x02 \x01(\x08\x12\x14\n\x0cpresent_lock\x18\x03 \x01(\x08\x12!\n\x19\x61ttendance_report_enabled\x18\x04 \x01(\x08\x12\x12\n\naudio_lock\x18\x05 \x01(\x08\x12\x12\n\nvideo_lock\x18\x06 \x01(\x08\x12\x1a\n\x12moderation_enabled\x18\x07 \x01(\x08\x12\x13\n\x0b\x63se_enabled\x18\x08 \x01(\x08\x1a\xa5\x01\n\x0bPaygateInfo\x12\x1b\n\x13show_upgrade_promos\x18\x01 \x01(\x08\x12\x42\n\x1d\x63\x61ll_ending_soon_warning_time\x18\x02 \x01(\x0b\x32\x1b.ComGoogleProtobufTimestamp\x12\x35\n\x10\x63\x61ll_ending_time\x18\x03 \x01(\x0b\x32\x1b.ComGoogleProtobufTimestamp\x1a\x1e\n\x07\x43seInfo\x12\x13\n\x0bwrapped_key\x18\x01 \x01(\x0c\x1a \n\rGatewayAccess\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x1a\x38\n\x10GatewaySipAccess\x12\x0b\n\x03uri\x18\x01 \x01(\t\x12\x17\n\x0fsip_access_code\x18\x02 \x01(\t\x1a#\n\x0f\x42roadcastAccess\x12\x10\n\x08view_url\x18\x01 \x01(\t\x1a\x9c\x01\n\x08Settings\x12\x13\n\x0b\x61\x63\x63\x65ss_lock\x18\x01 \x01(\x08\x12!\n\x19\x61ttendance_report_enabled\x18\x02 \x01(\x08\x12\x11\n\tchat_lock\x18\x03 \x01(\x08\x12\x14\n\x0cpresent_lock\x18\x04 \x01(\x08\x12\x1a\n\x12moderation_enabled\x18\x05 \x01(\x08\x12\x13\n\x0b\x63se_enabled\x18\x06 \x01(\x08\"z\n\x11VideoCallMetadata\x12$\n\rmeeting_space\x18\x01 \x01(\x0b\x32\r.MeetingSpace\x12$\n\x1cwas_created_in_current_group\x18\x02 \x01(\x08\x12\x19\n\x11should_not_render\x18\x03 \x01(\x08\"\x9f\x05\n\x19MembershipChangedMetadata\x12-\n\x04type\x18\x01 \x01(\x0e\x32\x1f.MembershipChangedMetadata.Type\x12K\n\x14\x61\x66\x66\x65\x63ted_memberships\x18\x06 \x03(\x0b\x32-.MembershipChangedMetadata.AffectedMembership\x12\x1a\n\tinitiator\x18\x02 \x01(\x0b\x32\x07.UserId\x12#\n\x10\x61\x66\x66\x65\x63ted_members\x18\x03 \x03(\x0b\x32\t.MemberId\x12 \n\x11initiator_profile\x18\x04 \x01(\x0b\x32\x05.User\x12)\n\x18\x61\x66\x66\x65\x63ted_member_profiles\x18\x05 \x03(\x0b\x32\x07.Member\x1a\xcb\x01\n\x12\x41\x66\x66\x65\x63tedMembership\x12\"\n\x0f\x61\x66\x66\x65\x63ted_member\x18\x01 \x01(\x0b\x32\t.MemberId\x12\x30\n\x16prior_membership_state\x18\x02 \x01(\x0e\x32\x10.MembershipState\x12.\n\x15prior_membership_role\x18\x03 \x01(\x0e\x32\x0f.MembershipRole\x12/\n\x16target_membership_role\x18\x04 \x01(\x0e\x32\x0f.MembershipRole\"\xa9\x01\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x0b\n\x07INVITED\x10\x01\x12\n\n\x06JOINED\x10\x02\x12\t\n\x05\x41\x44\x44\x45\x44\x10\x03\x12\x0b\n\x07REMOVED\x10\x04\x12\x08\n\x04LEFT\x10\x05\x12\r\n\tBOT_ADDED\x10\x06\x12\x0f\n\x0b\x42OT_REMOVED\x10\x07\x12\x1e\n\x1aKICKED_DUE_TO_OTR_CONFLICT\x10\x08\x12\x10\n\x0cROLE_UPDATED\x10\t\"\x86\x02\n\x13UserMentionMetadata\x12\x13\n\x02id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\"\n\x0cinvitee_info\x18\x03 \x01(\x0b\x32\x0c.InviteeInfo\x12\'\n\x04type\x18\x02 \x01(\x0e\x32\x19.UserMentionMetadata.Type\x12\x14\n\x0c\x64isplay_name\x18\x04 \x01(\t\x12\x0e\n\x06gender\x18\x05 \x01(\t\"g\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\n\n\x06INVITE\x10\x01\x12\x0c\n\x08UNINVITE\x10\x02\x12\x0b\n\x07MENTION\x10\x03\x12\x0f\n\x0bMENTION_ALL\x10\x04\x12\x11\n\rFAILED_TO_ADD\x10\x05\"\xf6\x01\n\x14SlashCommandMetadata\x12\x13\n\x02id\x18\x01 \x01(\x0b\x32\x07.UserId\x12(\n\x04type\x18\x02 \x01(\x0e\x32\x1a.SlashCommandMetadata.Type\x12\x14\n\x0c\x63ommand_name\x18\x03 \x01(\t\x12\x12\n\ncommand_id\x18\x04 \x01(\x03\x12\x16\n\x0e\x61rguments_hint\x18\x05 \x01(\t\x12\x17\n\x0ftriggers_dialog\x18\x06 \x01(\x08\"D\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06INVOKE\x10\x02\x12\x11\n\rFAILED_TO_ADD\x10\x03\"J\n\x0fGroupVisibility\"7\n\x0fVisibilityState\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07PRIVATE\x10\x01\x12\n\n\x06PUBLIC\x10\x02\"<\n\x1a\x43omGoogleProtobufTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\x05\">\n\x14GetServerTimeRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\"G\n\x15GetServerTimeResponse\x12.\n\ttimestamp\x18\x01 \x01(\x0b\x32\x1b.ComGoogleProtobufTimestamp\"N\n\x0c\x43\x61tchUpRange\x12\x1f\n\x17\x66rom_revision_timestamp\x18\x01 \x01(\x03\x12\x1d\n\x15to_revision_timestamp\x18\x02 \x01(\x03\"\x9f\x01\n\x13\x43\x61tchUpGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x1c\n\x05range\x18\x02 \x01(\x0b\x32\r.CatchUpRange\x12\x11\n\tpage_size\x18\x03 \x01(\x05\x12\x13\n\x0b\x63utoff_size\x18\x04 \x01(\x05\"\x82\x01\n\x12\x43\x61tchUpUserRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1c\n\x05range\x18\x01 \x01(\x0b\x32\r.CatchUpRange\x12\x11\n\tpage_size\x18\x02 \x01(\x05\x12\x13\n\x0b\x63utoff_size\x18\x03 \x01(\x05\"\x98\x02\n\x0f\x43\x61tchUpResponse\x12\x16\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x06.Event\x12/\n\x06status\x18\x02 \x01(\x0e\x32\x1f.CatchUpResponse.ResponseStatus\x12\x1e\n\ngroup_data\x18\x03 \x01(\x0b\x32\n.GroupData\"\x9b\x01\n\x0eResponseStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tCOMPLETED\x10\x01\x12\r\n\tPAGINATED\x10\x02\x12\x1b\n\x17\x41\x42ORTED_CUTOFF_EXCEEDED\x10\x03\x12\x1e\n\x1a\x41\x42ORTED_CACHE_INVALIDATION\x10\x04\x12!\n\x1d\x41\x42ORTED_FROM_REVISION_TOO_OLD\x10\x05\"\xc5\x03\n\x0fGetGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x34\n\rfetch_options\x18\x04 \x03(\x0e\x32\x1d.GetGroupRequest.FetchOptions\x12/\n\x13user_not_older_than\x18\x02 \x01(\x0b\x32\x12.ReferenceRevision\x12\x30\n\x14group_not_older_than\x18\x03 \x01(\x0b\x32\x12.ReferenceRevision\x12\x1a\n\x12include_invite_dms\x18\x05 \x01(\x08\"\xb8\x01\n\x0c\x46\x65tchOptions\x12\x0b\n\x07MEMBERS\x10\x00\x12\x0c\n\x08INVITEES\x10\x01\x12\x13\n\x0fMEMBER_IDS_ONLY\x10\x02\x12\x1c\n\x18PROFILE_IN_READ_RECEIPTS\x10\x03\x12\x13\n\x0fINCLUDE_SNIPPET\x10\x04\x12\x1e\n\x1aINCLUDE_DYNAMIC_GROUP_NAME\x10\x05\x12%\n!INCLUDE_ACCOUNT_USER_CAPABILITIES\x10\x06\"\xd7\x02\n\x10GetGroupResponse\x12\x15\n\x05group\x18\x01 \x01(\x0b\x32\x06.Group\x12 \n\x0bmemberships\x18\x04 \x03(\x0b\x32\x0b.Membership\x12$\n\ruser_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\x12%\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\x12*\n\x10membership_state\x18\x06 \x01(\x0e\x32\x10.MembershipState\x12$\n\x11joined_member_ids\x18\x07 \x03(\x0b\x32\t.MemberId\x12%\n\x12invited_member_ids\x18\x08 \x03(\x0b\x32\t.MemberId\x12)\n\x10read_receipt_set\x18\t \x01(\x0b\x32\x0f.ReadReceiptSet\x12\x19\n\x07snippet\x18\n \x01(\x0b\x32\x08.Message\"\x88\x05\n\x0cWorldSection\x12:\n\x12world_section_type\x18\x01 \x01(\x0e\x32\x1e.WorldSection.WorldSectionType\"\xbb\x04\n\x10WorldSectionType\x12\"\n\x1eWORLD_SECTION_TYPE_UNSPECIFIED\x10\x00\x12!\n\x1dSTARRED_DIRECT_MESSAGE_PEOPLE\x10\x01\x12\x11\n\rSTARRED_ROOMS\x10\x02\x12\x1f\n\x1bSTARRED_DIRECT_MESSAGE_BOTS\x10\x03\x12%\n!NON_STARRED_DIRECT_MESSAGE_PEOPLE\x10\x04\x12\x15\n\x11NON_STARRED_ROOMS\x10\x05\x12#\n\x1fNON_STARRED_DIRECT_MESSAGE_BOTS\x10\x06\x12\x1d\n\x19\x41LL_DIRECT_MESSAGE_PEOPLE\x10\x07\x12\r\n\tALL_ROOMS\x10\x08\x12\x1b\n\x17\x41LL_DIRECT_MESSAGE_BOTS\x10\t\x12\x15\n\x11INVITED_DM_PEOPLE\x10\n\x12\x1a\n\x16SPAM_INVITED_DM_PEOPLE\x10\x0b\x12#\n\x1fSTARRED_DIRECT_MESSAGE_EVERYONE\x10\x0c\x12\'\n#NON_STARRED_DIRECT_MESSAGE_EVERYONE\x10\r\x12\x1f\n\x1b\x41LL_DIRECT_MESSAGE_EVERYONE\x10\x0e\x12)\n%STARRED_DMS_AND_STARRED_UNNAMED_ROOMS\x10\x0f\x12\x31\n-NON_STARRED_DMS_AND_NON_STARRED_UNNAMED_ROOMS\x10\x10\"\xaa\x07\n\x0bWorldFilter\x12\x30\n\rstarred_state\x18\x01 \x01(\x0e\x32\x19.WorldFilter.StarredState\x12\x36\n\x10visibility_state\x18\x02 \x01(\x0e\x32\x1c.WorldFilter.VisibilityState\x12*\n\nread_state\x18\x07 \x01(\x0e\x32\x16.WorldFilter.ReadState\x12,\n\x0b\x62lock_state\x18\x08 \x01(\x0e\x32\x17.WorldFilter.BlockState\x12,\n\x0bnamed_state\x18\t \x01(\x0e\x32\x17.WorldFilter.NamedState\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\x12(\n\x0finvite_category\x18\x04 \x01(\x0e\x32\x0f.InviteCategory\x12,\n\x0bmember_type\x18\x05 \x01(\x0e\x32\x17.WorldFilter.MemberType\x12*\n\ngroup_type\x18\x06 \x01(\x0e\x32\x16.WorldFilter.GroupType\"K\n\x0cStarredState\x12\x1d\n\x19STARRED_STATE_UNSPECIFIED\x10\x00\x12\x0b\n\x07STARRED\x10\x01\x12\x0f\n\x0bNON_STARRED\x10\x02\"L\n\x0fVisibilityState\x12 \n\x1cVISIBILITY_STATE_UNSPECIFIED\x10\x00\x12\x0b\n\x07VISIBLE\x10\x01\x12\n\n\x06HIDDEN\x10\x02\"Z\n\tReadState\x12\x1a\n\x16READ_STATE_UNSPECIFIED\x10\x00\x12\x08\n\x04READ\x10\x01\x12\n\n\x06UNREAD\x10\x02\x12\x1b\n\x17UNREAD_SUBSCRIBED_TOPIC\x10\x03\"E\n\nBlockState\x12\x1b\n\x17\x42LOCK_STATE_UNSPECIFIED\x10\x00\x12\x0b\n\x07\x42LOCKED\x10\x01\x12\r\n\tUNBLOCKED\x10\x02\"A\n\nNamedState\x12\x1b\n\x17NAMED_STATE_UNSPECIFIED\x10\x00\x12\t\n\x05NAMED\x10\x01\x12\x0b\n\x07UNNAMED\x10\x02\"=\n\nMemberType\x12\x1b\n\x17MEMBER_TYPE_UNSPECIFIED\x10\x00\x12\t\n\x05HUMAN\x10\x01\x12\x07\n\x03\x42OT\x10\x02\"9\n\tGroupType\x12\x1a\n\x16GROUP_TYPE_UNSPECIFIED\x10\x00\x12\x06\n\x02\x44M\x10\x01\x12\x08\n\x04ROOM\x10\x02\"\\\n\tNameUsers\x12\x1e\n\rname_user_ids\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x1b\n\x13has_more_name_users\x18\x02 \x01(\x08\x12\x12\n\ngroup_name\x18\x03 \x01(\t\"\xea\x08\n\rWorldItemLite\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12%\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\x12\x16\n\x0esort_timestamp\x18\x03 \x01(\x03\x12#\n\nread_state\x18\x04 \x01(\x0b\x32\x0f.GroupReadState\x12\x11\n\troom_name\x18\x05 \x01(\t\x12,\n\ndm_members\x18\x06 \x01(\x0b\x32\x18.WorldItemLite.DmMembers\x12\x1e\n\nname_users\x18\x14 \x01(\x0b\x32\n.NameUsers\x12%\n\x1dretention_horizon_time_micros\x18\x08 \x01(\x03\x12\"\n\x1aretention_duration_seconds\x18\t \x01(\x03\x12,\n\ngroup_lite\x18\x07 \x01(\x0b\x32\x18.WorldItemLite.GroupLite\x12\x19\n\x07message\x18\r \x01(\x0b\x32\x08.Message\x12\x1a\n\x12is_message_blocked\x18\x19 \x01(\x08\x12,\n\nflat_group\x18\x0e \x01(\x0b\x32\x18.WorldItemLite.FlatGroup\x12\x34\n\x0ethreaded_group\x18\x0f \x01(\x0b\x32\x1c.WorldItemLite.ThreadedGroup\x12\x12\n\navatar_url\x18\x10 \x01(\t\x12\x46\n\x1c\x61ttribute_checker_group_type\x18\x13 \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12/\n\x13group_support_level\x18\x17 \x01(\x0e\x32\x12.GroupSupportLevel\x12\x39\n\x18group_unsupported_reason\x18\x18 \x01(\x0e\x32\x17.GroupUnsupportedReason\x1aV\n\x0eMembershipLite\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12*\n\x10membership_state\x18\x02 \x01(\x0e\x32\x10.MembershipState\x1av\n\tDmMembers\x12\x18\n\x07members\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x32\n\x0bmemberships\x18\x02 \x03(\x0b\x32\x1d.WorldItemLite.MembershipLite\x12\x1b\n\x13has_all_memberships\x18\x03 \x01(\x08\x1a\xad\x01\n\tGroupLite\x12\x1b\n\ncreator_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x13\n\x0b\x63reate_time\x18\x02 \x01(\x03\x12\x0f\n\x07is_flat\x18\x03 \x01(\x08\x12.\n\x12retention_settings\x18\x04 \x01(\x0b\x32\x12.RetentionSettings\x12\x17\n\x0finterop_enabled\x18\x05 \x01(\x08\x12\x14\n\x0croster_email\x18\x07 \x01(\t\x1a\x0b\n\tFlatGroup\x1a\x0f\n\rThreadedGroup\"\xe8\x01\n\x13WorldSectionRequest\x12\x11\n\tpage_size\x18\x01 \x01(\x05\x12$\n\rworld_section\x18\x02 \x01(\x0b\x32\r.WorldSection\x12\"\n\x0cworld_filter\x18\x04 \x01(\x0b\x32\x0c.WorldFilter\x12$\n\x1cnum_world_items_with_snippet\x18\x05 \x01(\x05\x12$\n\x1c\x61nchor_sort_timestamp_micros\x18\x03 \x01(\x03\x12\x1a\n\x10pagination_token\x18\x06 \x01(\tH\x00\x42\x0c\n\nPagination\"\xe7\x01\n\x14WorldSectionResponse\x12$\n\rworld_section\x18\x01 \x01(\x0b\x32\r.WorldSection\x12\"\n\x0cworld_filter\x18\x04 \x01(\x0b\x32\x0c.WorldFilter\x12#\n\x0bworld_items\x18\x02 \x03(\x0b\x32\x0e.WorldItemLite\x12.\n&next_page_anchor_sort_timestamp_micros\x18\x03 \x01(\x03\x12\x16\n\x0ehas_more_items\x18\x05 \x01(\x08\x12\x18\n\x10pagination_token\x18\x06 \x01(\t\"\xde\x03\n\x15PaginatedWorldRequest\x12&\n\x0erequest_header\x18\x01 \x01(\x0b\x32\x0e.RequestHeader\x12\x34\n\x16world_section_requests\x18\x02 \x03(\x0b\x32\x14.WorldSectionRequest\x12\x1f\n\x17world_consistency_token\x18\x03 \x01(\t\x12:\n\rfetch_options\x18\x04 \x03(\x0e\x32#.PaginatedWorldRequest.FetchOptions\x12\x1e\n\x16\x66\x65tch_from_user_spaces\x18\x05 \x01(\x08\x12*\n\"receive_world_update_notifications\x18\x06 \x01(\x08\x12(\n fetch_snippets_for_unnamed_rooms\x18\x07 \x01(\x08\"\x93\x01\n\x0c\x46\x65tchOptions\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x16\n\x12\x45XCLUDE_GROUP_LITE\x10\x01\x12\x1a\n\x16\x46\x45TCH_BOTS_IN_HUMAN_DM\x10\x02\x12$\n FETCH_SPACE_INTEGRATION_PAYLOADS\x10\x03\x12\x1c\n\x18\x46\x45TCH_GROUPS_D3_POLICIES\x10\x04\"\xbc\x01\n\x16PaginatedWorldResponse\x12\x36\n\x17world_section_responses\x18\x01 \x03(\x0b\x32\x15.WorldSectionResponse\x12\x1f\n\x17world_consistency_token\x18\x02 \x01(\t\x12$\n\ruser_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\x12#\n\x0bworld_items\x18\x04 \x03(\x0b\x32\x0e.WorldItemLite\"\xa9\x01\n\x18RemoveMembershipsRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1d\n\nmember_ids\x18\x01 \x03(\x0b\x32\t.MemberId\x12\x1a\n\x08group_id\x18\x02 \x01(\x0b\x32\x08.GroupId\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\"}\n\x16RemoveMembershipResult\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1c\n\tmember_id\x18\x01 \x01(\x0b\x32\t.MemberId\x12\x1d\n\x15\x61ttached_roster_names\x18\x04 \x03(\t\"\xb0\x01\n\x19RemoveMembershipsResponse\x12(\n\x07results\x18\x01 \x03(\x0b\x32\x17.RemoveMembershipResult\x12.\n\x12retention_settings\x18\x03 \x01(\x0b\x32\x12.RetentionSettings\x12\x39\n!retention_settings_group_revision\x18\x04 \x01(\x0b\x32\x0e.WriteRevision\"^\n\x10HideGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x14\n\x02id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x0c\n\x04hide\x18\x02 \x01(\x08\"_\n\x11HideGroupResponse\x12#\n\nread_state\x18\x01 \x01(\x0b\x32\x0f.GroupReadState\x12%\n\ruser_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\"\x9b\x01\n\x1aInviteNotificationSettings\x12>\n\x06option\x18\x01 \x03(\x0e\x32..InviteNotificationSettings.NotificationOption\"=\n\x12NotificationOption\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\x16\n\x12\x45MAIL_NOTIFICATION\x10\x01\"\x96\x02\n\x17\x43reateMembershipRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1d\n\nmember_ids\x18\x02 \x03(\x0b\x32\t.MemberId\x12\x30\n\x14invitee_member_infos\x18\x08 \x03(\x0b\x32\x12.InviteeMemberInfo\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\x12\x1a\n\x08group_id\x18\x04 \x01(\x0b\x32\x08.GroupId\x12:\n\x15notification_settings\x18\x05 \x01(\x0b\x32\x1b.InviteNotificationSettings\"\xd7\x01\n\x18\x43reateMembershipResponse\x12(\n\x07results\x18\x02 \x03(\x0b\x32\x17.CreateMembershipResult\x12&\n\x0egroup_revision\x18\x04 \x03(\x0b\x32\x0e.WriteRevision\x12.\n\x12retention_settings\x18\x05 \x01(\x0b\x32\x12.RetentionSettings\x12\x39\n!retention_settings_group_revision\x18\x06 \x01(\x0b\x32\x0e.WriteRevision\"q\n\x19MarkGroupReadstateRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x14\n\x02id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x16\n\x0elast_read_time\x18\x02 \x01(\x03\"h\n\x1aMarkGroupReadstateResponse\x12#\n\nread_state\x18\x01 \x01(\x0b\x32\x0f.GroupReadState\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"[\n\x18SetPresenceSharedRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x17\n\x0fpresence_shared\x18\x01 \x01(\x08\"d\n\x19SetPresenceSharedResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xf9\x01\n\x15SetDndDurationRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x37\n\x11\x63urrent_dnd_state\x18\x02 \x01(\x0e\x32\x1c.SetDndDurationRequest.State\x12\x1f\n\x15new_dnd_duration_usec\x18\x01 \x01(\x03H\x00\x12#\n\x19\x64nd_expiry_timestamp_usec\x18\x03 \x01(\x03H\x00\",\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tAVAILABLE\x10\x01\x12\x07\n\x03\x44ND\x10\x02\x42\x0b\n\tDndExpiry\"a\n\x16SetDndDurationResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xbd\x02\n\x12UpdateGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08space_id\x18\x01 \x01(\x0b\x32\x08.SpaceId\x12\x34\n\x0cupdate_masks\x18\x04 \x03(\x0e\x32\x1e.UpdateGroupRequest.UpdateMask\x12\x0c\n\x04name\x18\x02 \x01(\t\x12$\n\nvisibility\x18\x05 \x01(\x0b\x32\x10.GroupVisibility\"y\n\nUpdateMask\x12\x1b\n\x17UPDATE_MASK_UNSPECIFIED\x10\x00\x12\x08\n\x04NAME\x10\x01\x12\x0e\n\nVISIBILITY\x10\x02\x12\x0f\n\x0b\x41VATAR_INFO\x10\x03\x12\x11\n\rSPACE_DETAILS\x10\x04\x12\x10\n\x0cSHARED_DRIVE\x10\x05\"T\n\x13UpdateGroupResponse\x12\x15\n\x05group\x18\x01 \x01(\x0b\x32\x06.Group\x12&\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xa3\x01\n\x12\x42lockEntityRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserIdH\x00\x12\x1c\n\x08group_id\x18\x02 \x01(\x0b\x32\x08.GroupIdH\x00\x12\x0f\n\x07\x62locked\x18\x03 \x01(\x08\x12\x10\n\x08reported\x18\x04 \x01(\x08\x42\x08\n\x06\x45ntity\"a\n\x13\x42lockEntityResponse\x12#\n\nread_state\x18\x01 \x01(\x0b\x32\x0f.GroupReadState\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xdc\x01\n\x16SetCustomStatusRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12$\n\rcustom_status\x18\x01 \x01(\x0b\x32\r.CustomStatus\x12-\n#custom_status_expiry_timestamp_usec\x18\x02 \x01(\x03H\x00\x12/\n%custom_status_remaining_duration_usec\x18\x03 \x01(\x03H\x00\x42\x14\n\x12\x43ustomStatusTiming\"b\n\x17SetCustomStatusResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\":\n\rWriteRevision\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x16\n\x0eprev_timestamp\x18\x02 \x01(\x03\"!\n\x0cReadRevision\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\"&\n\x11ReferenceRevision\x12\x11\n\ttimestamp\x18\x01 \x01(\x03*\x1e\n\x08UserType\x12\t\n\x05HUMAN\x10\x00\x12\x07\n\x03\x42OT\x10\x01*I\n\x0eInviteCategory\x12\x12\n\x0eUNKNOWN_INVITE\x10\x00\x12\x12\n\x0eREGULAR_INVITE\x10\x01\x12\x0f\n\x0bSPAM_INVITE\x10\x02*_\n\x08Presence\x12\x16\n\x12UNDEFINED_PRESENCE\x10\x00\x12\n\n\x06\x41\x43TIVE\x10\x01\x12\x0c\n\x08INACTIVE\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03\x12\x14\n\x10SHARING_DISABLED\x10\x04*E\n\x0e\x44ndState_State\x12\x1b\n\x17\x44ND_STATE_STATE_UNKNOWN\x10\x00\x12\r\n\tAVAILABLE\x10\x01\x12\x07\n\x03\x44ND\x10\x02*9\n\x0bTypingState\x12\x11\n\rUNKNOWN_STATE\x10\x00\x12\n\n\x06TYPING\x10\x01\x12\x0b\n\x07STOPPED\x10\x02*~\n\x16GroupUnsupportedReason\x12(\n$GROUP_UNSUPPORTED_REASON_UNSPECIFIED\x10\x00\x12\x1c\n\x18GROUP_DISABLED_ON_CLIENT\x10\x01\x12\x1c\n\x18GROUP_DISABLED_ON_SERVER\x10\x02*M\n\x11GroupSupportLevel\x12\x0f\n\x0bUNSUPPORTED\x10\x00\x12\x12\n\x0e\x44\x41TA_SUPPORTED\x10\x01\x12\x13\n\x0f\x46ULLY_SUPPORTED\x10\x02*\xa0\x01\n\x11NotificationCause\x12\x1e\n\x1aUNKNOWN_NOTIFICATION_CAUSE\x10\x00\x12\x12\n\x0e\x44IRECT_MESSAGE\x10\x01\x12\x0e\n\nAT_MENTION\x10\x02\x12\r\n\tNEW_TOPIC\x10\x03\x12\x1a\n\x16SUBSCRIBED_TOPIC_REPLY\x10\x04\x12\x1c\n\x18UNSUBSCRIBED_TOPIC_REPLY\x10\x05*\xc2\x05\n\x0b\x45ventOrigin\x12\x16\n\x12ORIGIN_UNSPECIFIED\x10\x00\x12\x0b\n\x07\x41NDROID\x10\x64\x12\x0f\n\x0b\x41NDROID_DEV\x10\x65\x12\x14\n\x10\x41NDROID_PRODTEST\x10\x66\x12\x13\n\x0f\x41NDROID_STAGING\x10g\x12\x10\n\x0c\x41NDROID_PROD\x10h\x12\x07\n\x03IOS\x10n\x12\x0b\n\x07IOS_DEV\x10o\x12\x10\n\x0cIOS_PRODTEST\x10p\x12\x0f\n\x0bIOS_STAGING\x10q\x12\x0c\n\x08IOS_PROD\x10r\x12\x0e\n\nWEB_ORIGIN\x10x\x12\x0b\n\x07WEB_DEV\x10y\x12\x10\n\x0cWEB_PRODTEST\x10z\x12\x0c\n\x08WEB_PROD\x10{\x12\x0f\n\x0bWEB_STAGING\x10|\x12\x12\n\x0e\x44\x45SKTOP_ORIGIN\x10}\x12\x0f\n\x0b\x44\x45SKTOP_DEV\x10~\x12\x14\n\x10\x44\x45SKTOP_PRODTEST\x10\x7f\x12\x14\n\x0f\x44\x45SKTOP_STAGING\x10\x80\x01\x12\x11\n\x0c\x44\x45SKTOP_PROD\x10\x81\x01\x12\x15\n\x10\x43OMPANION_ORIGIN\x10\x82\x01\x12\x12\n\rCOMPANION_DEV\x10\x83\x01\x12\x17\n\x12\x43OMPANION_PRODTEST\x10\x84\x01\x12\x16\n\x11\x43OMPANION_STAGING\x10\x85\x01\x12\x13\n\x0e\x43OMPANION_PROD\x10\x86\x01\x12\x15\n\x10WEB_GMAIL_ORIGIN\x10\x87\x01\x12\x12\n\rWEB_GMAIL_DEV\x10\x88\x01\x12\x17\n\x12WEB_GMAIL_PRODTEST\x10\x89\x01\x12\x16\n\x11WEB_GMAIL_STAGING\x10\x8a\x01\x12\x13\n\x0eWEB_GMAIL_PROD\x10\x8b\x01\x12\x13\n\x0eWEB_PWA_ORIGIN\x10\x8c\x01\x12\x10\n\x0bWEB_PWA_DEV\x10\x8d\x01\x12\x15\n\x10WEB_PWA_PRODTEST\x10\x8e\x01\x12\x14\n\x0fWEB_PWA_STAGING\x10\x8f\x01\x12\x11\n\x0cWEB_PWA_PROD\x10\x90\x01*\xa4\x01\n\x08Platform\x12\x16\n\x12UNDEFINED_PLATFORM\x10\x00\x12\x07\n\x03WEB\x10\x01\x12\n\n\x06MOBILE\x10\x02\x12\t\n\x05\x44RONE\x10\x03\x12\x14\n\x10INTEROP_PRESENCE\x10\x04\x12\x13\n\x0f\x43LASSIC_DESKTOP\x10\x05\x12\x11\n\rCLASSIC_PHONE\x10\x06\x12\x13\n\x0f\x43LASSIC_UNKNOWN\x10\x07\x12\r\n\tWEB_GMAIL\x10\x08*\x8c\x04\n\x0e\x41nnotationType\x12\x1b\n\x17\x41NNOTATION_TYPE_UNKNOWN\x10\x00\x12\x07\n\x03URL\x10\x01\x12\x0e\n\nDRIVE_FILE\x10\x02\x12\r\n\tDRIVE_DOC\x10\x03\x12\x0f\n\x0b\x44RIVE_SHEET\x10\x04\x12\x0f\n\x0b\x44RIVE_SLIDE\x10\x05\x12\x10\n\x0cUSER_MENTION\x10\x06\x12\t\n\x05VIDEO\x10\x07\x12\x0f\n\x0b\x46ORMAT_DATA\x10\x08\x12\t\n\x05IMAGE\x10\t\x12\x07\n\x03PDF\x10\n\x12\x0e\n\nVIDEO_CALL\x10\x0b\x12\x16\n\x12MEMBERSHIP_CHANGED\x10\x0c\x12\x13\n\x0fUPLOAD_METADATA\x10\r\x12\x10\n\x0cROOM_UPDATED\x10\x0e\x12\x0e\n\nINVITATION\x10\x0f\x12\x11\n\rSLASH_COMMAND\x10\x10\x12\x16\n\x12GSUITE_INTEGRATION\x10\x11\x12\x0e\n\nDRIVE_FORM\x10\x12\x12$\n GROUP_RETENTION_SETTINGS_UPDATED\x10\x13\x12\x15\n\x11\x42\x41\x42\x45L_PLACEHOLDER\x10\x14\x12\"\n\x1eREAD_RECEIPTS_SETTINGS_UPDATED\x10\x15\x12\x1c\n\x18INCOMING_WEBHOOK_CHANGED\x10\x16\x12\x1e\n\x1aINTEGRATION_CONFIG_UPDATED\x10\x17\x12\x18\n\x14\x43ONSENTED_APP_UNFURL\x10\x18*Z\n\x11\x44ialInNumberClass\x12\x1c\n\x18NUMBER_CLASS_UNSPECIFIED\x10\x00\x12\x0c\n\x08LOW_COST\x10\x01\x12\r\n\tHIGH_COST\x10\x02\x12\n\n\x06LEGACY\x10\x03*v\n\x18RecordingApplicationType\x12*\n&RECORDING_APPLICATION_TYPE_UNSPECIFIED\x10\x00\x12\r\n\tRECORDING\x10\x01\x12\x10\n\x0cGLIVE_STREAM\x10\x03\x12\r\n\tBROADCAST\x10\x04*a\n\x15\x42roadcastAccessPolicy\x12*\n&BROADCASTING_ACCESS_POLICY_UNSPECIFIED\x10\x00\x12\x10\n\x0cORGANIZATION\x10\x01\x12\n\n\x06PUBLIC\x10\x02*F\n\nCallStatus\x12\x17\n\x13UNKNOWN_CALL_STATUS\x10\x00\x12\x0f\n\x0b\x41\x43TIVE_CALL\x10\x01\x12\x0e\n\nENDED_CALL\x10\x02*J\n\nRingStatus\x12\x17\n\x13UNKNOWN_RING_STATUS\x10\x00\x12\x0b\n\x07RINGING\x10\x01\x12\n\n\x06JOINED\x10\x02\x12\n\n\x06MISSED\x10\x03*u\n\x10UserAccountState\x12\x1e\n\x1aUSER_ACCOUNT_STATE_UNKNOWN\x10\x00\x12\x0b\n\x07\x45NABLED\x10\x01\x12\x0c\n\x08\x44ISABLED\x10\x02\x12\x0b\n\x07\x44\x45LETED\x10\x03\x12\x19\n\x15TEMPORARY_UNAVAILABLE\x10\x04*d\n\x0eMembershipRole\x12\x10\n\x0cROLE_UNKNOWN\x10\x00\x12\r\n\tROLE_NONE\x10\x01\x12\x10\n\x0cROLE_INVITEE\x10\x02\x12\x0f\n\x0bROLE_MEMBER\x10\x03\x12\x0e\n\nROLE_OWNER\x10\x04*R\n\x07\x41ppType\x12\x18\n\x14\x41PP_TYPE_UNSPECIFIED\x10\x00\x12\x07\n\x03\x41PP\x10\x01\x12\x0e\n\nGSUITE_APP\x10\x02\x12\x14\n\x10INCOMING_WEBHOOK\x10\x03*x\n\x0fMembershipState\x12\x12\n\x0eMEMBER_UNKNOWN\x10\x00\x12\x12\n\x0eMEMBER_INVITED\x10\x01\x12\x11\n\rMEMBER_JOINED\x10\x02\x12\x17\n\x13MEMBER_NOT_A_MEMBER\x10\x03\x12\x11\n\rMEMBER_FAILED\x10\x04*\xf6\x01\n\x1fSharedAttributeCheckerGroupType\x12,\n(ATTRIBUTE_CHECKER_GROUP_TYPE_UNSPECIFIED\x10\x00\x12\x17\n\x13ONE_TO_ONE_HUMAN_DM\x10\x01\x12\x15\n\x11ONE_TO_ONE_BOT_DM\x10\x02\x12!\n\x1dIMMUTABLE_MEMBERSHIP_GROUP_DM\x10\x03\x12\r\n\tFLAT_ROOM\x10\x04\x12\x11\n\rTHREADED_ROOM\x10\x05\x12!\n\x1dIMMUTABLE_MEMBERSHIP_HUMAN_DM\x10\x06\x12\r\n\tPOST_ROOM\x10\x07'
+  serialized_pb=b'\n\x19maugclib/googlechat.proto\"-\n\x06UserId\x12\n\n\x02id\x18\x01 \x01(\t\x12\x17\n\x04type\x18\x02 \x01(\x0e\x32\t.UserType\"\xe3\x01\n\x04User\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\navatar_url\x18\x03 \x01(\t\x12\r\n\x05\x65mail\x18\x04 \x01(\t\x12\x12\n\nfirst_name\x18\x05 \x01(\t\x12\x11\n\tlast_name\x18\x06 \x01(\t\x12\x0f\n\x07\x64\x65leted\x18\x07 \x01(\x08\x12\x14\n\x0cis_anonymous\x18\x08 \x01(\x08\x12\x0e\n\x06gender\x18\n \x01(\t\x12\x32\n\x12\x62lock_relationship\x18\r \x01(\x0b\x32\x16.UserBlockRelationship\"W\n\x15UserBlockRelationship\x12\x1f\n\x17is_blocked_by_requester\x18\x01 \x01(\x08\x12\x1d\n\x15has_blocked_requester\x18\x02 \x01(\x08\"\xb9\x01\n\x0b\x44ndSettings\x12.\n\tdnd_state\x18\x01 \x01(\x0e\x32\x1b.DndSettings.DndState_State\x12\x1c\n\x14\x64nd_expiry_time_usec\x18\x02 \x01(\x03\x12%\n\x1dstate_remaining_duration_usec\x18\x03 \x01(\x03\"5\n\x0e\x44ndState_State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tAVAILABLE\x10\x01\x12\x07\n\x03\x44ND\x10\x02\"%\n\x05\x45moji\x12\x11\n\x07unicode\x18\x01 \x01(\tH\x00\x42\t\n\x07\x43ontent\"u\n\x0c\x43ustomStatus\x12\x13\n\x0bstatus_text\x18\x01 \x01(\t\x12\x14\n\x0cstatus_emoji\x18\x02 \x01(\t\x12#\n\x1bstate_expiry_timestamp_usec\x18\x03 \x01(\x03\x12\x15\n\x05\x65moji\x18\x04 \x01(\x0b\x32\x06.Emoji\"\xa0\x02\n\nUserStatus\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\"\n\x0c\x64nd_settings\x18\x02 \x01(\x0b\x32\x0c.DndSettings\x12\x1d\n\x15update_timestamp_usec\x18\x03 \x01(\x03\x12*\n\"dnd_settings_update_timestamp_usec\x18\x07 \x01(\x03\x12\x1d\n\x15status_timestamp_usec\x18\x04 \x01(\x03\x12\x17\n\x0fpresence_shared\x18\x05 \x01(\x08\x12$\n\rcustom_status\x18\x06 \x01(\x0b\x32\r.CustomStatus\x12+\n#custom_status_update_timestamp_usec\x18\x08 \x01(\x03\":\n\x16UserStatusUpdatedEvent\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\"Y\n\x14GetUserStatusRequest\x12\x19\n\x08user_ids\x18\x01 \x03(\x0b\x32\x07.UserId\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\";\n\x15GetUserStatusResponse\x12\"\n\ruser_statuses\x18\x01 \x03(\x0b\x32\x0b.UserStatus\"B\n\x18GetSelfUserStatusRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\"c\n\x19GetSelfUserStatusResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12$\n\ruser_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\"\xc3\x04\n\x19\x43lientFeatureCapabilities\x12\x1b\n\x13\x65nable_all_features\x18\x01 \x01(\x08\x12L\n\x18spaces_level_for_testing\x18\x02 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12I\n\x15\x64ms_level_for_testing\x18\x03 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12\x44\n\x10post_rooms_level\x18\x04 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12K\n\x17spam_room_invites_level\x18\x05 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12\x43\n\x0ftombstone_level\x18\x06 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\x12K\n\x17rich_text_viewing_level\x18\x07 \x01(\x0e\x32*.ClientFeatureCapabilities.CapabilityLevel\"K\n\x0f\x43\x61pabilityLevel\x12\x0f\n\x0bUNSUPPORTED\x10\x00\x12\x12\n\x0e\x44\x41TA_SUPPORTED\x10\x01\x12\x13\n\x0f\x46ULLY_SUPPORTED\x10\x02\"\xc0\x02\n\rRequestHeader\x12\x10\n\x08trace_id\x18\x01 \x01(\x03\x12.\n\x0b\x63lient_type\x18\x02 \x01(\x0e\x32\x19.RequestHeader.ClientType\x12\x16\n\x0e\x63lient_version\x18\x03 \x01(\x03\x12\x0e\n\x06locale\x18\x04 \x01(\t\x12?\n\x1b\x63lient_feature_capabilities\x18\x05 \x01(\x0b\x32\x1a.ClientFeatureCapabilities\"\x83\x01\n\nClientType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x41NDROID\x10\x01\x12\x07\n\x03IOS\x10\x02\x12\x07\n\x03WEB\x10\x03\x12\x13\n\x0f\x43LASSIC_INTEROP\x10\x04\x12\x14\n\x10INTERNAL_TESTING\x10\x05\x12\x0f\n\x0bWEB_DESKTOP\x10\x06\x12\r\n\tWEB_GMAIL\x10\x07\"*\n\x06Member\x12\x15\n\x04user\x18\x01 \x01(\x0b\x32\x05.UserH\x00\x42\t\n\x07Profile\",\n\x08MemberId\x12\x1a\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserIdH\x00\x42\x04\n\x02Id\"d\n\x0cMembershipId\x12\x1c\n\tmember_id\x18\x01 \x01(\x0b\x32\t.MemberId\x12\x1a\n\x08space_id\x18\x02 \x01(\x0b\x32\x08.SpaceId\x12\x1a\n\x08group_id\x18\x03 \x01(\x0b\x32\x08.GroupId\"\xbc\x01\n\nMembership\x12\x19\n\x02id\x18\x01 \x01(\x0b\x32\r.MembershipId\x12\x13\n\x0b\x63reate_time\x18\x02 \x01(\x03\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\x12(\n\x0finvite_category\x18\x04 \x01(\x0e\x32\x0f.InviteCategory\x12(\n\x0fmembership_role\x18\x05 \x01(\x0e\x32\x0f.MembershipRole\"C\n\rMemberProfile\x12\x19\n\x02id\x18\x01 \x01(\x0b\x32\r.MembershipId\x12\x17\n\x06member\x18\x02 \x01(\x0b\x32\x07.Member\"\x81\x01\n\x11GetMembersRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1d\n\nmember_ids\x18\x01 \x03(\x0b\x32\t.MemberId\x12%\n\x0emembership_ids\x18\x02 \x03(\x0b\x32\r.MembershipId\"W\n\x12GetMembersResponse\x12\x18\n\x07members\x18\x01 \x03(\x0b\x32\x07.Member\x12\'\n\x0fmember_profiles\x18\x02 \x03(\x0b\x32\x0e.MemberProfile\"\xa1\x01\n\x0cUserPresence\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x1b\n\x08presence\x18\x02 \x01(\x0e\x32\t.Presence\x12\x14\n\x0c\x61\x63tive_until\x18\x04 \x01(\x03\x12\"\n\tdnd_state\x18\x03 \x01(\x0e\x32\x0f.DndState_State\x12 \n\x0buser_status\x18\x05 \x01(\x0b\x32\x0b.UserStatus\"\x96\x01\n\x16GetUserPresenceRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x19\n\x08user_ids\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x1c\n\x14include_active_until\x18\x02 \x01(\x08\x12\x1b\n\x13include_user_status\x18\x03 \x01(\x08\"@\n\x17GetUserPresenceResponse\x12%\n\x0euser_presences\x18\x01 \x03(\x0b\x32\r.UserPresence\"\x1f\n\x11JAddOnsIdentifier\x12\n\n\x02id\x18\x01 \x01(\t\"\xd2\x08\n\x14JAddOnsFormattedText\x12\x1e\n\x02id\x18\x04 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x15\n\roriginal_text\x18\x01 \x01(\t\x12K\n\x17\x66ormatted_text_elements\x18\x02 \x03(\x0b\x32*.JAddOnsFormattedText.FormattedTextElement\x12\x33\n\ntext_align\x18\x03 \x01(\x0e\x32\x1f.JAddOnsFormattedText.TextAlign\x1a\xd2\x06\n\x14\x46ormattedTextElement\x12L\n\x0bstyled_text\x18\x01 \x01(\x0b\x32\x35.JAddOnsFormattedText.FormattedTextElement.StyledTextH\x00\x12I\n\thyperlink\x18\x02 \x01(\x0b\x32\x34.JAddOnsFormattedText.FormattedTextElement.HyperLinkH\x00\x1ak\n\x08\x44\x61teTime\x12\x13\n\x0btime_millis\x18\x01 \x01(\x03\x12 \n\x18time_zone_offset_minutes\x18\x02 \x01(\x05\x12\x11\n\tdate_only\x18\x03 \x01(\x08\x12\x15\n\rfloating_time\x18\x04 \x01(\x08\x1a\xe8\x03\n\nStyledText\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x45\n\x08\x64\x61tetime\x18\x04 \x01(\x0b\x32\x33.JAddOnsFormattedText.FormattedTextElement.DateTime\x12K\n\x06styles\x18\x02 \x03(\x0e\x32;.JAddOnsFormattedText.FormattedTextElement.StyledText.Style\x12U\n\x0b\x66ont_weight\x18\x05 \x01(\x0e\x32@.JAddOnsFormattedText.FormattedTextElement.StyledText.FontWeight\x12\r\n\x05\x63olor\x18\x03 \x01(\x05\x12)\n\x0ctheme_colors\x18\x07 \x01(\x0b\x32\x13.JAddOnsThemeColors\"k\n\x05Style\x12\x08\n\x04NONE\x10\x00\x12\x13\n\x0f\x42OLD_DEPRECATED\x10\x01\x12\n\n\x06ITALIC\x10\x02\x12\r\n\tUNDERLINE\x10\x03\x12\x11\n\rSTRIKETHROUGH\x10\x04\x12\x06\n\x02\x42R\x10\x05\x12\r\n\tUPPERCASE\x10\x06\":\n\nFontWeight\x12\x0b\n\x07REGULAR\x10\x00\x12\t\n\x05LIGHT\x10\x01\x12\n\n\x06MEDIUM\x10\x02\x12\x08\n\x04\x42OLD\x10\x03\x1a>\n\tHyperLink\x12\x0c\n\x04link\x18\x01 \x01(\t\x12\x15\n\roriginal_link\x18\x03 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\tB\t\n\x07\x45lement\",\n\tTextAlign\x12\x08\n\x04LEFT\x10\x00\x12\n\n\x06\x43\x45NTER\x10\x01\x12\t\n\x05RIGHT\x10\x02\"\xca\x01\n\x15JAddOnsImageCropStyle\x12\x32\n\x04type\x18\x01 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\x14\n\x0c\x61spect_ratio\x18\x02 \x01(\x01\"g\n\rImageCropType\x12\x15\n\x11\x43ROP_TYPE_NOT_SET\x10\x00\x12\n\n\x06SQUARE\x10\x01\x12\n\n\x06\x43IRCLE\x10\x02\x12\x14\n\x10RECTANGLE_CUSTOM\x10\x03\x12\x11\n\rRECTANGLE_4_3\x10\x04\"I\n\x12JAddOnsThemeColors\x12\x19\n\x11light_theme_color\x18\x01 \x01(\x05\x12\x18\n\x10\x64\x61rk_theme_color\x18\x02 \x01(\x05\"\xbc\x02\n\x0fJAddOnsOpenLink\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x15\n\roriginal_link\x18\x05 \x01(\t\x12(\n\x07open_as\x18\x02 \x01(\x0e\x32\x17.JAddOnsOpenLink.OpenAs\x12*\n\x08on_close\x18\x03 \x01(\x0e\x32\x18.JAddOnsOpenLink.OnClose\x12\x36\n\x0eload_indicator\x18\x04 \x01(\x0e\x32\x1e.JAddOnsOpenLink.LoadIndicator\"$\n\x06OpenAs\x12\r\n\tFULL_SIZE\x10\x00\x12\x0b\n\x07OVERLAY\x10\x01\")\n\x07OnClose\x12\x0b\n\x07NOTHING\x10\x00\x12\x11\n\rRELOAD_ADD_ON\x10\x01\"&\n\rLoadIndicator\x12\x08\n\x04NONE\x10\x00\x12\x0b\n\x07SPINNER\x10\x01\"\xe5\t\n\x0fJAddOnsCardItem\x12/\n\x06header\x18\x01 \x01(\x0b\x32\x1f.JAddOnsCardItem.CardItemHeader\x12\x32\n\x08sections\x18\x02 \x03(\x0b\x32 .JAddOnsCardItem.CardItemSection\x12\x35\n\x0c\x63\x61rd_actions\x18\x03 \x03(\x0b\x32\x1f.JAddOnsCardItem.CardItemAction\x12\x0c\n\x04name\x18\x04 \x01(\t\x12:\n\x0c\x66ixed_footer\x18\x05 \x01(\x0b\x32$.JAddOnsCardItem.CardItemFixedFooter\x12>\n\x0erefresh_action\x18\x06 \x01(\x0b\x32&.JAddOnsCardItem.CardItemRefreshAction\x12\x34\n\rdisplay_style\x18\x07 \x01(\x0e\x32\x1d.JAddOnsCardItem.DisplayStyle\x12\x39\n\x10peek_card_header\x18\x08 \x01(\x0b\x32\x1f.JAddOnsCardItem.CardItemHeader\x12\x34\n\x17\x62\x61\x63kground_theme_colors\x18\t \x01(\x0b\x32\x13.JAddOnsThemeColors\x1a\xc5\x01\n\x0e\x43\x61rdItemHeader\x12$\n\x05title\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\'\n\x08subtitle\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x39\n\x0bimage_style\x18\x03 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\x11\n\timage_url\x18\x04 \x01(\t\x12\x16\n\x0eimage_alt_text\x18\x05 \x01(\t\x1a\xc6\x01\n\x0f\x43\x61rdItemSection\x12\x1e\n\x02id\x18\x06 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12%\n\x06header\x18\x05 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x1f\n\x07widgets\x18\x02 \x03(\x0b\x32\x0e.JAddOnsWidget\x12\x13\n\x0b\x63ollapsable\x18\x03 \x01(\x08\x12!\n\x19num_uncollapsable_widgets\x18\x04 \x01(\x05\x1aI\n\x0e\x43\x61rdItemAction\x12\x14\n\x0c\x61\x63tion_label\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\xa5\x01\n\x13\x43\x61rdItemFixedFooter\x12&\n\x07\x62uttons\x18\x01 \x03(\x0b\x32\x15.JAddOnsWidget.Button\x12\x31\n\x0eprimary_button\x18\x02 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x12\x33\n\x10secondary_button\x18\x03 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x1a;\n\x15\x43\x61rdItemRefreshAction\x12\"\n\x06method\x18\x01 \x01(\x0b\x32\x12.JAddOnsFormAction\"D\n\x0c\x44isplayStyle\x12\x1d\n\x19\x44ISPLAY_STYLE_UNSPECIFIED\x10\x00\x12\x08\n\x04PEEK\x10\x01\x12\x0b\n\x07REPLACE\x10\x02\"1\n\x0fJAddOnsPushCard\x12\x1e\n\x04\x63\x61rd\x18\x01 \x01(\x0b\x32\x10.JAddOnsCardItem\"\xd0\x01\n\x0eJAddOnsOnClick\x12\x0e\n\x04link\x18\x01 \x01(\tH\x00\x12$\n\x06\x61\x63tion\x18\x02 \x01(\x0b\x32\x12.JAddOnsFormActionH\x00\x12%\n\topen_link\x18\x05 \x01(\x0b\x32\x10.JAddOnsOpenLinkH\x00\x12.\n\x10open_link_action\x18\x07 \x01(\x0b\x32\x12.JAddOnsFormActionH\x00\x12%\n\tpush_card\x18\x08 \x01(\x0b\x32\x10.JAddOnsPushCardH\x00\x42\n\n\x08\x44\x61taCase\"!\n\x11JAddOnsTextWidget\x12\x0c\n\x04line\x18\x01 \x03(\t\"\x93\x01\n\x15JAddOnsImageComponent\x12\x11\n\timage_url\x18\x01 \x01(\t\x12\x10\n\x08\x61lt_text\x18\x02 \x01(\t\x12*\n\ncrop_style\x18\x03 \x01(\x0b\x32\x16.JAddOnsImageCropStyle\x12)\n\x0c\x62order_style\x18\x04 \x01(\x0b\x32\x13.JAddOnsBorderStyle\"\xfe\x03\n\x0bJAddOnsGrid\x12\x1e\n\x02id\x18\x01 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\r\n\x05title\x18\x02 \x01(\t\x12$\n\x05items\x18\x03 \x03(\x0b\x32\x15.JAddOnsGrid.GridItem\x12)\n\x0c\x62order_style\x18\x04 \x01(\x0b\x32\x13.JAddOnsBorderStyle\x12\x13\n\x0bnum_columns\x18\x05 \x01(\x05\x12!\n\x08on_click\x18\x06 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\xb6\x02\n\x08GridItem\x12\x12\n\nidentifier\x18\x01 \x01(\t\x12%\n\x05image\x18\x02 \x01(\x0b\x32\x16.JAddOnsImageComponent\x12\r\n\x05title\x18\x03 \x01(\t\x12\x10\n\x08subtitle\x18\x04 \x01(\t\x12\x36\n\x0etext_alignment\x18\x05 \x01(\x0e\x32\x1e.JAddOnsWidget.HorizontalAlign\x12\x34\n\x06layout\x18\t \x01(\x0e\x32$.JAddOnsGrid.GridItem.GridItemLayout\x12!\n\x08on_click\x18\n \x01(\x0b\x32\x0f.JAddOnsOnClick\"=\n\x0eGridItemLayout\x12\x0b\n\x07NOT_SET\x10\x00\x12\x0e\n\nTEXT_BELOW\x10\x01\x12\x0e\n\nTEXT_ABOVE\x10\x02\"\xc6\x01\n\x12JAddOnsBorderStyle\x12,\n\x04type\x18\x01 \x01(\x0e\x32\x1e.JAddOnsBorderStyle.BorderType\x12)\n\x0cstroke_color\x18\x02 \x01(\x0b\x32\x13.JAddOnsThemeColors\x12\x15\n\rcorner_radius\x18\x03 \x01(\x05\"@\n\nBorderType\x12\x17\n\x13\x42ORDER_TYPE_NOT_SET\x10\x00\x12\r\n\tNO_BORDER\x10\x01\x12\n\n\x06STROKE\x10\x02\"9\n\x17JAddOnsLabelContentPair\x12\r\n\x05label\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\"U\n\x1dJAddOnsLabelContentPairWidget\x12\x34\n\x12label_content_pair\x18\x01 \x03(\x0b\x32\x18.JAddOnsLabelContentPair\"\xaa!\n\rJAddOnsWidget\x12)\n\x0btext_widget\x18\x01 \x01(\x0b\x32\x12.JAddOnsTextWidgetH\x00\x12\x43\n\x19label_content_pair_widget\x18\x02 \x01(\x0b\x32\x1e.JAddOnsLabelContentPairWidgetH\x00\x12\x36\n\x0etext_paragraph\x18\x03 \x01(\x0b\x32\x1c.JAddOnsWidget.TextParagraphH\x00\x12\x35\n\x0etext_key_value\x18\x04 \x01(\x0b\x32\x1b.JAddOnsWidget.TextKeyValueH\x00\x12\x37\n\x0fimage_key_value\x18\x05 \x01(\x0b\x32\x1c.JAddOnsWidget.ImageKeyValueH\x00\x12%\n\x05image\x18\t \x01(\x0b\x32\x14.JAddOnsWidget.ImageH\x00\x12,\n\tkey_value\x18\r \x01(\x0b\x32\x17.JAddOnsWidget.KeyValueH\x00\x12)\n\x07\x64ivider\x18\x10 \x01(\x0b\x32\x16.JAddOnsWidget.DividerH\x00\x12\x1c\n\x04grid\x18\x11 \x01(\x0b\x32\x0c.JAddOnsGridH\x00\x12#\n\x04menu\x18\n \x01(\x0b\x32\x13.JAddOnsWidget.MenuH\x00\x12.\n\ntext_field\x18\x0b \x01(\x0b\x32\x18.JAddOnsWidget.TextFieldH\x00\x12<\n\x11selection_control\x18\x0c \x01(\x0b\x32\x1f.JAddOnsWidget.SelectionControlH\x00\x12\x39\n\x10\x64\x61te_time_picker\x18\x0e \x01(\x0b\x32\x1d.JAddOnsWidget.DateTimePickerH\x00\x12&\n\x07\x62uttons\x18\x08 \x03(\x0b\x32\x15.JAddOnsWidget.Button\x12\x38\n\x10horizontal_align\x18\x0f \x01(\x0e\x32\x1e.JAddOnsWidget.HorizontalAlign\x1a\x34\n\rTextParagraph\x12#\n\x04text\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x1az\n\x0cTextKeyValue\x12\"\n\x03key\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12#\n\x04text\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x03 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1ai\n\rImageKeyValue\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12#\n\x04text\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x03 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\x8a\x01\n\x05Image\x12\x1e\n\x02id\x18\x05 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x16\n\x0e\x66ife_image_url\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\x14\n\x0c\x61spect_ratio\x18\x03 \x01(\x01\x12\x10\n\x08\x61lt_text\x18\x04 \x01(\t\x1a\x65\n\x04Icon\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12\x10\n\x08\x61lt_text\x18\x02 \x01(\t\x12\x39\n\x0bimage_style\x18\x03 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x1a\xf9\x05\n\x08KeyValue\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12\x15\n\ricon_alt_text\x18\t \x01(\t\x12\x39\n\x0bimage_style\x18\n \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\'\n\nstart_icon\x18\x0b \x01(\x0b\x32\x13.JAddOnsWidget.Icon\x12(\n\ttop_label\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12&\n\x07\x63ontent\x18\x03 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x19\n\x11\x63ontent_multiline\x18\x08 \x01(\x08\x12+\n\x0c\x62ottom_label\x18\x04 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x05 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\'\n\x06\x62utton\x18\x06 \x01(\x0b\x32\x15.JAddOnsWidget.ButtonH\x00\x12=\n\rswitch_widget\x18\x07 \x01(\x0b\x32$.JAddOnsWidget.KeyValue.SwitchWidgetH\x00\x12\'\n\x08\x65nd_icon\x18\x0c \x01(\x0b\x32\x13.JAddOnsWidget.IconH\x00\x1a\x86\x02\n\x0cSwitchWidget\x12\x1e\n\x02id\x18\x05 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\x12\x10\n\x08selected\x18\x03 \x01(\x08\x12%\n\ton_change\x18\x04 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\x46\n\x0c\x63ontrol_type\x18\x06 \x01(\x0e\x32\x30.JAddOnsWidget.KeyValue.SwitchWidget.ControlType\"8\n\x0b\x43ontrolType\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\n\n\x06SWITCH\x10\x01\x12\x0c\n\x08\x43HECKBOX\x10\x02\x42\t\n\x07\x43ontrol\x1a\t\n\x07\x44ivider\x1a\xb2\x01\n\x04Menu\x12\x0c\n\x04name\x18\x01 \x01(\t\x12+\n\x05items\x18\x02 \x03(\x0b\x32\x1c.JAddOnsWidget.Menu.MenuItem\x12%\n\ton_change\x18\x04 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\r\n\x05label\x18\x05 \x01(\t\x1a\x39\n\x08MenuItem\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\r\n\x05value\x18\x04 \x01(\t\x12\x10\n\x08selected\x18\x03 \x01(\x08\x1am\n\x0c\x41utoComplete\x12;\n\x05items\x18\x01 \x03(\x0b\x32,.JAddOnsWidget.AutoComplete.AutoCompleteItem\x1a \n\x10\x41utoCompleteItem\x12\x0c\n\x04text\x18\x01 \x01(\t\x1a\xf5\x03\n\tTextField\x12\x1e\n\x02id\x18\x0b \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tmax_lines\x18\x02 \x01(\x05\x12\x34\n\x04type\x18\x05 \x01(\x0e\x32&.JAddOnsWidget.TextField.TextFieldType\x12\r\n\x05label\x18\x03 \x01(\t\x12\x11\n\thint_text\x18\x04 \x01(\t\x12\r\n\x05value\x18\x06 \x01(\t\x12\x34\n\tline_type\x18\x07 \x01(\x0e\x32!.JAddOnsWidget.TextField.LineType\x12%\n\ton_change\x18\x08 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\x32\n\rauto_complete\x18\t \x01(\x0b\x32\x1b.JAddOnsWidget.AutoComplete\x12\x32\n\x16\x61uto_complete_callback\x18\n \x01(\x0b\x32\x12.JAddOnsFormAction\x12)\n!auto_complete_multiple_selections\x18\x0c \x01(\x08\"*\n\rTextFieldType\x12\x0b\n\x07REGULAR\x10\x00\x12\x0c\n\x08\x46LOATING\x10\x01\"$\n\x08LineType\x12\n\n\x06SINGLE\x10\x00\x12\x0c\n\x08MULTIPLE\x10\x01\x1a\x9d\x03\n\x10SelectionControl\x12\x1e\n\x02id\x18\x06 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04name\x18\x01 \x01(\t\x12;\n\x04type\x18\x02 \x01(\x0e\x32-.JAddOnsWidget.SelectionControl.SelectionType\x12<\n\x05items\x18\x03 \x03(\x0b\x32-.JAddOnsWidget.SelectionControl.SelectionItem\x12%\n\ton_change\x18\x04 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\r\n\x05label\x18\x05 \x01(\t\x1a^\n\rSelectionItem\x12\x1e\n\x02id\x18\x04 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x10\n\x08selected\x18\x02 \x01(\x08\x12\r\n\x05value\x18\x03 \x01(\t\"J\n\rSelectionType\x12\r\n\tCHECK_BOX\x10\x00\x12\x10\n\x0cRADIO_BUTTON\x10\x01\x12\n\n\x06SWITCH\x10\x02\x12\x0c\n\x08\x44ROPDOWN\x10\x03\x1a\xe1\x02\n\x0e\x44\x61teTimePicker\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05label\x18\x02 \x01(\t\x12>\n\x04type\x18\x03 \x01(\x0e\x32\x30.JAddOnsWidget.DateTimePicker.DateTimePickerType\x12\x16\n\x0evalue_ms_epoch\x18\x04 \x01(\x03\x12\x1c\n\x14timezone_offset_date\x18\x05 \x01(\x05\x12%\n\ton_change\x18\x06 \x01(\x0b\x32\x12.JAddOnsFormAction\x12\r\n\x05\x63olor\x18\x07 \x01(\x05\x12)\n\x0ctheme_colors\x18\x08 \x01(\x0b\x32\x13.JAddOnsThemeColors\"[\n\x12\x44\x61teTimePickerType\x12\x14\n\x10UNSPECIFIED_TYPE\x10\x00\x12\x11\n\rDATE_AND_TIME\x10\x01\x12\r\n\tDATE_ONLY\x10\x02\x12\r\n\tTIME_ONLY\x10\x03\x1a\xc8\x02\n\nTextButton\x12\x1e\n\x02id\x18\x03 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12#\n\x04text\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\x10\n\x08\x64isabled\x18\x04 \x01(\x08\x12.\n\x05style\x18\x05 \x01(\x0e\x32\x1f.JAddOnsWidget.TextButton.Style\x12\x18\n\x10\x62\x61\x63kground_color\x18\x06 \x01(\x05\x12\x34\n\x17\x62\x61\x63kground_theme_colors\x18\x07 \x01(\x0b\x32\x13.JAddOnsThemeColors\x12\x10\n\x08\x61lt_text\x18\x08 \x01(\t\".\n\x05Style\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\x08\n\x04TEXT\x10\x01\x12\n\n\x06\x46ILLED\x10\x02\x1ap\n\x0bImageButton\x12\x1e\n\x02id\x18\x04 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x10\n\x08icon_url\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x12\x0c\n\x04name\x18\x03 \x01(\t\x1av\n\x06\x42utton\x12\x30\n\x0btext_button\x18\x01 \x01(\x0b\x32\x19.JAddOnsWidget.TextButtonH\x00\x12\x32\n\x0cimage_button\x18\x02 \x01(\x0b\x32\x1a.JAddOnsWidget.ImageButtonH\x00\x42\x06\n\x04Type\">\n\x0fHorizontalAlign\x12\x0b\n\x07NOT_SET\x10\x00\x12\t\n\x05START\x10\x01\x12\n\n\x06\x43\x45NTER\x10\x02\x12\x07\n\x03\x45ND\x10\x03\x42\x06\n\x04\x44\x61ta\"\xc9\x02\n\x11JAddOnsFormAction\x12\x1a\n\x12\x61\x63tion_method_name\x18\x01 \x01(\t\x12\x36\n\nparameters\x18\x04 \x03(\x0b\x32\".JAddOnsFormAction.ActionParameter\x12\x1d\n\x15parameters_deprecated\x18\x03 \x03(\t\x12\x18\n\x10\x65ncrypted_action\x18\x07 \x01(\t\x12\x38\n\x0eload_indicator\x18\x05 \x01(\x0e\x32 .JAddOnsFormAction.LoadIndicator\x12\x16\n\x0epersist_values\x18\x06 \x01(\x08\x1a-\n\x0f\x41\x63tionParameter\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"&\n\rLoadIndicator\x12\x0b\n\x07SPINNER\x10\x00\x12\x08\n\x04NONE\x10\x01\"\x95\n\n\x16JAddOnsContextualAddOn\x12\x30\n\x07toolbar\x18\x01 \x01(\x0b\x32\x1f.JAddOnsContextualAddOn.Toolbar\x12+\n\x05\x63\x61rds\x18\x02 \x03(\x0b\x32\x1c.JAddOnsContextualAddOn.Card\x1az\n\x07Toolbar\x12#\n\x04name\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x10\n\x08icon_url\x18\x02 \x01(\t\x12\r\n\x05\x63olor\x18\x03 \x01(\x05\x12)\n\x0ctheme_colors\x18\x04 \x01(\x0b\x32\x13.JAddOnsThemeColors\x1a\x9f\x08\n\x04\x43\x61rd\x12\x37\n\x06header\x18\x01 \x01(\x0b\x32\'.JAddOnsContextualAddOn.Card.CardHeader\x12\x36\n\x08sections\x18\x02 \x03(\x0b\x32$.JAddOnsContextualAddOn.Card.Section\x12=\n\x0c\x63\x61rd_actions\x18\x03 \x03(\x0b\x32\'.JAddOnsContextualAddOn.Card.CardAction\x12\x0c\n\x04name\x18\x04 \x01(\t\x12>\n\x0c\x66ixed_footer\x18\x05 \x01(\x0b\x32(.JAddOnsContextualAddOn.Card.FixedFooter\x12\x42\n\x0erefresh_action\x18\x06 \x01(\x0b\x32*.JAddOnsContextualAddOn.Card.RefreshAction\x12\x34\n\x17\x62\x61\x63kground_theme_colors\x18\x07 \x01(\x0b\x32\x13.JAddOnsThemeColors\x1a\xc1\x01\n\nCardHeader\x12$\n\x05title\x18\x01 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\'\n\x08subtitle\x18\x02 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x39\n\x0bimage_style\x18\x03 \x01(\x0e\x32$.JAddOnsImageCropStyle.ImageCropType\x12\x11\n\timage_url\x18\x04 \x01(\t\x12\x16\n\x0eimage_alt_text\x18\x05 \x01(\t\x1a\xbe\x01\n\x07Section\x12\x1e\n\x02id\x18\x06 \x01(\x0b\x32\x12.JAddOnsIdentifier\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12%\n\x06header\x18\x05 \x01(\x0b\x32\x15.JAddOnsFormattedText\x12\x1f\n\x07widgets\x18\x02 \x03(\x0b\x32\x0e.JAddOnsWidget\x12\x13\n\x0b\x63ollapsable\x18\x03 \x01(\x08\x12!\n\x19num_uncollapsable_widgets\x18\x04 \x01(\x05\x1a\x45\n\nCardAction\x12\x14\n\x0c\x61\x63tion_label\x18\x01 \x01(\t\x12!\n\x08on_click\x18\x02 \x01(\x0b\x32\x0f.JAddOnsOnClick\x1a\x9d\x01\n\x0b\x46ixedFooter\x12&\n\x07\x62uttons\x18\x01 \x03(\x0b\x32\x15.JAddOnsWidget.Button\x12\x31\n\x0eprimary_button\x18\x02 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x12\x33\n\x10secondary_button\x18\x03 \x01(\x0b\x32\x19.JAddOnsWidget.TextButton\x1a\x33\n\rRefreshAction\x12\"\n\x06method\x18\x01 \x01(\x0b\x32\x12.JAddOnsFormAction\"\x14\n\x04Html\x12\x0c\n\x04html\x18\x02 \x01(\t\"%\n\x0eHtmlAttachment\x12\x13\n\x04html\x18\x02 \x01(\x0b\x32\x05.Html\"\x97\x01\n\nAttachment\x12\x1f\n\x04html\x18\x01 \x01(\x0b\x32\x0f.HtmlAttachmentH\x00\x12.\n\x0b\x61\x64\x64_on_data\x18\x02 \x01(\x0b\x32\x17.JAddOnsContextualAddOnH\x00\x12\x17\n\x06\x61pp_id\x18\x05 \x01(\x0b\x32\x07.UserId\x12\x17\n\x08\x61pp_user\x18\x06 \x01(\x0b\x32\x05.UserB\x06\n\x04Type\"m\n\x08Reaction\x12\x15\n\x05\x65moji\x18\x01 \x01(\x0b\x32\x06.Emoji\x12\r\n\x05\x63ount\x18\x02 \x01(\x05\x12!\n\x19\x63urrent_user_participated\x18\x03 \x01(\x08\x12\x18\n\x10\x63reate_timestamp\x18\x04 \x01(\x03\"9\n\x0fMessageParentId\x12\x1c\n\x08topic_id\x18\x04 \x01(\x0b\x32\x08.TopicIdH\x00\x42\x08\n\x06Parent\"D\n\tMessageId\x12#\n\tparent_id\x18\x01 \x01(\x0b\x32\x10.MessageParentId\x12\x12\n\nmessage_id\x18\x02 \x01(\t\"\xf8\x05\n\x07Message\x12\x16\n\x02id\x18\x01 \x01(\x0b\x32\n.MessageId\x12,\n\rmessage_state\x18\x14 \x01(\x0e\x32\x15.Message.MessageState\x12\x16\n\x07\x63reator\x18\x02 \x01(\x0b\x32\x05.User\x12\x13\n\x0b\x63reate_time\x18\x03 \x01(\x03\x12\x18\n\x10last_update_time\x18\x04 \x01(\x03\x12\x13\n\x0b\x64\x65lete_time\x18\x08 \x01(\x03\x12\x16\n\x0elast_edit_time\x18\x11 \x01(\x03\x12\x11\n\ttext_body\x18\n \x01(\t\x12 \n\x0b\x61nnotations\x18\x0b \x03(\x0b\x32\x0b.Annotation\x12\x10\n\x08local_id\x18\x0e \x01(\t\x12 \n\x0b\x61ttachments\x18\x0f \x03(\x0b\x32\x0b.Attachment\x12.\n\x12retention_settings\x18\x12 \x01(\x0b\x32\x12.RetentionSettings\x12\x1c\n\treactions\x18\x15 \x03(\x0b\x32\t.Reaction\x12\x17\n\x0flast_reply_time\x18\x05 \x01(\x03\x12\x16\n\x0elast_view_time\x18\x06 \x01(\x03\x12\x19\n\x11last_mention_time\x18\x07 \x01(\x03\x12\x1a\n\x12num_unread_replies\x18\t \x01(\x03\x12\x1c\n\nlast_reply\x18\x0c \x01(\x0b\x32\x08.Message\x12\x11\n\tsort_time\x18\r \x01(\x03\x12*\n\x0cmessage_type\x18\x1c \x01(\x0e\x32\x14.Message.MessageType\x12\'\n\x12\x63reator_membership\x18\x1e \x01(\x0b\x32\x0b.Membership\";\n\x0cMessageState\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x11\n\rGROUP_VISIBLE\x10\x01\x12\x0b\n\x07ON_HOLD\x10\x02\"Q\n\x0bMessageType\x12\x1c\n\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x10\n\x0cUSER_MESSAGE\x10\x01\x12\x12\n\x0eSYSTEM_MESSAGE\x10\x02\"\xa0\x03\n\rDriveMetadata\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x15\n\rthumbnail_url\x18\x03 \x01(\t\x12\x17\n\x0fthumbnail_width\x18\x07 \x01(\x05\x12\x18\n\x10thumbnail_height\x18\x08 \x01(\x05\x12\x10\n\x08mimetype\x18\x04 \x01(\t\x12\x19\n\x11\x65xternal_mimetype\x18\x0e \x01(\t\x12!\n\x19organization_display_name\x18\r \x01(\t\x12\x18\n\x10\x65ncrypted_doc_id\x18\n \x01(\x08\x12\x14\n\x0curl_fragment\x18\x10 \x01(\t\x12&\n\tembed_url\x18\x12 \x01(\x0b\x32\x13.TrustedResourceUrl\x12\x10\n\x08is_owner\x18\x13 \x01(\x08\x12\x11\n\tcan_share\x18\x05 \x01(\x08\x12\x10\n\x08\x63\x61n_edit\x18\x0f \x01(\x08\x12\x10\n\x08\x63\x61n_view\x18\x06 \x01(\x08\x12\x19\n\x11should_not_render\x18\t \x01(\x08\x12\x1e\n\x16is_download_restricted\x18\x11 \x01(\x08\"\x12\n\x03Url\x12\x0b\n\x03url\x18\x03 \x01(\t\"*\n\x12TrustedResourceUrl\x12\x14\n\x0cresource_url\x18\x04 \x01(\t\"\x1d\n\x0fYoutubeMetadata\x12\n\n\x02id\x18\x01 \x01(\t\"\xc8\x02\n\x0bUrlMetadata\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0f\n\x07snippet\x18\x02 \x01(\t\x12\x11\n\timage_url\x18\x03 \x01(\t\x12\x14\n\x0cimage_height\x18\x04 \x01(\t\x12\x13\n\x0bimage_width\x18\x05 \x01(\t\x12\x11\n\x03url\x18\x07 \x01(\x0b\x32\x04.Url\x12\x15\n\x07gws_url\x18\r \x01(\x0b\x32\x04.Url\x12\x1a\n\x0credirect_url\x18\x0e \x01(\x0b\x32\x04.Url\x12$\n\x1cgws_url_expiration_timestamp\x18\x0f \x01(\x03\x12\x0e\n\x06\x64omain\x18\x08 \x01(\t\x12\x19\n\x11should_not_render\x18\t \x01(\x08\x12\x18\n\x10int_image_height\x18\n \x01(\x05\x12\x17\n\x0fint_image_width\x18\x0b \x01(\x05\x12\x11\n\tmime_type\x18\x0c \x01(\t\"\x8e\x01\n\x0eUploadMetadata\x12\x1a\n\x10\x61ttachment_token\x18\x01 \x01(\tH\x00\x12\x14\n\x0c\x63ontent_name\x18\x03 \x01(\t\x12\x14\n\x0c\x63ontent_type\x18\x04 \x01(\t\x12\x10\n\x08local_id\x18\x06 \x01(\t\x12\x17\n\x0f\x63loned_drive_id\x18\t \x01(\tB\t\n\x07Payload\"\xba\x02\n\x0e\x46ormatMetadata\x12/\n\x0b\x66ormat_type\x18\x01 \x01(\x0e\x32\x1a.FormatMetadata.FormatType\x12\x12\n\nfont_color\x18\x02 \x01(\x05\"\xe2\x01\n\nFormatType\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x08\n\x04\x42OLD\x10\x01\x12\n\n\x06ITALIC\x10\x02\x12\n\n\x06STRIKE\x10\x03\x12\x0f\n\x0bSOURCE_CODE\x10\x04\x12\r\n\tMONOSPACE\x10\x05\x12\n\n\x06HIDDEN\x10\x06\x12\x13\n\x0fMONOSPACE_BLOCK\x10\x07\x12\r\n\tUNDERLINE\x10\x08\x12\x0e\n\nFONT_COLOR\x10\t\x12\x11\n\rBULLETED_LIST\x10\n\x12\x16\n\x12\x42ULLETED_LIST_ITEM\x10\x0b\x12\x11\n\rCLIENT_HIDDEN\x10\x0c\"\x8a\x06\n\nAnnotation\x12\x1d\n\x04type\x18\x01 \x01(\x0e\x32\x0f.AnnotationType\x12\x13\n\x0bstart_index\x18\x02 \x01(\x05\x12\x0e\n\x06length\x18\x03 \x01(\x05\x12\x10\n\x08local_id\x18\t \x01(\t\x12\x11\n\tunique_id\x18\x13 \x01(\t\x12\x34\n\x10\x63hip_render_type\x18\x14 \x01(\x0e\x32\x1a.Annotation.ChipRenderType\x12\x1a\n\x12server_invalidated\x18\r \x01(\x08\x12\x35\n\x15user_mention_metadata\x18\x05 \x01(\x0b\x32\x14.UserMentionMetadataH\x00\x12*\n\x0f\x66ormat_metadata\x18\x08 \x01(\x0b\x32\x0f.FormatMetadataH\x00\x12\x37\n\x16slash_command_metadata\x18\x0f \x01(\x0b\x32\x15.SlashCommandMetadataH\x00\x12(\n\x0e\x64rive_metadata\x18\x04 \x01(\x0b\x32\x0e.DriveMetadataH\x00\x12,\n\x10youtube_metadata\x18\x06 \x01(\x0b\x32\x10.YoutubeMetadataH\x00\x12$\n\x0curl_metadata\x18\x07 \x01(\x0b\x32\x0c.UrlMetadataH\x00\x12*\n\x0fupload_metadata\x18\n \x01(\x0b\x32\x0f.UploadMetadataH\x00\x12\x38\n\x12membership_changed\x18\x0b \x01(\x0b\x32\x1a.MembershipChangedMetadataH\x00\x12\x31\n\x13video_call_metadata\x18\x0c \x01(\x0b\x32\x12.VideoCallMetadataH\x00\x12,\n\x0croom_updated\x18\x0e \x01(\x0b\x32\x14.RoomUpdatedMetadataH\x00\"T\n\x0e\x43hipRenderType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06RENDER\x10\x01\x12\x16\n\x12RENDER_IF_POSSIBLE\x10\x02\x12\x11\n\rDO_NOT_RENDER\x10\x03\x42\n\n\x08Metadata\"V\n\rTypingContext\x12\x1c\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupIdH\x00\x12\x1c\n\x08topic_id\x18\x02 \x01(\x0b\x32\x08.TopicIdH\x00\x42\t\n\x07\x43ontext\"}\n\x15SetTypingStateRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1b\n\x05state\x18\x01 \x01(\x0e\x32\x0c.TypingState\x12\x1f\n\x07\x63ontext\x18\x02 \x01(\x0b\x32\x0e.TypingContext\"6\n\x16SetTypingStateResponse\x12\x1c\n\x14start_timestamp_usec\x18\x01 \x01(\x03\"\x15\n\x04\x44mId\x12\r\n\x05\x64m_id\x18\x01 \x01(\t\"\x1b\n\x07SpaceId\x12\x10\n\x08space_id\x18\x01 \x01(\t\"E\n\x07GroupId\x12\x1c\n\x08space_id\x18\x01 \x01(\x0b\x32\x08.SpaceIdH\x00\x12\x16\n\x05\x64m_id\x18\x03 \x01(\x0b\x32\x05.DmIdH\x00\x42\x04\n\x02Id\"\xcc\x07\n\x05Group\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x16\n\x07\x63reator\x18\x04 \x01(\x0b\x32\x05.User\x12\x13\n\x0b\x63reate_time\x18\x05 \x01(\x03\x12\x1a\n\x12last_modified_time\x18\x06 \x01(\x03\x12\x11\n\tsort_time\x18\x07 \x01(\x03\x12\x15\n\rrevision_time\x18\r \x01(\x03\x12)\n\x10group_read_state\x18\x0c \x01(\x0b\x32\x0f.GroupReadState\x12\x1e\n\x16retention_horizon_time\x18\x0e \x01(\x03\x12.\n\x12retention_settings\x18\x10 \x01(\x0b\x32\x12.RetentionSettings\x12\x0f\n\x07is_flat\x18\x11 \x01(\x08\x12\x17\n\x0finterop_enabled\x18\x12 \x01(\x08\x12\"\n\x1aretention_duration_seconds\x18\x13 \x01(\x03\x12$\n\ngroup_type\x18\x16 \x01(\x0e\x32\x10.Group.GroupType\x12$\n\nvisibility\x18\x17 \x01(\x0b\x32\x10.GroupVisibility\x12\x14\n\x0croster_email\x18\x19 \x01(\t\x12&\n\nflat_group\x18\x1a \x01(\x0b\x32\x10.Group.FlatGroupH\x00\x12.\n\x0ethreaded_group\x18\x1b \x01(\x0b\x32\x14.Group.ThreadedGroupH\x00\x12\x12\n\navatar_url\x18\x1c \x01(\t\x12\x46\n\x1c\x61ttribute_checker_group_type\x18! \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12\x1e\n\nname_users\x18\" \x01(\x0b\x32\n.NameUsers\x12/\n\x13group_support_level\x18& \x01(\x0e\x32\x12.GroupSupportLevel\x12\x39\n\x18group_unsupported_reason\x18\' \x01(\x0e\x32\x17.GroupUnsupportedReason\x12!\n\x19typing_indicators_enabled\x18+ \x01(\x08\x12\x1c\n\x14\x66lat_threads_enabled\x18, \x01(\x08\x1a\x0b\n\tFlatGroup\x1a\x0f\n\rThreadedGroup\"K\n\tGroupType\x12\x1a\n\x16GROUP_TYPE_UNSPECIFIED\x10\x00\x12\x08\n\x04ROOM\x10\x01\x12\x0c\n\x08HUMAN_DM\x10\x02\x12\n\n\x06\x42OT_DM\x10\x03\x42\x0f\n\rThreadedModel\"H\n\x10GroupReadStateId\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x1a\n\x08group_id\x18\x02 \x01(\x0b\x32\x08.GroupId\"\x96\x01\n\x0bInviteState\x12 \n\x0finviter_user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12)\n\x15invitation_message_id\x18\x02 \x01(\x0b\x32\n.MessageId\x12\x18\n\x10show_welcome_mat\x18\x03 \x01(\x08\x12 \n\x0binvite_type\x18\x05 \x01(\x0b\x32\x0b.InviteType\"\x88\x06\n\x0eGroupReadState\x12\x1d\n\x02id\x18\x01 \x01(\x0b\x32\x11.GroupReadStateId\x12\x16\n\x0elast_read_time\x18\x02 \x01(\x03\x12\x1c\n\x14unread_message_count\x18\x04 \x01(\x03\x12\x0f\n\x07starred\x18\x05 \x01(\x08\x12\x18\n\x10update_timestamp\x18\x06 \x01(\x03\x12%\n\x1dunread_subscribed_topic_count\x18\x07 \x01(\x03\x12;\n3unread_subscribed_topic_count_consistency_timestamp\x18\x0b \x01(\x03\x12*\n\x18unread_subscribed_topics\x18\x08 \x03(\x0b\x32\x08.TopicId\x12\x16\n\x0ehide_timestamp\x18\t \x01(\x03\x12\x1f\n\x17\x63lear_history_timestamp\x18\x0e \x01(\x03\x12\"\n\x0cinvite_state\x18\n \x01(\x0b\x32\x0c.InviteState\x12\x39\n\x15notification_settings\x18\x0c \x01(\x0b\x32\x1a.GroupNotificationSettings\x12.\n\x12retention_settings\x18\r \x01(\x0b\x32\x12.RetentionSettings\x12\x0f\n\x07\x62locked\x18\x0f \x01(\x08\x12(\n\x0fmembership_role\x18\x16 \x01(\x0e\x32\x0f.MembershipRole\x12*\n\x10membership_state\x18\x10 \x01(\x0e\x32\x10.MembershipState\x12(\n\x0finvite_category\x18\x11 \x01(\x0e\x32\x0f.InviteCategory\x12%\n\x1dmark_as_unread_timestamp_usec\x18\x12 \x01(\x03\x12\x1d\n\x15visible_in_world_view\x18\x13 \x01(\x08\x12(\n show_notification_card_in_stream\x18\x14 \x01(\x08\x12\x1d\n\x0cjoined_users\x18\x17 \x03(\x0b\x32\x07.UserId\"\xe6\x02\n\x19GroupNotificationSettings\x12@\n\x05state\x18\x01 \x01(\x0e\x32\x31.GroupNotificationSettings.GroupNotificationState\x12\x44\n\nroom_state\x18\x02 \x01(\x0e\x32\x30.GroupNotificationSettings.RoomNotificationState\"P\n\x16GroupNotificationState\x12\x1e\n\x1aUNKNOWN_NOTIFICATION_STATE\x10\x00\x12\t\n\x05MUTED\x10\x01\x12\x0b\n\x07UNMUTED\x10\x02\"o\n\x15RoomNotificationState\x12\x11\n\rNOTIFY_ALWAYS\x10\x00\x12 \n\x1cNOTIFY_LESS_WITH_NEW_THREADS\x10\x01\x12\x0f\n\x0bNOTIFY_LESS\x10\x02\x12\x10\n\x0cNOTIFY_NEVER\x10\x03\"\xb4\x01\n\x11RetentionSettings\x12\x30\n\x05state\x18\x01 \x01(\x0e\x32!.RetentionSettings.RetentionState\x12\x18\n\x10\x65xpiry_timestamp\x18\x02 \x01(\x03\"S\n\x0eRetentionState\x12\x1b\n\x17UNKNOWN_RETENTION_STATE\x10\x00\x12\r\n\tPERMANENT\x10\x01\x12\x15\n\x11\x45PHEMERAL_ONE_DAY\x10\x02\"G\n\tGroupData\x12:\n\x0fretention_state\x18\x01 \x01(\x0e\x32!.RetentionSettings.RetentionState\"7\n\x07TopicId\x12\x1a\n\x08group_id\x18\x03 \x01(\x0b\x32\x08.GroupId\x12\x10\n\x08topic_id\x18\x02 \x01(\t\"\x81\x02\n\x05Topic\x12\x14\n\x02id\x18\x01 \x01(\x0b\x32\x08.TopicId\x12\x11\n\tsort_time\x18\x02 \x01(\x03\x12\x18\n\x10\x63reate_time_usec\x18\x0f \x01(\x03\x12\x19\n\x07replies\x18\x07 \x03(\x0b\x32\x08.Message\x12)\n\x10topic_read_state\x18\x0b \x01(\x0b\x32\x0f.TopicReadState\x12\x19\n\x11is_system_message\x18\x0c \x01(\x08\x12.\n\x12retention_settings\x18\r \x01(\x0b\x32\x12.RetentionSettings\x12$\n\x1c\x63ontains_more_unread_replies\x18\x0e \x01(\x08\"-\n\x0eTopicReadState\x12\x1b\n\x13thread_created_usec\x18\x02 \x01(\x03\"0\n\x0bMessageInfo\x12!\n\x19\x61\x63\x63\x65pt_format_annotations\x18\x01 \x01(\x08\"\xa5\x02\n\x12\x43reateTopicRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x05 \x01(\x0b\x32\x08.GroupId\x12\x11\n\ttext_body\x18\x02 \x01(\t\x12 \n\x0b\x61nnotations\x18\x03 \x03(\x0b\x32\x0b.Annotation\x12.\n\x12retention_settings\x18\x06 \x01(\x0b\x32\x12.RetentionSettings\x12\x10\n\x08local_id\x18\x04 \x01(\t\x12\x1c\n\x14topic_and_message_id\x18\x07 \x01(\t\x12\x12\n\nhistory_v2\x18\x08 \x01(\x08\x12\"\n\x0cmessage_info\x18\t \x01(\x0b\x32\x0c.MessageInfo\"\x83\x01\n\x13\x43reateTopicResponse\x12\x15\n\x05topic\x18\x01 \x01(\x0b\x32\x06.Topic\x12&\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\x12-\n\x16\x63urrent_group_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\"\xe2\x01\n\x14\x43reateMessageRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12#\n\tparent_id\x18\x01 \x01(\x0b\x32\x10.MessageParentId\x12\x11\n\ttext_body\x18\x02 \x01(\t\x12 \n\x0b\x61nnotations\x18\x03 \x03(\x0b\x32\x0b.Annotation\x12\x10\n\x08local_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x06 \x01(\t\x12\"\n\x0cmessage_info\x18\x07 \x01(\x0b\x32\x0c.MessageInfo\"\x89\x01\n\x15\x43reateMessageResponse\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12-\n\x16\x63urrent_group_revision\x18\x04 \x01(\x0b\x32\r.ReadRevision\"\xda\x01\n\x15UpdateReactionRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x15\n\x05\x65moji\x18\x02 \x01(\x0b\x32\x06.Emoji\x12\x37\n\x04type\x18\x03 \x01(\x0e\x32).UpdateReactionRequest.ReactionUpdateType\")\n\x12ReactionUpdateType\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06REMOVE\x10\x02\"@\n\x16UpdateReactionResponse\x12&\n\x0egroup_revision\x18\x01 \x01(\x0b\x32\x0e.WriteRevision\"^\n\x14\x44\x65leteMessageRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\"q\n\x15\x44\x65leteMessageResponse\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12\x17\n\x0fgroup_sort_time\x18\x04 \x01(\x03\x12\x17\n\x0ftopic_sort_time\x18\x05 \x01(\x03\"\xb5\x01\n\x12\x45\x64itMessageRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x11\n\ttext_body\x18\x02 \x01(\t\x12 \n\x0b\x61nnotations\x18\x03 \x03(\x0b\x32\x0b.Annotation\x12\"\n\x0cmessage_info\x18\x05 \x01(\x0b\x32\x0c.MessageInfo\"X\n\x13\x45\x64itMessageResponse\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\"6\n\x0bInviteeInfo\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\r\n\x05\x65mail\x18\x02 \x01(\t\"?\n\x11InviteeMemberInfo\x12$\n\x0cinvitee_info\x18\x01 \x01(\x0b\x32\x0c.InviteeInfoH\x00\x42\x04\n\x02Id\"\xc8\x03\n\x11SpaceCreationInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12$\n\nvisibility\x18\x04 \x01(\x0b\x32\x10.GroupVisibility\x12\x30\n\nflat_group\x18\x05 \x01(\x0b\x32\x1c.SpaceCreationInfo.FlatGroup\x12\x38\n\x0ethreaded_group\x18\x06 \x01(\x0b\x32 .SpaceCreationInfo.ThreadedGroup\x12!\n\x19has_server_generated_name\x18\x07 \x01(\x08\x12\x30\n\x14invitee_member_infos\x18\x08 \x03(\x0b\x32\x12.InviteeMemberInfo\x12\x30\n\nspace_type\x18\x0b \x01(\x0b\x32\x1c.SpaceCreationInfo.SpaceType\x12\x46\n\x1c\x61ttribute_checker_group_type\x18\r \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12\x19\n\x11shared_drive_name\x18\x0e \x01(\t\x1a\x0b\n\tFlatGroup\x1a\x0f\n\rThreadedGroup\x1a\x0b\n\tSpaceType\"\xa7\x01\n\x12\x43reateGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12#\n\x05space\x18\x01 \x01(\x0b\x32\x12.SpaceCreationInfoH\x00\x12\x10\n\x08local_id\x18\x03 \x01(\t\x12\"\n\x1ashould_find_existing_space\x18\x04 \x01(\x08\x42\x0e\n\x0c\x43reationInfo\"9\n\x16\x43reateMembershipResult\x12\x1f\n\nmembership\x18\x01 \x01(\x0b\x32\x0b.Membership\"\xa5\x01\n\x13\x43reateGroupResponse\x12\x15\n\x05group\x18\x01 \x01(\x0b\x32\x06.Group\x12&\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\x12%\n\ruser_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12(\n\x07results\x18\x04 \x03(\x0b\x32\x17.CreateMembershipResult\"\xcf\x02\n\x0f\x43reateDmRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x34\n\rfetch_options\x18\x08 \x03(\x0e\x32\x1d.CreateDmRequest.FetchOptions\x12\x18\n\x07members\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x1e\n\x08invitees\x18\x07 \x03(\x0b\x32\x0c.InviteeInfo\x12.\n\x12retention_settings\x18\x03 \x01(\x0b\x32\x12.RetentionSettings\x12\x10\n\x08local_id\x18\x04 \x01(\t\x12\x1c\n\x14topic_and_message_id\x18\x05 \x01(\t\"D\n\x0c\x46\x65tchOptions\x12\x0b\n\x07UNKNOWN\x10\x00\x12\'\n#INCLUDE_BOT_MEMBERSHIPS_IN_RESPONSE\x10\x01\"\x87\x01\n\x10\x43reateDmResponse\x12\x12\n\x02\x64m\x18\x01 \x01(\x0b\x32\x06.Group\x12\x15\n\x05topic\x18\x02 \x01(\x0b\x32\x06.Topic\x12&\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\x12 \n\x0bmemberships\x18\x04 \x03(\x0b\x32\x0b.Membership\"\xdf\x01\n\x12ListTopicsResponse\x12\x16\n\x06topics\x18\x01 \x03(\x0b\x32\x06.Topic\x12$\n\ruser_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\x12%\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\x12\x1c\n\x14\x63ontains_first_topic\x18\x04 \x01(\x08\x12\x1b\n\x13\x63ontains_last_topic\x18\x05 \x01(\x08\x12)\n\x10read_receipt_set\x18\x06 \x01(\x0b\x32\x0f.ReadReceiptSet\"\xc0\x03\n\x11ListTopicsRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x08 \x01(\x0b\x32\x08.GroupId\x12\x1c\n\x14page_size_for_topics\x18\x02 \x01(\x05\x12$\n\x1cpage_size_for_unread_replies\x18\x06 \x01(\x05\x12\"\n\x1apage_size_for_read_replies\x18\x07 \x01(\x05\x12\x1d\n\x15page_size_for_replies\x18\x03 \x01(\x05\x12\x36\n\rfetch_options\x18\x05 \x03(\x0e\x32\x1f.ListTopicsRequest.FetchOptions\x12/\n\x13user_not_older_than\x18\t \x01(\x0b\x32\x12.ReferenceRevision\x12\x30\n\x14group_not_older_than\x18\n \x01(\x0b\x32\x12.ReferenceRevision\"E\n\x0c\x46\x65tchOptions\x12\x08\n\x04USER\x10\x01\x12\x18\n\x14TOTAL_MESSAGE_COUNTS\x10\x02\x12\x11\n\rREAD_RECEIPTS\x10\x03\"u\n\x13ListMessagesRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12#\n\tparent_id\x18\x01 \x01(\x0b\x32\x10.MessageParentId\x12\x11\n\tpage_size\x18\x02 \x01(\x05\"Y\n\x14ListMessagesResponse\x12\x1a\n\x08messages\x18\x01 \x03(\x0b\x32\x08.Message\x12%\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\"\xc7\x01\n\x12ListMembersRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08space_id\x18\x01 \x01(\x0b\x32\x08.SpaceId\x12\x1a\n\x08group_id\x18\x05 \x01(\x0b\x32\x08.GroupId\x12\x11\n\tpage_size\x18\x03 \x01(\x05\x12\x12\n\npage_token\x18\x04 \x01(\t\x12*\n\x0enot_older_than\x18\x06 \x01(\x0b\x32\x12.ReferenceRevision\"\xd7\x01\n\x13ListMembersResponse\x12 \n\x0bmemberships\x18\x01 \x03(\x0b\x32\x0b.Membership\x12\x18\n\x07members\x18\x02 \x03(\x0b\x32\x07.Member\x12\x1d\n\nmember_ids\x18\x05 \x03(\x0b\x32\t.MemberId\x12\x17\n\x0fnext_page_token\x18\x03 \x01(\t\x12%\n\x0egroup_revision\x18\x04 \x01(\x0b\x32\r.ReadRevision\x12%\n\x12invited_member_ids\x18\x06 \x03(\x0b\x32\t.MemberId\"<\n\x0bReadReceipt\x12\x18\n\x10read_time_micros\x18\x02 \x01(\x03\x12\x13\n\x04user\x18\x03 \x01(\x0b\x32\x05.User\"F\n\x0eReadReceiptSet\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x12#\n\rread_receipts\x18\x02 \x03(\x0b\x32\x0c.ReadReceipt\"\x97\x01\n\x13WebPushNotification\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12\x13\n\x0bsender_name\x18\x02 \x01(\t\x12\x19\n\x11sender_avatar_url\x18\x03 \x01(\t\x12\x12\n\ngroup_name\x18\x04 \x01(\t\x12!\n\x05\x63\x61use\x18\x05 \x01(\x0e\x32\x12.NotificationCause\"\xaa\x01\n\x18\x41ndroidLocalNotification\x12\x11\n\tthread_id\x18\x01 \x01(\t\x12\x0f\n\x07type_id\x18\x02 \x01(\t\x12\x12\n\ngroup_name\x18\x03 \x01(\t\x12\x11\n\ttext_body\x18\x06 \x01(\t\x12\x10\n\x08icon_url\x18\x04 \x01(\t\x12\r\n\x05title\x18\x07 \x01(\t\x12\x10\n\x08group_id\x18\x08 \x01(\t\x12\x10\n\x08sub_text\x18\t \x01(\t\"\x88\x02\n\x14IosLocalNotification\x12\x18\n\x10\x61pns_collapse_id\x18\x01 \x01(\t\x12\x11\n\tthread_id\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\x12\x10\n\x08\x63\x61tegory\x18\x05 \x01(\t\x12\x15\n\rgroup_is_flat\x18\x06 \x01(\x08\x12!\n\x19message_is_off_the_record\x18\x07 \x01(\x08\x12\x46\n\x1c\x61ttribute_checker_group_type\x18\t \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12\x12\n\nnavigation\x18\x08 \x01(\t\"\x8f\x01\n\x17MobileLocalNotification\x12=\n\x1a\x61ndroid_local_notification\x18\x01 \x01(\x0b\x32\x19.AndroidLocalNotification\x12\x35\n\x16ios_local_notification\x18\x02 \x01(\x0b\x32\x15.IosLocalNotification\"\x82\x01\n\x0cMessageEvent\x12\x19\n\x07message\x18\x01 \x01(\x0b\x32\x08.Message\x12\"\n\x1alast_message_in_topic_time\x18\x04 \x01(\x03\x12\x1a\n\x12prev_revision_time\x18\x05 \x01(\x03\x12\x17\n\x0fis_head_message\x18\x06 \x01(\x08\"\xdb\x01\n\x14MessageReactionEvent\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x15\n\x05\x65moji\x18\x02 \x01(\x0b\x32\x06.Emoji\x12\x18\n\x07user_id\x18\x03 \x01(\x0b\x32\x07.UserId\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12\x35\n\x04type\x18\x05 \x01(\x0e\x32\'.MessageReactionEvent.ReactionEventType\"(\n\x11ReactionEventType\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06REMOVE\x10\x02\"H\n\x13MessageDeletedEvent\x12\x1e\n\nmessage_id\x18\x01 \x01(\x0b\x32\n.MessageId\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\"\x8f\x01\n\x17TypingStateChangedEvent\x12\x1b\n\x05state\x18\x01 \x01(\x0e\x32\x0c.TypingState\x12\x18\n\x07user_id\x18\x02 \x01(\x0b\x32\x07.UserId\x12\x1f\n\x07\x63ontext\x18\x03 \x01(\x0b\x32\x0e.TypingContext\x12\x1c\n\x14start_timestamp_usec\x18\x04 \x01(\x03\"\x9f\x01\n\x16MembershipChangedEvent\x12#\n\x0enew_membership\x18\x01 \x01(\x0b\x32\x0b.Membership\x12\x30\n\x16prior_membership_state\x18\x02 \x01(\x0e\x32\x10.MembershipState\x12.\n\x15prior_membership_role\x18\x03 \x01(\x0e\x32\x0f.MembershipRole\"`\n\x17ReadReceiptChangedEvent\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12)\n\x10read_receipt_set\x18\x02 \x01(\x0b\x32\x0f.ReadReceiptSet\"A\n\x10GroupViewedEvent\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x11\n\tview_time\x18\x02 \x01(\x03\"\xce\x01\n\x11GroupUpdatedEvent\x12\x13\n\x03new\x18\x01 \x01(\x0b\x32\x06.Group\x12\x13\n\x03old\x18\x02 \x01(\x0b\x32\x06.Group\x12\x32\n\x0bupdate_type\x18\x04 \x01(\x0e\x32\x1d.GroupUpdatedEvent.UpdateType\"[\n\nUpdateType\x12\x17\n\x13UPDATE_TYPE_UNKNOWN\x10\x00\x12\x0b\n\x07\x43REATED\x10\x01\x12\x0b\n\x07UPDATED\x10\x02\x12\x0b\n\x07\x44\x45LETED\x10\x03\x12\r\n\tUNDELETED\x10\x04\"\xa2\x04\n\x18WebPushNotificationEvent\x12*\n\x0cnotification\x18\x01 \x01(\x0b\x32\x14.WebPushNotification\x12N\n\x16\x64ispatch_approach_type\x18\x02 \x01(\x0e\x32..WebPushNotificationEvent.DispatchApproachType\x12;\n\x19mobile_local_notification\x18\x03 \x01(\x0b\x32\x18.MobileLocalNotification\x12>\n\x0e\x65ndpoint_types\x18\x04 \x03(\x0e\x32&.WebPushNotificationEvent.EndpointType\"\xae\x01\n\x14\x44ispatchApproachType\x12&\n\"DISPATCH_APPROACH_TYPE_UNSPECIFIED\x10\x00\x12\x17\n\x13INTERACTIVE_SESSION\x10\x01\x12\x1d\n\x19\x42ROADCAST_TO_WEB_SESSIONS\x10\x02\x12\x36\n2INTERACTIVE_SESSIONS_INCLUDE_VISIBLE_WEB_UNDER_TTL\x10\x03\"\\\n\x0c\x45ndpointType\x12\x1d\n\x19\x45NDPOINT_TYPE_UNSPECIFIED\x10\x00\x12\x15\n\x11MOBILE_WEBCHANNEL\x10\x01\x12\x16\n\x12\x44\x45SKTOP_WEBCHANNEL\x10\x02\"\xbb\x02\n\x13StreamEventsRequest\x12\x1b\n\x08platform\x18\x04 \x01(\x0e\x32\t.Platform\x12 \n\x0b\x63lient_info\x18\x05 \x01(\x0b\x32\x0b.ClientInfo\x12\x19\n\x11\x63lient_session_id\x18\x06 \x01(\x03\x12\x11\n\tsample_id\x18\x01 \x01(\t\x12\x12\n\nsample_ids\x18\x07 \x03(\t\x12\x1e\n\nping_event\x18\x02 \x01(\x0b\x32\n.PingEvent\x12-\n\x12\x63lock_sync_request\x18\x03 \x01(\x0b\x32\x11.ClockSyncRequest\x12\x39\n\x18group_subscription_event\x18\x08 \x01(\x0b\x32\x17.GroupSubscriptionEvent\x12\x19\n\x11test_user_gaia_id\x18\x64 \x01(\x03\"_\n\nClientInfo\x12\x1b\n\x08platform\x18\x01 \x01(\x0e\x32\t.Platform\x12\x1c\n\x06origin\x18\x02 \x01(\x0e\x32\x0c.EventOrigin\x12\x16\n\x0esource_machine\x18\x03 \x01(\t\"\x89\x02\n\x18\x43lientNotificationsState\x12V\n\x14\x64\x65vice_setting_state\x18\x01 \x01(\x0e\x32\x38.ClientNotificationsState.DeviceNotificationSettingState\"\x94\x01\n\x1e\x44\x65viceNotificationSettingState\x12-\n)DEVICE_NOTIFICATION_SETTING_STATE_UNKNOWN\x10\x00\x12 \n\x1c\x44\x45VICE_NOTIFICATIONS_ENABLED\x10\x01\x12!\n\x1d\x44\x45VICE_NOTIFICATIONS_DISABLED\x10\x02\"\xfb\x05\n\tPingEvent\x12\x1f\n\x05state\x18\x01 \x01(\x0e\x32\x10.PingEvent.State\x12\x41\n\x17\x61pplication_focus_state\x18\x03 \x01(\x0e\x32 .PingEvent.ApplicationFocusState\x12 \n\x18last_interactive_time_ms\x18\x04 \x01(\x03\x12\x43\n\x18\x63lient_interactive_state\x18\x05 \x01(\x0e\x32!.PingEvent.ClientInteractiveState\x12$\n\x1c\x63lient_notifications_enabled\x18\x06 \x01(\x08\x12\x36\n\x13notifications_state\x18\x07 \x01(\x0b\x32\x19.ClientNotificationsState\x12\x1a\n\x12pwa_dedupe_enabled\x18\x08 \x01(\x08\x12\x39\n\x13\x64\x65vice_active_state\x18\t \x01(\x0e\x32\x1c.PingEvent.DeviceActiveState\"8\n\x05State\x12\x15\n\x11STATE_UNSPECIFIED\x10\x00\x12\n\n\x06\x41\x43TIVE\x10\x01\x12\x0c\n\x08INACTIVE\x10\x02\"l\n\x15\x41pplicationFocusState\x12\x1b\n\x17\x46OCUS_STATE_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x46OCUS_STATE_FOREGROUND\x10\x01\x12\x1a\n\x16\x46OCUS_STATE_BACKGROUND\x10\x02\"\\\n\x16\x43lientInteractiveState\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0f\n\x0bINTERACTIVE\x10\x01\x12\x0b\n\x07\x46OCUSED\x10\x02\x12\x0b\n\x07VISIBLE\x10\x03\x12\n\n\x06HIDDEN\x10\x04\"h\n\x11\x44\x65viceActiveState\x12\x11\n\rSTATE_UNKNOWN\x10\x00\x12\x15\n\x11STATE_IDLE_LOCKED\x10\x01\x12\x17\n\x13STATE_IDLE_UNLOCKED\x10\x02\x12\x10\n\x0cSTATE_ACTIVE\x10\x03\",\n\x10\x43lockSyncRequest\x12\x18\n\x10origin_time_msec\x18\x01 \x01(\x03\"d\n\x11\x43lockSyncResponse\x12\x18\n\x10origin_time_msec\x18\x01 \x01(\x03\x12\x19\n\x11receive_time_msec\x18\x02 \x01(\x03\x12\x1a\n\x12transmit_time_msec\x18\x03 \x01(\x03\"5\n\x16GroupSubscriptionEvent\x12\x1b\n\tgroup_ids\x18\x01 \x03(\x0b\x32\x08.GroupId\"q\n\x14StreamEventsResponse\x12\x15\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x06.Event\x12\x11\n\tsample_id\x18\x02 \x01(\t\x12/\n\x13\x63lock_sync_response\x18\x03 \x01(\x0b\x32\x12.ClockSyncResponse\"\xc2\x11\n\x05\x45vent\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x1e\n\x04type\x18\x03 \x01(\x0e\x32\x10.Event.EventType\x12\x1e\n\x04\x62ody\x18\x04 \x01(\x0b\x32\x10.Event.EventBody\x12\x18\n\x07user_id\x18\x05 \x01(\x0b\x32\x07.UserId\x12\'\n\ruser_revision\x18\x06 \x01(\x0b\x32\x0e.WriteRevisionH\x00\x12(\n\x0egroup_revision\x18\x07 \x01(\x0b\x32\x0e.WriteRevisionH\x00\x12 \n\x06\x62odies\x18\x08 \x03(\x0b\x32\x10.Event.EventBody\x1a\xcf\x04\n\tEventBody\x12)\n\x0cgroup_viewed\x18\x03 \x01(\x0b\x32\x11.GroupViewedEventH\x00\x12+\n\rgroup_updated\x18\x05 \x01(\x0b\x32\x12.GroupUpdatedEventH\x00\x12\'\n\x0emessage_posted\x18\x06 \x01(\x0b\x32\r.MessageEventH\x00\x12:\n\x15web_push_notification\x18\n \x01(\x0b\x32\x19.WebPushNotificationEventH\x00\x12\x35\n\x12membership_changed\x18\x0e \x01(\x0b\x32\x17.MembershipChangedEventH\x00\x12/\n\x0fmessage_deleted\x18\x12 \x01(\x0b\x32\x14.MessageDeletedEventH\x00\x12\x31\n\x10message_reaction\x18\x16 \x01(\x0b\x32\x15.MessageReactionEventH\x00\x12\x36\n\x13user_status_updated\x18\x17 \x01(\x0b\x32\x17.UserStatusUpdatedEventH\x00\x12\x38\n\x14typing_state_changed\x18\x1a \x01(\x0b\x32\x18.TypingStateChangedEventH\x00\x12\x38\n\x14read_receipt_changed\x18! \x01(\x0b\x32\x18.ReadReceiptChangedEventH\x00\x12$\n\nevent_type\x18\x0c \x01(\x0e\x32\x10.Event.EventType\x12\x10\n\x08trace_id\x18\x14 \x01(\x03\x42\x06\n\x04Type\"\xeb\n\n\tEventType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x17\n\x13USER_ADDED_TO_GROUP\x10\x01\x12\x1b\n\x17USER_REMOVED_FROM_GROUP\x10\x02\x12\x10\n\x0cGROUP_VIEWED\x10\x03\x12\x10\n\x0cTOPIC_VIEWED\x10\x04\x12\x11\n\rGROUP_UPDATED\x10\x05\x12\x12\n\x0eMESSAGE_POSTED\x10\x06\x12\x13\n\x0fMESSAGE_UPDATED\x10\x07\x12\x13\n\x0fMESSAGE_DELETED\x10\x08\x12\x16\n\x12TOPIC_MUTE_CHANGED\x10\t\x12\x19\n\x15USER_SETTINGS_CHANGED\x10\n\x12\x11\n\rGROUP_STARRED\x10\x0b\x12\x19\n\x15WEB_PUSH_NOTIFICATION\x10\x0c\x12/\n+GROUP_UNREAD_SUBSCRIBED_TOPIC_COUNT_UPDATED\x10\r\x12\x18\n\x14INVITE_COUNT_UPDATED\x10\x0e\x12\x16\n\x12MEMBERSHIP_CHANGED\x10\x0f\x12\x16\n\x12GROUP_HIDE_CHANGED\x10\x10\x12\x1b\n\x17\x44RIVE_ACL_FIX_PROCESSED\x10\x11\x12\'\n#GROUP_NOTIFICATION_SETTINGS_UPDATED\x10\x12\x12\x1e\n\x1aRETENTION_SETTINGS_UPDATED\x10\x13\x12\x11\n\rTOPIC_CREATED\x10\x14\x12\x1a\n\x16ON_HOLD_MESSAGE_POSTED\x10\x15\x12\x1b\n\x17ON_HOLD_MESSAGE_UPDATED\x10\x16\x12\x1d\n\x19ON_HOLD_MESSAGE_PUBLISHED\x10\x17\x12\x13\n\x0fMESSAGE_REACTED\x10\x18\x12\x1d\n\x19USER_STATUS_UPDATED_EVENT\x10\x19\x12$\n GROUP_RETENTION_SETTINGS_UPDATED\x10\x1a\x12$\n USER_WORKING_HOURS_UPDATED_EVENT\x10\x1b\x12\x19\n\x15MESSAGE_SMART_REPLIES\x10\x1c\x12\x18\n\x14TYPING_STATE_CHANGED\x10\x1d\x12\x11\n\rGROUP_DELETED\x10\x1e\x12\x17\n\x13\x42LOCK_STATE_CHANGED\x10\x1f\x12\x11\n\rCLEAR_HISTORY\x10 \x12\x11\n\rSESSION_READY\x10!\x12 \n\x1cGROUP_SORT_TIMESTAMP_CHANGED\x10\"\x12\x1e\n\x1aGSUITE_INTEGRATION_UPDATED\x10#\x12\x18\n\x14READ_RECEIPT_CHANGED\x10$\x12\x12\n\x0eMARK_AS_UNREAD\x10%\x12\x0f\n\x0bGROUP_NO_OP\x10&\x12\x1a\n\x16INVALIDATE_GROUP_CACHE\x10\'\x12\x0e\n\nUSER_NO_OP\x10(\x12\x19\n\x15INVALIDATE_USER_CACHE\x10)\x12#\n\x1fUSER_DENORMALIZED_GROUP_UPDATED\x10*\x12&\n\"USER_PRESENCE_SHARED_UPDATED_EVENT\x10+\x12\x1e\n\x1aNOTIFICATIONS_CARD_UPDATED\x10,\x12\'\n#USER_HUB_AVAILABILITY_UPDATED_EVENT\x10-\x12\x1a\n\x16USER_OWNERSHIP_UPDATED\x10.\x12!\n\x1dSHARED_DRIVE_CREATE_SCHEDULED\x10/\x12\x18\n\x14SHARED_DRIVE_UPDATED\x10\x30\x12\"\n\x1eMESSAGE_PERSONAL_LABEL_UPDATED\x10\x31\x12\x17\n\x13USER_QUOTA_EXCEEDED\x10\x32\x42\x0e\n\x0cRevisionType\"A\n\nInviteType\"3\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0e\n\nAT_MENTION\x10\x01\x12\x0e\n\nDIRECT_ADD\x10\x02\"7\n\x0cGroupDetails\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12\x12\n\nguidelines\x18\x02 \x01(\t\"\xca\x03\n\x13RoomUpdatedMetadata\x12\x0c\n\x04name\x18\x02 \x01(\t\x12$\n\nvisibility\x18\x03 \x01(\x0b\x32\x10.GroupVisibility\x12\"\n\x1agroup_link_sharing_enabled\x18\x05 \x01(\x08\x12@\n\x0frename_metadata\x18\x06 \x01(\x0b\x32\'.RoomUpdatedMetadata.RoomRenameMetadata\x12P\n\x16group_details_metadata\x18\x07 \x01(\x0b\x32\x30.RoomUpdatedMetadata.GroupDetailsUpdatedMetadata\x12\x18\n\tinitiator\x18\x04 \x01(\x0b\x32\x05.User\x1a\x39\n\x12RoomRenameMetadata\x12\x10\n\x08new_name\x18\x01 \x01(\t\x12\x11\n\tprev_name\x18\x02 \x01(\t\x1ar\n\x1bGroupDetailsUpdatedMetadata\x12(\n\x11new_group_details\x18\x01 \x01(\x0b\x32\r.GroupDetails\x12)\n\x12prev_group_details\x18\x02 \x01(\x0b\x32\r.GroupDetails\"\xbb\x19\n\x0cMeetingSpace\x12\x18\n\x10meeting_space_id\x18\x01 \x01(\t\x12\x14\n\x0cmeeting_code\x18\x02 \x01(\t\x12\x13\n\x0bmeeting_url\x18\x03 \x01(\t\x12/\n\x0cphone_access\x18\x05 \x03(\x0b\x32\x19.MeetingSpace.PhoneAccess\x12\x42\n\x16universal_phone_access\x18\x08 \x01(\x0b\x32\".MeetingSpace.UniversalPhoneAccess\x12)\n\tcall_info\x18\x06 \x01(\x0b\x32\x16.MeetingSpace.CallInfo\x12\x15\n\rmeeting_alias\x18\x07 \x01(\t\x12\x33\n\x0egateway_access\x18\t \x01(\x0b\x32\x1b.MeetingSpace.GatewayAccess\x12\x15\n\rmore_join_url\x18\n \x01(\t\x12\x31\n\x15\x61\x63\x63\x65pted_number_class\x18\x0b \x03(\x0e\x32\x12.DialInNumberClass\x12:\n\x12gateway_sip_access\x18\r \x03(\x0b\x32\x1e.MeetingSpace.GatewaySipAccess\x12\x37\n\x10\x62roadcast_access\x18\x0e \x01(\x0b\x32\x1d.MeetingSpace.BroadcastAccess\x12(\n\x08settings\x18\x0f \x01(\x0b\x32\x16.MeetingSpace.Settings\x1a|\n\x0bPhoneAccess\x12\x14\n\x0cphone_number\x18\x01 \x01(\t\x12\x1e\n\x16\x66ormatted_phone_number\x18\x05 \x01(\t\x12\x0b\n\x03pin\x18\x02 \x01(\t\x12\x13\n\x0bregion_code\x18\x03 \x01(\t\x12\x15\n\rlanguage_code\x18\x04 \x01(\t\x1a:\n\x14UniversalPhoneAccess\x12\x0b\n\x03pin\x18\x01 \x01(\t\x12\x15\n\rpstn_info_url\x18\x02 \x01(\t\x1a>\n\tPresenter\x12\x1b\n\x13presenter_device_id\x18\x01 \x01(\t\x12\x14\n\x0c\x62y_device_id\x18\x02 \x01(\t\x1a\xcd\x04\n\rRecordingInfo\x12\x45\n\x10recording_status\x18\x01 \x01(\x0e\x32+.MeetingSpace.RecordingInfo.RecordingStatus\x12\x14\n\x0crecording_id\x18\x02 \x01(\t\x12\x1a\n\x12producer_device_id\x18\x03 \x01(\t\x12J\n\x16latest_recording_event\x18\x04 \x01(\x0b\x32*.MeetingSpace.RecordingInfo.RecordingEvent\x12\x1a\n\x12owner_display_name\x18\x05 \x01(\t\x12=\n\x1arecording_application_type\x18\x06 \x01(\x0e\x32\x19.RecordingApplicationType\x1a\xa6\x01\n\x0eRecordingEvent\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12\x42\n\x04type\x18\x02 \x01(\x0e\x32\x34.MeetingSpace.RecordingInfo.RecordingEvent.EventType\"=\n\tEventType\x12\x1f\n\x1bRECORDING_EVENT_UNSPECIFIED\x10\x00\x12\x0f\n\x0bUSER_ACTION\x10\x01\"s\n\x0fRecordingStatus\x12\x19\n\x15RECORDING_UNSPECIFIED\x10\x00\x12\x16\n\x12RECORDING_INACTIVE\x10\x01\x12\x16\n\x12RECORDING_STARTING\x10\x02\x12\x15\n\x11RECORDING_STARTED\x10\x03\x1a\xaf\x05\n\x14StreamingSessionInfo\x12\x39\n\x06status\x18\x01 \x01(\x0e\x32).MeetingSpace.StreamingSessionInfo.Status\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x33\n\x10\x61pplication_type\x18\x03 \x01(\x0e\x32\x19.RecordingApplicationType\x12M\n\x14latest_session_event\x18\x04 \x01(\x0b\x32/.MeetingSpace.StreamingSessionInfo.SessionEvent\x12\x1a\n\x12owner_display_name\x18\x05 \x01(\t\x12\x34\n\x14viewer_access_policy\x18\x06 \x01(\x0e\x32\x16.BroadcastAccessPolicy\x12\x18\n\x10training_enabled\x18\x07 \x01(\x08\x12J\n\x0cviewer_stats\x18\x08 \x01(\x0b\x32\x34.MeetingSpace.StreamingSessionInfo.StreamViewerStats\x1a\x8e\x01\n\x0cSessionEvent\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12G\n\x04type\x18\x02 \x01(\x0e\x32\x39.MeetingSpace.StreamingSessionInfo.SessionEvent.EventType\"\"\n\tEventType\x12\x15\n\x11\x45VENT_UNSPECIFIED\x10\x00\x1a\x33\n\x11StreamViewerStats\x12\x1e\n\x16\x65stimated_viewer_count\x18\x01 \x01(\x03\"F\n\x06Status\x12\x16\n\x12STATUS_UNSPECIFIED\x10\x00\x12\x0c\n\x08INACTIVE\x10\x01\x12\x0c\n\x08STARTING\x10\x02\x12\x08\n\x04LIVE\x10\x03\x1a\xf4\x06\n\x08\x43\x61llInfo\x12*\n\tpresenter\x18\x01 \x01(\x0b\x32\x17.MeetingSpace.Presenter\x12\x33\n\x0erecording_info\x18\x02 \x01(\x0b\x32\x1b.MeetingSpace.RecordingInfo\x12\x19\n\x11\x63\x61lendar_event_id\x18\x03 \x01(\t\x12\x19\n\x11organization_name\x18\x04 \x01(\t\x12\x1a\n\x12max_joined_devices\x18\x06 \x01(\x05\x12\x1a\n\x12media_backend_info\x18\x08 \x01(\t\x12>\n\x12streaming_sessions\x18\t \x03(\x0b\x32\".MeetingSpace.StreamingSessionInfo\x12\x35\n\x08settings\x18\x0b \x01(\x0b\x32#.MeetingSpace.CallInfo.CallSettings\x12\x38\n\x0cpaygate_info\x18\r \x01(\x0b\x32\".MeetingSpace.CallInfo.PaygateInfo\x12#\n\x1bsupported_caption_languages\x18\x0e \x03(\t\x12\x30\n\x08\x63se_info\x18\x0f \x01(\x0b\x32\x1e.MeetingSpace.CallInfo.CseInfo\x1a\xc8\x01\n\x0c\x43\x61llSettings\x12\x13\n\x0b\x61\x63\x63\x65ss_lock\x18\x01 \x01(\x08\x12\x11\n\tchat_lock\x18\x02 \x01(\x08\x12\x14\n\x0cpresent_lock\x18\x03 \x01(\x08\x12!\n\x19\x61ttendance_report_enabled\x18\x04 \x01(\x08\x12\x12\n\naudio_lock\x18\x05 \x01(\x08\x12\x12\n\nvideo_lock\x18\x06 \x01(\x08\x12\x1a\n\x12moderation_enabled\x18\x07 \x01(\x08\x12\x13\n\x0b\x63se_enabled\x18\x08 \x01(\x08\x1a\xa5\x01\n\x0bPaygateInfo\x12\x1b\n\x13show_upgrade_promos\x18\x01 \x01(\x08\x12\x42\n\x1d\x63\x61ll_ending_soon_warning_time\x18\x02 \x01(\x0b\x32\x1b.ComGoogleProtobufTimestamp\x12\x35\n\x10\x63\x61ll_ending_time\x18\x03 \x01(\x0b\x32\x1b.ComGoogleProtobufTimestamp\x1a\x1e\n\x07\x43seInfo\x12\x13\n\x0bwrapped_key\x18\x01 \x01(\x0c\x1a \n\rGatewayAccess\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x1a\x38\n\x10GatewaySipAccess\x12\x0b\n\x03uri\x18\x01 \x01(\t\x12\x17\n\x0fsip_access_code\x18\x02 \x01(\t\x1a#\n\x0f\x42roadcastAccess\x12\x10\n\x08view_url\x18\x01 \x01(\t\x1a\x9c\x01\n\x08Settings\x12\x13\n\x0b\x61\x63\x63\x65ss_lock\x18\x01 \x01(\x08\x12!\n\x19\x61ttendance_report_enabled\x18\x02 \x01(\x08\x12\x11\n\tchat_lock\x18\x03 \x01(\x08\x12\x14\n\x0cpresent_lock\x18\x04 \x01(\x08\x12\x1a\n\x12moderation_enabled\x18\x05 \x01(\x08\x12\x13\n\x0b\x63se_enabled\x18\x06 \x01(\x08\"z\n\x11VideoCallMetadata\x12$\n\rmeeting_space\x18\x01 \x01(\x0b\x32\r.MeetingSpace\x12$\n\x1cwas_created_in_current_group\x18\x02 \x01(\x08\x12\x19\n\x11should_not_render\x18\x03 \x01(\x08\"\x9f\x05\n\x19MembershipChangedMetadata\x12-\n\x04type\x18\x01 \x01(\x0e\x32\x1f.MembershipChangedMetadata.Type\x12K\n\x14\x61\x66\x66\x65\x63ted_memberships\x18\x06 \x03(\x0b\x32-.MembershipChangedMetadata.AffectedMembership\x12\x1a\n\tinitiator\x18\x02 \x01(\x0b\x32\x07.UserId\x12#\n\x10\x61\x66\x66\x65\x63ted_members\x18\x03 \x03(\x0b\x32\t.MemberId\x12 \n\x11initiator_profile\x18\x04 \x01(\x0b\x32\x05.User\x12)\n\x18\x61\x66\x66\x65\x63ted_member_profiles\x18\x05 \x03(\x0b\x32\x07.Member\x1a\xcb\x01\n\x12\x41\x66\x66\x65\x63tedMembership\x12\"\n\x0f\x61\x66\x66\x65\x63ted_member\x18\x01 \x01(\x0b\x32\t.MemberId\x12\x30\n\x16prior_membership_state\x18\x02 \x01(\x0e\x32\x10.MembershipState\x12.\n\x15prior_membership_role\x18\x03 \x01(\x0e\x32\x0f.MembershipRole\x12/\n\x16target_membership_role\x18\x04 \x01(\x0e\x32\x0f.MembershipRole\"\xa9\x01\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x0b\n\x07INVITED\x10\x01\x12\n\n\x06JOINED\x10\x02\x12\t\n\x05\x41\x44\x44\x45\x44\x10\x03\x12\x0b\n\x07REMOVED\x10\x04\x12\x08\n\x04LEFT\x10\x05\x12\r\n\tBOT_ADDED\x10\x06\x12\x0f\n\x0b\x42OT_REMOVED\x10\x07\x12\x1e\n\x1aKICKED_DUE_TO_OTR_CONFLICT\x10\x08\x12\x10\n\x0cROLE_UPDATED\x10\t\"\x86\x02\n\x13UserMentionMetadata\x12\x13\n\x02id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\"\n\x0cinvitee_info\x18\x03 \x01(\x0b\x32\x0c.InviteeInfo\x12\'\n\x04type\x18\x02 \x01(\x0e\x32\x19.UserMentionMetadata.Type\x12\x14\n\x0c\x64isplay_name\x18\x04 \x01(\t\x12\x0e\n\x06gender\x18\x05 \x01(\t\"g\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\n\n\x06INVITE\x10\x01\x12\x0c\n\x08UNINVITE\x10\x02\x12\x0b\n\x07MENTION\x10\x03\x12\x0f\n\x0bMENTION_ALL\x10\x04\x12\x11\n\rFAILED_TO_ADD\x10\x05\"\xf6\x01\n\x14SlashCommandMetadata\x12\x13\n\x02id\x18\x01 \x01(\x0b\x32\x07.UserId\x12(\n\x04type\x18\x02 \x01(\x0e\x32\x1a.SlashCommandMetadata.Type\x12\x14\n\x0c\x63ommand_name\x18\x03 \x01(\t\x12\x12\n\ncommand_id\x18\x04 \x01(\x03\x12\x16\n\x0e\x61rguments_hint\x18\x05 \x01(\t\x12\x17\n\x0ftriggers_dialog\x18\x06 \x01(\x08\"D\n\x04Type\x12\x14\n\x10TYPE_UNSPECIFIED\x10\x00\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06INVOKE\x10\x02\x12\x11\n\rFAILED_TO_ADD\x10\x03\"J\n\x0fGroupVisibility\"7\n\x0fVisibilityState\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07PRIVATE\x10\x01\x12\n\n\x06PUBLIC\x10\x02\"<\n\x1a\x43omGoogleProtobufTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\x05\">\n\x14GetServerTimeRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\"G\n\x15GetServerTimeResponse\x12.\n\ttimestamp\x18\x01 \x01(\x0b\x32\x1b.ComGoogleProtobufTimestamp\"N\n\x0c\x43\x61tchUpRange\x12\x1f\n\x17\x66rom_revision_timestamp\x18\x01 \x01(\x03\x12\x1d\n\x15to_revision_timestamp\x18\x02 \x01(\x03\"\x9f\x01\n\x13\x43\x61tchUpGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x1c\n\x05range\x18\x02 \x01(\x0b\x32\r.CatchUpRange\x12\x11\n\tpage_size\x18\x03 \x01(\x05\x12\x13\n\x0b\x63utoff_size\x18\x04 \x01(\x05\"\x82\x01\n\x12\x43\x61tchUpUserRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1c\n\x05range\x18\x01 \x01(\x0b\x32\r.CatchUpRange\x12\x11\n\tpage_size\x18\x02 \x01(\x05\x12\x13\n\x0b\x63utoff_size\x18\x03 \x01(\x05\"\x98\x02\n\x0f\x43\x61tchUpResponse\x12\x16\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x06.Event\x12/\n\x06status\x18\x02 \x01(\x0e\x32\x1f.CatchUpResponse.ResponseStatus\x12\x1e\n\ngroup_data\x18\x03 \x01(\x0b\x32\n.GroupData\"\x9b\x01\n\x0eResponseStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tCOMPLETED\x10\x01\x12\r\n\tPAGINATED\x10\x02\x12\x1b\n\x17\x41\x42ORTED_CUTOFF_EXCEEDED\x10\x03\x12\x1e\n\x1a\x41\x42ORTED_CACHE_INVALIDATION\x10\x04\x12!\n\x1d\x41\x42ORTED_FROM_REVISION_TOO_OLD\x10\x05\"\xc5\x03\n\x0fGetGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x34\n\rfetch_options\x18\x04 \x03(\x0e\x32\x1d.GetGroupRequest.FetchOptions\x12/\n\x13user_not_older_than\x18\x02 \x01(\x0b\x32\x12.ReferenceRevision\x12\x30\n\x14group_not_older_than\x18\x03 \x01(\x0b\x32\x12.ReferenceRevision\x12\x1a\n\x12include_invite_dms\x18\x05 \x01(\x08\"\xb8\x01\n\x0c\x46\x65tchOptions\x12\x0b\n\x07MEMBERS\x10\x00\x12\x0c\n\x08INVITEES\x10\x01\x12\x13\n\x0fMEMBER_IDS_ONLY\x10\x02\x12\x1c\n\x18PROFILE_IN_READ_RECEIPTS\x10\x03\x12\x13\n\x0fINCLUDE_SNIPPET\x10\x04\x12\x1e\n\x1aINCLUDE_DYNAMIC_GROUP_NAME\x10\x05\x12%\n!INCLUDE_ACCOUNT_USER_CAPABILITIES\x10\x06\"\xd7\x02\n\x10GetGroupResponse\x12\x15\n\x05group\x18\x01 \x01(\x0b\x32\x06.Group\x12 \n\x0bmemberships\x18\x04 \x03(\x0b\x32\x0b.Membership\x12$\n\ruser_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\x12%\n\x0egroup_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\x12*\n\x10membership_state\x18\x06 \x01(\x0e\x32\x10.MembershipState\x12$\n\x11joined_member_ids\x18\x07 \x03(\x0b\x32\t.MemberId\x12%\n\x12invited_member_ids\x18\x08 \x03(\x0b\x32\t.MemberId\x12)\n\x10read_receipt_set\x18\t \x01(\x0b\x32\x0f.ReadReceiptSet\x12\x19\n\x07snippet\x18\n \x01(\x0b\x32\x08.Message\"\x88\x05\n\x0cWorldSection\x12:\n\x12world_section_type\x18\x01 \x01(\x0e\x32\x1e.WorldSection.WorldSectionType\"\xbb\x04\n\x10WorldSectionType\x12\"\n\x1eWORLD_SECTION_TYPE_UNSPECIFIED\x10\x00\x12!\n\x1dSTARRED_DIRECT_MESSAGE_PEOPLE\x10\x01\x12\x11\n\rSTARRED_ROOMS\x10\x02\x12\x1f\n\x1bSTARRED_DIRECT_MESSAGE_BOTS\x10\x03\x12%\n!NON_STARRED_DIRECT_MESSAGE_PEOPLE\x10\x04\x12\x15\n\x11NON_STARRED_ROOMS\x10\x05\x12#\n\x1fNON_STARRED_DIRECT_MESSAGE_BOTS\x10\x06\x12\x1d\n\x19\x41LL_DIRECT_MESSAGE_PEOPLE\x10\x07\x12\r\n\tALL_ROOMS\x10\x08\x12\x1b\n\x17\x41LL_DIRECT_MESSAGE_BOTS\x10\t\x12\x15\n\x11INVITED_DM_PEOPLE\x10\n\x12\x1a\n\x16SPAM_INVITED_DM_PEOPLE\x10\x0b\x12#\n\x1fSTARRED_DIRECT_MESSAGE_EVERYONE\x10\x0c\x12\'\n#NON_STARRED_DIRECT_MESSAGE_EVERYONE\x10\r\x12\x1f\n\x1b\x41LL_DIRECT_MESSAGE_EVERYONE\x10\x0e\x12)\n%STARRED_DMS_AND_STARRED_UNNAMED_ROOMS\x10\x0f\x12\x31\n-NON_STARRED_DMS_AND_NON_STARRED_UNNAMED_ROOMS\x10\x10\"\xaa\x07\n\x0bWorldFilter\x12\x30\n\rstarred_state\x18\x01 \x01(\x0e\x32\x19.WorldFilter.StarredState\x12\x36\n\x10visibility_state\x18\x02 \x01(\x0e\x32\x1c.WorldFilter.VisibilityState\x12*\n\nread_state\x18\x07 \x01(\x0e\x32\x16.WorldFilter.ReadState\x12,\n\x0b\x62lock_state\x18\x08 \x01(\x0e\x32\x17.WorldFilter.BlockState\x12,\n\x0bnamed_state\x18\t \x01(\x0e\x32\x17.WorldFilter.NamedState\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\x12(\n\x0finvite_category\x18\x04 \x01(\x0e\x32\x0f.InviteCategory\x12,\n\x0bmember_type\x18\x05 \x01(\x0e\x32\x17.WorldFilter.MemberType\x12*\n\ngroup_type\x18\x06 \x01(\x0e\x32\x16.WorldFilter.GroupType\"K\n\x0cStarredState\x12\x1d\n\x19STARRED_STATE_UNSPECIFIED\x10\x00\x12\x0b\n\x07STARRED\x10\x01\x12\x0f\n\x0bNON_STARRED\x10\x02\"L\n\x0fVisibilityState\x12 \n\x1cVISIBILITY_STATE_UNSPECIFIED\x10\x00\x12\x0b\n\x07VISIBLE\x10\x01\x12\n\n\x06HIDDEN\x10\x02\"Z\n\tReadState\x12\x1a\n\x16READ_STATE_UNSPECIFIED\x10\x00\x12\x08\n\x04READ\x10\x01\x12\n\n\x06UNREAD\x10\x02\x12\x1b\n\x17UNREAD_SUBSCRIBED_TOPIC\x10\x03\"E\n\nBlockState\x12\x1b\n\x17\x42LOCK_STATE_UNSPECIFIED\x10\x00\x12\x0b\n\x07\x42LOCKED\x10\x01\x12\r\n\tUNBLOCKED\x10\x02\"A\n\nNamedState\x12\x1b\n\x17NAMED_STATE_UNSPECIFIED\x10\x00\x12\t\n\x05NAMED\x10\x01\x12\x0b\n\x07UNNAMED\x10\x02\"=\n\nMemberType\x12\x1b\n\x17MEMBER_TYPE_UNSPECIFIED\x10\x00\x12\t\n\x05HUMAN\x10\x01\x12\x07\n\x03\x42OT\x10\x02\"9\n\tGroupType\x12\x1a\n\x16GROUP_TYPE_UNSPECIFIED\x10\x00\x12\x06\n\x02\x44M\x10\x01\x12\x08\n\x04ROOM\x10\x02\"\\\n\tNameUsers\x12\x1e\n\rname_user_ids\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x1b\n\x13has_more_name_users\x18\x02 \x01(\x08\x12\x12\n\ngroup_name\x18\x03 \x01(\t\"\x88\t\n\rWorldItemLite\x12\x1a\n\x08group_id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12%\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\r.ReadRevision\x12\x16\n\x0esort_timestamp\x18\x03 \x01(\x03\x12#\n\nread_state\x18\x04 \x01(\x0b\x32\x0f.GroupReadState\x12\x11\n\troom_name\x18\x05 \x01(\t\x12,\n\ndm_members\x18\x06 \x01(\x0b\x32\x18.WorldItemLite.DmMembers\x12\x1e\n\nname_users\x18\x14 \x01(\x0b\x32\n.NameUsers\x12%\n\x1dretention_horizon_time_micros\x18\x08 \x01(\x03\x12\"\n\x1aretention_duration_seconds\x18\t \x01(\x03\x12,\n\ngroup_lite\x18\x07 \x01(\x0b\x32\x18.WorldItemLite.GroupLite\x12\x19\n\x07message\x18\r \x01(\x0b\x32\x08.Message\x12\x1a\n\x12is_message_blocked\x18\x19 \x01(\x08\x12,\n\nflat_group\x18\x0e \x01(\x0b\x32\x18.WorldItemLite.FlatGroup\x12\x34\n\x0ethreaded_group\x18\x0f \x01(\x0b\x32\x1c.WorldItemLite.ThreadedGroup\x12\x12\n\navatar_url\x18\x10 \x01(\t\x12\x46\n\x1c\x61ttribute_checker_group_type\x18\x13 \x01(\x0e\x32 .SharedAttributeCheckerGroupType\x12/\n\x13group_support_level\x18\x17 \x01(\x0e\x32\x12.GroupSupportLevel\x12\x39\n\x18group_unsupported_reason\x18\x18 \x01(\x0e\x32\x17.GroupUnsupportedReason\x12\x1c\n\x14\x66lat_threads_enabled\x18\x1b \x01(\x08\x1aV\n\x0eMembershipLite\x12\x18\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12*\n\x10membership_state\x18\x02 \x01(\x0e\x32\x10.MembershipState\x1av\n\tDmMembers\x12\x18\n\x07members\x18\x01 \x03(\x0b\x32\x07.UserId\x12\x32\n\x0bmemberships\x18\x02 \x03(\x0b\x32\x1d.WorldItemLite.MembershipLite\x12\x1b\n\x13has_all_memberships\x18\x03 \x01(\x08\x1a\xad\x01\n\tGroupLite\x12\x1b\n\ncreator_id\x18\x01 \x01(\x0b\x32\x07.UserId\x12\x13\n\x0b\x63reate_time\x18\x02 \x01(\x03\x12\x0f\n\x07is_flat\x18\x03 \x01(\x08\x12.\n\x12retention_settings\x18\x04 \x01(\x0b\x32\x12.RetentionSettings\x12\x17\n\x0finterop_enabled\x18\x05 \x01(\x08\x12\x14\n\x0croster_email\x18\x07 \x01(\t\x1a\x0b\n\tFlatGroup\x1a\x0f\n\rThreadedGroup\"\xe8\x01\n\x13WorldSectionRequest\x12\x11\n\tpage_size\x18\x01 \x01(\x05\x12$\n\rworld_section\x18\x02 \x01(\x0b\x32\r.WorldSection\x12\"\n\x0cworld_filter\x18\x04 \x01(\x0b\x32\x0c.WorldFilter\x12$\n\x1cnum_world_items_with_snippet\x18\x05 \x01(\x05\x12$\n\x1c\x61nchor_sort_timestamp_micros\x18\x03 \x01(\x03\x12\x1a\n\x10pagination_token\x18\x06 \x01(\tH\x00\x42\x0c\n\nPagination\"\xe7\x01\n\x14WorldSectionResponse\x12$\n\rworld_section\x18\x01 \x01(\x0b\x32\r.WorldSection\x12\"\n\x0cworld_filter\x18\x04 \x01(\x0b\x32\x0c.WorldFilter\x12#\n\x0bworld_items\x18\x02 \x03(\x0b\x32\x0e.WorldItemLite\x12.\n&next_page_anchor_sort_timestamp_micros\x18\x03 \x01(\x03\x12\x16\n\x0ehas_more_items\x18\x05 \x01(\x08\x12\x18\n\x10pagination_token\x18\x06 \x01(\t\"\xde\x03\n\x15PaginatedWorldRequest\x12&\n\x0erequest_header\x18\x01 \x01(\x0b\x32\x0e.RequestHeader\x12\x34\n\x16world_section_requests\x18\x02 \x03(\x0b\x32\x14.WorldSectionRequest\x12\x1f\n\x17world_consistency_token\x18\x03 \x01(\t\x12:\n\rfetch_options\x18\x04 \x03(\x0e\x32#.PaginatedWorldRequest.FetchOptions\x12\x1e\n\x16\x66\x65tch_from_user_spaces\x18\x05 \x01(\x08\x12*\n\"receive_world_update_notifications\x18\x06 \x01(\x08\x12(\n fetch_snippets_for_unnamed_rooms\x18\x07 \x01(\x08\"\x93\x01\n\x0c\x46\x65tchOptions\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x16\n\x12\x45XCLUDE_GROUP_LITE\x10\x01\x12\x1a\n\x16\x46\x45TCH_BOTS_IN_HUMAN_DM\x10\x02\x12$\n FETCH_SPACE_INTEGRATION_PAYLOADS\x10\x03\x12\x1c\n\x18\x46\x45TCH_GROUPS_D3_POLICIES\x10\x04\"\xbc\x01\n\x16PaginatedWorldResponse\x12\x36\n\x17world_section_responses\x18\x01 \x03(\x0b\x32\x15.WorldSectionResponse\x12\x1f\n\x17world_consistency_token\x18\x02 \x01(\t\x12$\n\ruser_revision\x18\x03 \x01(\x0b\x32\r.ReadRevision\x12#\n\x0bworld_items\x18\x04 \x03(\x0b\x32\x0e.WorldItemLite\"\xa9\x01\n\x18RemoveMembershipsRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1d\n\nmember_ids\x18\x01 \x03(\x0b\x32\t.MemberId\x12\x1a\n\x08group_id\x18\x02 \x01(\x0b\x32\x08.GroupId\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\"}\n\x16RemoveMembershipResult\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1c\n\tmember_id\x18\x01 \x01(\x0b\x32\t.MemberId\x12\x1d\n\x15\x61ttached_roster_names\x18\x04 \x03(\t\"\xb0\x01\n\x19RemoveMembershipsResponse\x12(\n\x07results\x18\x01 \x03(\x0b\x32\x17.RemoveMembershipResult\x12.\n\x12retention_settings\x18\x03 \x01(\x0b\x32\x12.RetentionSettings\x12\x39\n!retention_settings_group_revision\x18\x04 \x01(\x0b\x32\x0e.WriteRevision\"^\n\x10HideGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x14\n\x02id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x0c\n\x04hide\x18\x02 \x01(\x08\"_\n\x11HideGroupResponse\x12#\n\nread_state\x18\x01 \x01(\x0b\x32\x0f.GroupReadState\x12%\n\ruser_revision\x18\x03 \x01(\x0b\x32\x0e.WriteRevision\"\x9b\x01\n\x1aInviteNotificationSettings\x12>\n\x06option\x18\x01 \x03(\x0e\x32..InviteNotificationSettings.NotificationOption\"=\n\x12NotificationOption\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\x16\n\x12\x45MAIL_NOTIFICATION\x10\x01\"\x96\x02\n\x17\x43reateMembershipRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1d\n\nmember_ids\x18\x02 \x03(\x0b\x32\t.MemberId\x12\x30\n\x14invitee_member_infos\x18\x08 \x03(\x0b\x32\x12.InviteeMemberInfo\x12*\n\x10membership_state\x18\x03 \x01(\x0e\x32\x10.MembershipState\x12\x1a\n\x08group_id\x18\x04 \x01(\x0b\x32\x08.GroupId\x12:\n\x15notification_settings\x18\x05 \x01(\x0b\x32\x1b.InviteNotificationSettings\"\xd7\x01\n\x18\x43reateMembershipResponse\x12(\n\x07results\x18\x02 \x03(\x0b\x32\x17.CreateMembershipResult\x12&\n\x0egroup_revision\x18\x04 \x03(\x0b\x32\x0e.WriteRevision\x12.\n\x12retention_settings\x18\x05 \x01(\x0b\x32\x12.RetentionSettings\x12\x39\n!retention_settings_group_revision\x18\x06 \x01(\x0b\x32\x0e.WriteRevision\"q\n\x19MarkGroupReadstateRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x14\n\x02id\x18\x01 \x01(\x0b\x32\x08.GroupId\x12\x16\n\x0elast_read_time\x18\x02 \x01(\x03\"h\n\x1aMarkGroupReadstateResponse\x12#\n\nread_state\x18\x01 \x01(\x0b\x32\x0f.GroupReadState\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"[\n\x18SetPresenceSharedRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x17\n\x0fpresence_shared\x18\x01 \x01(\x08\"d\n\x19SetPresenceSharedResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xf9\x01\n\x15SetDndDurationRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x37\n\x11\x63urrent_dnd_state\x18\x02 \x01(\x0e\x32\x1c.SetDndDurationRequest.State\x12\x1f\n\x15new_dnd_duration_usec\x18\x01 \x01(\x03H\x00\x12#\n\x19\x64nd_expiry_timestamp_usec\x18\x03 \x01(\x03H\x00\",\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tAVAILABLE\x10\x01\x12\x07\n\x03\x44ND\x10\x02\x42\x0b\n\tDndExpiry\"a\n\x16SetDndDurationResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xbd\x02\n\x12UpdateGroupRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x08space_id\x18\x01 \x01(\x0b\x32\x08.SpaceId\x12\x34\n\x0cupdate_masks\x18\x04 \x03(\x0e\x32\x1e.UpdateGroupRequest.UpdateMask\x12\x0c\n\x04name\x18\x02 \x01(\t\x12$\n\nvisibility\x18\x05 \x01(\x0b\x32\x10.GroupVisibility\"y\n\nUpdateMask\x12\x1b\n\x17UPDATE_MASK_UNSPECIFIED\x10\x00\x12\x08\n\x04NAME\x10\x01\x12\x0e\n\nVISIBILITY\x10\x02\x12\x0f\n\x0b\x41VATAR_INFO\x10\x03\x12\x11\n\rSPACE_DETAILS\x10\x04\x12\x10\n\x0cSHARED_DRIVE\x10\x05\"T\n\x13UpdateGroupResponse\x12\x15\n\x05group\x18\x01 \x01(\x0b\x32\x06.Group\x12&\n\x0egroup_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xa3\x01\n\x12\x42lockEntityRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12\x1a\n\x07user_id\x18\x01 \x01(\x0b\x32\x07.UserIdH\x00\x12\x1c\n\x08group_id\x18\x02 \x01(\x0b\x32\x08.GroupIdH\x00\x12\x0f\n\x07\x62locked\x18\x03 \x01(\x08\x12\x10\n\x08reported\x18\x04 \x01(\x08\x42\x08\n\x06\x45ntity\"a\n\x13\x42lockEntityResponse\x12#\n\nread_state\x18\x01 \x01(\x0b\x32\x0f.GroupReadState\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\"\xdc\x01\n\x16SetCustomStatusRequest\x12&\n\x0erequest_header\x18\x64 \x01(\x0b\x32\x0e.RequestHeader\x12$\n\rcustom_status\x18\x01 \x01(\x0b\x32\r.CustomStatus\x12-\n#custom_status_expiry_timestamp_usec\x18\x02 \x01(\x03H\x00\x12/\n%custom_status_remaining_duration_usec\x18\x03 \x01(\x03H\x00\x42\x14\n\x12\x43ustomStatusTiming\"b\n\x17SetCustomStatusResponse\x12 \n\x0buser_status\x18\x01 \x01(\x0b\x32\x0b.UserStatus\x12%\n\ruser_revision\x18\x02 \x01(\x0b\x32\x0e.WriteRevision\":\n\rWriteRevision\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x16\n\x0eprev_timestamp\x18\x02 \x01(\x03\"!\n\x0cReadRevision\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\"&\n\x11ReferenceRevision\x12\x11\n\ttimestamp\x18\x01 \x01(\x03*\x1e\n\x08UserType\x12\t\n\x05HUMAN\x10\x00\x12\x07\n\x03\x42OT\x10\x01*I\n\x0eInviteCategory\x12\x12\n\x0eUNKNOWN_INVITE\x10\x00\x12\x12\n\x0eREGULAR_INVITE\x10\x01\x12\x0f\n\x0bSPAM_INVITE\x10\x02*_\n\x08Presence\x12\x16\n\x12UNDEFINED_PRESENCE\x10\x00\x12\n\n\x06\x41\x43TIVE\x10\x01\x12\x0c\n\x08INACTIVE\x10\x02\x12\x0b\n\x07UNKNOWN\x10\x03\x12\x14\n\x10SHARING_DISABLED\x10\x04*E\n\x0e\x44ndState_State\x12\x1b\n\x17\x44ND_STATE_STATE_UNKNOWN\x10\x00\x12\r\n\tAVAILABLE\x10\x01\x12\x07\n\x03\x44ND\x10\x02*9\n\x0bTypingState\x12\x11\n\rUNKNOWN_STATE\x10\x00\x12\n\n\x06TYPING\x10\x01\x12\x0b\n\x07STOPPED\x10\x02*~\n\x16GroupUnsupportedReason\x12(\n$GROUP_UNSUPPORTED_REASON_UNSPECIFIED\x10\x00\x12\x1c\n\x18GROUP_DISABLED_ON_CLIENT\x10\x01\x12\x1c\n\x18GROUP_DISABLED_ON_SERVER\x10\x02*M\n\x11GroupSupportLevel\x12\x0f\n\x0bUNSUPPORTED\x10\x00\x12\x12\n\x0e\x44\x41TA_SUPPORTED\x10\x01\x12\x13\n\x0f\x46ULLY_SUPPORTED\x10\x02*\xa0\x01\n\x11NotificationCause\x12\x1e\n\x1aUNKNOWN_NOTIFICATION_CAUSE\x10\x00\x12\x12\n\x0e\x44IRECT_MESSAGE\x10\x01\x12\x0e\n\nAT_MENTION\x10\x02\x12\r\n\tNEW_TOPIC\x10\x03\x12\x1a\n\x16SUBSCRIBED_TOPIC_REPLY\x10\x04\x12\x1c\n\x18UNSUBSCRIBED_TOPIC_REPLY\x10\x05*\xc2\x05\n\x0b\x45ventOrigin\x12\x16\n\x12ORIGIN_UNSPECIFIED\x10\x00\x12\x0b\n\x07\x41NDROID\x10\x64\x12\x0f\n\x0b\x41NDROID_DEV\x10\x65\x12\x14\n\x10\x41NDROID_PRODTEST\x10\x66\x12\x13\n\x0f\x41NDROID_STAGING\x10g\x12\x10\n\x0c\x41NDROID_PROD\x10h\x12\x07\n\x03IOS\x10n\x12\x0b\n\x07IOS_DEV\x10o\x12\x10\n\x0cIOS_PRODTEST\x10p\x12\x0f\n\x0bIOS_STAGING\x10q\x12\x0c\n\x08IOS_PROD\x10r\x12\x0e\n\nWEB_ORIGIN\x10x\x12\x0b\n\x07WEB_DEV\x10y\x12\x10\n\x0cWEB_PRODTEST\x10z\x12\x0c\n\x08WEB_PROD\x10{\x12\x0f\n\x0bWEB_STAGING\x10|\x12\x12\n\x0e\x44\x45SKTOP_ORIGIN\x10}\x12\x0f\n\x0b\x44\x45SKTOP_DEV\x10~\x12\x14\n\x10\x44\x45SKTOP_PRODTEST\x10\x7f\x12\x14\n\x0f\x44\x45SKTOP_STAGING\x10\x80\x01\x12\x11\n\x0c\x44\x45SKTOP_PROD\x10\x81\x01\x12\x15\n\x10\x43OMPANION_ORIGIN\x10\x82\x01\x12\x12\n\rCOMPANION_DEV\x10\x83\x01\x12\x17\n\x12\x43OMPANION_PRODTEST\x10\x84\x01\x12\x16\n\x11\x43OMPANION_STAGING\x10\x85\x01\x12\x13\n\x0e\x43OMPANION_PROD\x10\x86\x01\x12\x15\n\x10WEB_GMAIL_ORIGIN\x10\x87\x01\x12\x12\n\rWEB_GMAIL_DEV\x10\x88\x01\x12\x17\n\x12WEB_GMAIL_PRODTEST\x10\x89\x01\x12\x16\n\x11WEB_GMAIL_STAGING\x10\x8a\x01\x12\x13\n\x0eWEB_GMAIL_PROD\x10\x8b\x01\x12\x13\n\x0eWEB_PWA_ORIGIN\x10\x8c\x01\x12\x10\n\x0bWEB_PWA_DEV\x10\x8d\x01\x12\x15\n\x10WEB_PWA_PRODTEST\x10\x8e\x01\x12\x14\n\x0fWEB_PWA_STAGING\x10\x8f\x01\x12\x11\n\x0cWEB_PWA_PROD\x10\x90\x01*\xa4\x01\n\x08Platform\x12\x16\n\x12UNDEFINED_PLATFORM\x10\x00\x12\x07\n\x03WEB\x10\x01\x12\n\n\x06MOBILE\x10\x02\x12\t\n\x05\x44RONE\x10\x03\x12\x14\n\x10INTEROP_PRESENCE\x10\x04\x12\x13\n\x0f\x43LASSIC_DESKTOP\x10\x05\x12\x11\n\rCLASSIC_PHONE\x10\x06\x12\x13\n\x0f\x43LASSIC_UNKNOWN\x10\x07\x12\r\n\tWEB_GMAIL\x10\x08*\x8c\x04\n\x0e\x41nnotationType\x12\x1b\n\x17\x41NNOTATION_TYPE_UNKNOWN\x10\x00\x12\x07\n\x03URL\x10\x01\x12\x0e\n\nDRIVE_FILE\x10\x02\x12\r\n\tDRIVE_DOC\x10\x03\x12\x0f\n\x0b\x44RIVE_SHEET\x10\x04\x12\x0f\n\x0b\x44RIVE_SLIDE\x10\x05\x12\x10\n\x0cUSER_MENTION\x10\x06\x12\t\n\x05VIDEO\x10\x07\x12\x0f\n\x0b\x46ORMAT_DATA\x10\x08\x12\t\n\x05IMAGE\x10\t\x12\x07\n\x03PDF\x10\n\x12\x0e\n\nVIDEO_CALL\x10\x0b\x12\x16\n\x12MEMBERSHIP_CHANGED\x10\x0c\x12\x13\n\x0fUPLOAD_METADATA\x10\r\x12\x10\n\x0cROOM_UPDATED\x10\x0e\x12\x0e\n\nINVITATION\x10\x0f\x12\x11\n\rSLASH_COMMAND\x10\x10\x12\x16\n\x12GSUITE_INTEGRATION\x10\x11\x12\x0e\n\nDRIVE_FORM\x10\x12\x12$\n GROUP_RETENTION_SETTINGS_UPDATED\x10\x13\x12\x15\n\x11\x42\x41\x42\x45L_PLACEHOLDER\x10\x14\x12\"\n\x1eREAD_RECEIPTS_SETTINGS_UPDATED\x10\x15\x12\x1c\n\x18INCOMING_WEBHOOK_CHANGED\x10\x16\x12\x1e\n\x1aINTEGRATION_CONFIG_UPDATED\x10\x17\x12\x18\n\x14\x43ONSENTED_APP_UNFURL\x10\x18*Z\n\x11\x44ialInNumberClass\x12\x1c\n\x18NUMBER_CLASS_UNSPECIFIED\x10\x00\x12\x0c\n\x08LOW_COST\x10\x01\x12\r\n\tHIGH_COST\x10\x02\x12\n\n\x06LEGACY\x10\x03*v\n\x18RecordingApplicationType\x12*\n&RECORDING_APPLICATION_TYPE_UNSPECIFIED\x10\x00\x12\r\n\tRECORDING\x10\x01\x12\x10\n\x0cGLIVE_STREAM\x10\x03\x12\r\n\tBROADCAST\x10\x04*a\n\x15\x42roadcastAccessPolicy\x12*\n&BROADCASTING_ACCESS_POLICY_UNSPECIFIED\x10\x00\x12\x10\n\x0cORGANIZATION\x10\x01\x12\n\n\x06PUBLIC\x10\x02*F\n\nCallStatus\x12\x17\n\x13UNKNOWN_CALL_STATUS\x10\x00\x12\x0f\n\x0b\x41\x43TIVE_CALL\x10\x01\x12\x0e\n\nENDED_CALL\x10\x02*J\n\nRingStatus\x12\x17\n\x13UNKNOWN_RING_STATUS\x10\x00\x12\x0b\n\x07RINGING\x10\x01\x12\n\n\x06JOINED\x10\x02\x12\n\n\x06MISSED\x10\x03*u\n\x10UserAccountState\x12\x1e\n\x1aUSER_ACCOUNT_STATE_UNKNOWN\x10\x00\x12\x0b\n\x07\x45NABLED\x10\x01\x12\x0c\n\x08\x44ISABLED\x10\x02\x12\x0b\n\x07\x44\x45LETED\x10\x03\x12\x19\n\x15TEMPORARY_UNAVAILABLE\x10\x04*d\n\x0eMembershipRole\x12\x10\n\x0cROLE_UNKNOWN\x10\x00\x12\r\n\tROLE_NONE\x10\x01\x12\x10\n\x0cROLE_INVITEE\x10\x02\x12\x0f\n\x0bROLE_MEMBER\x10\x03\x12\x0e\n\nROLE_OWNER\x10\x04*R\n\x07\x41ppType\x12\x18\n\x14\x41PP_TYPE_UNSPECIFIED\x10\x00\x12\x07\n\x03\x41PP\x10\x01\x12\x0e\n\nGSUITE_APP\x10\x02\x12\x14\n\x10INCOMING_WEBHOOK\x10\x03*x\n\x0fMembershipState\x12\x12\n\x0eMEMBER_UNKNOWN\x10\x00\x12\x12\n\x0eMEMBER_INVITED\x10\x01\x12\x11\n\rMEMBER_JOINED\x10\x02\x12\x17\n\x13MEMBER_NOT_A_MEMBER\x10\x03\x12\x11\n\rMEMBER_FAILED\x10\x04*\xf6\x01\n\x1fSharedAttributeCheckerGroupType\x12,\n(ATTRIBUTE_CHECKER_GROUP_TYPE_UNSPECIFIED\x10\x00\x12\x17\n\x13ONE_TO_ONE_HUMAN_DM\x10\x01\x12\x15\n\x11ONE_TO_ONE_BOT_DM\x10\x02\x12!\n\x1dIMMUTABLE_MEMBERSHIP_GROUP_DM\x10\x03\x12\r\n\tFLAT_ROOM\x10\x04\x12\x11\n\rTHREADED_ROOM\x10\x05\x12!\n\x1dIMMUTABLE_MEMBERSHIP_HUMAN_DM\x10\x06\x12\r\n\tPOST_ROOM\x10\x07'
 )
 
 _USERTYPE = _descriptor.EnumDescriptor(
@@ -43,8 +43,8 @@ _USERTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45220,
-  serialized_end=45250,
+  serialized_start=45280,
+  serialized_end=45310,
 )
 _sym_db.RegisterEnumDescriptor(_USERTYPE)
 
@@ -74,8 +74,8 @@ _INVITECATEGORY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45252,
-  serialized_end=45325,
+  serialized_start=45312,
+  serialized_end=45385,
 )
 _sym_db.RegisterEnumDescriptor(_INVITECATEGORY)
 
@@ -115,8 +115,8 @@ _PRESENCE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45327,
-  serialized_end=45422,
+  serialized_start=45387,
+  serialized_end=45482,
 )
 _sym_db.RegisterEnumDescriptor(_PRESENCE)
 
@@ -146,8 +146,8 @@ _DNDSTATE_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45424,
-  serialized_end=45493,
+  serialized_start=45484,
+  serialized_end=45553,
 )
 _sym_db.RegisterEnumDescriptor(_DNDSTATE_STATE)
 
@@ -177,8 +177,8 @@ _TYPINGSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45495,
-  serialized_end=45552,
+  serialized_start=45555,
+  serialized_end=45612,
 )
 _sym_db.RegisterEnumDescriptor(_TYPINGSTATE)
 
@@ -208,8 +208,8 @@ _GROUPUNSUPPORTEDREASON = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45554,
-  serialized_end=45680,
+  serialized_start=45614,
+  serialized_end=45740,
 )
 _sym_db.RegisterEnumDescriptor(_GROUPUNSUPPORTEDREASON)
 
@@ -239,8 +239,8 @@ _GROUPSUPPORTLEVEL = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45682,
-  serialized_end=45759,
+  serialized_start=45742,
+  serialized_end=45819,
 )
 _sym_db.RegisterEnumDescriptor(_GROUPSUPPORTLEVEL)
 
@@ -285,8 +285,8 @@ _NOTIFICATIONCAUSE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45762,
-  serialized_end=45922,
+  serialized_start=45822,
+  serialized_end=45982,
 )
 _sym_db.RegisterEnumDescriptor(_NOTIFICATIONCAUSE)
 
@@ -481,8 +481,8 @@ _EVENTORIGIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=45925,
-  serialized_end=46631,
+  serialized_start=45985,
+  serialized_end=46691,
 )
 _sym_db.RegisterEnumDescriptor(_EVENTORIGIN)
 
@@ -542,8 +542,8 @@ _PLATFORM = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=46634,
-  serialized_end=46798,
+  serialized_start=46694,
+  serialized_end=46858,
 )
 _sym_db.RegisterEnumDescriptor(_PLATFORM)
 
@@ -683,8 +683,8 @@ _ANNOTATIONTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=46801,
-  serialized_end=47325,
+  serialized_start=46861,
+  serialized_end=47385,
 )
 _sym_db.RegisterEnumDescriptor(_ANNOTATIONTYPE)
 
@@ -719,8 +719,8 @@ _DIALINNUMBERCLASS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47327,
-  serialized_end=47417,
+  serialized_start=47387,
+  serialized_end=47477,
 )
 _sym_db.RegisterEnumDescriptor(_DIALINNUMBERCLASS)
 
@@ -755,8 +755,8 @@ _RECORDINGAPPLICATIONTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47419,
-  serialized_end=47537,
+  serialized_start=47479,
+  serialized_end=47597,
 )
 _sym_db.RegisterEnumDescriptor(_RECORDINGAPPLICATIONTYPE)
 
@@ -786,8 +786,8 @@ _BROADCASTACCESSPOLICY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47539,
-  serialized_end=47636,
+  serialized_start=47599,
+  serialized_end=47696,
 )
 _sym_db.RegisterEnumDescriptor(_BROADCASTACCESSPOLICY)
 
@@ -817,8 +817,8 @@ _CALLSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47638,
-  serialized_end=47708,
+  serialized_start=47698,
+  serialized_end=47768,
 )
 _sym_db.RegisterEnumDescriptor(_CALLSTATUS)
 
@@ -853,8 +853,8 @@ _RINGSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47710,
-  serialized_end=47784,
+  serialized_start=47770,
+  serialized_end=47844,
 )
 _sym_db.RegisterEnumDescriptor(_RINGSTATUS)
 
@@ -894,8 +894,8 @@ _USERACCOUNTSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47786,
-  serialized_end=47903,
+  serialized_start=47846,
+  serialized_end=47963,
 )
 _sym_db.RegisterEnumDescriptor(_USERACCOUNTSTATE)
 
@@ -935,8 +935,8 @@ _MEMBERSHIPROLE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=47905,
-  serialized_end=48005,
+  serialized_start=47965,
+  serialized_end=48065,
 )
 _sym_db.RegisterEnumDescriptor(_MEMBERSHIPROLE)
 
@@ -971,8 +971,8 @@ _APPTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=48007,
-  serialized_end=48089,
+  serialized_start=48067,
+  serialized_end=48149,
 )
 _sym_db.RegisterEnumDescriptor(_APPTYPE)
 
@@ -1012,8 +1012,8 @@ _MEMBERSHIPSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=48091,
-  serialized_end=48211,
+  serialized_start=48151,
+  serialized_end=48271,
 )
 _sym_db.RegisterEnumDescriptor(_MEMBERSHIPSTATE)
 
@@ -1068,8 +1068,8 @@ _SHAREDATTRIBUTECHECKERGROUPTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=48214,
-  serialized_end=48460,
+  serialized_start=48274,
+  serialized_end=48520,
 )
 _sym_db.RegisterEnumDescriptor(_SHAREDATTRIBUTECHECKERGROUPTYPE)
 
@@ -2099,8 +2099,8 @@ _GROUP_GROUPTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=18134,
-  serialized_end=18209,
+  serialized_start=18164,
+  serialized_end=18239,
 )
 _sym_db.RegisterEnumDescriptor(_GROUP_GROUPTYPE)
 
@@ -2129,8 +2129,8 @@ _GROUPNOTIFICATIONSETTINGS_GROUPNOTIFICATIONSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=19400,
-  serialized_end=19480,
+  serialized_start=19430,
+  serialized_end=19510,
 )
 _sym_db.RegisterEnumDescriptor(_GROUPNOTIFICATIONSETTINGS_GROUPNOTIFICATIONSTATE)
 
@@ -2164,8 +2164,8 @@ _GROUPNOTIFICATIONSETTINGS_ROOMNOTIFICATIONSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=19482,
-  serialized_end=19593,
+  serialized_start=19512,
+  serialized_end=19623,
 )
 _sym_db.RegisterEnumDescriptor(_GROUPNOTIFICATIONSETTINGS_ROOMNOTIFICATIONSTATE)
 
@@ -2194,8 +2194,8 @@ _RETENTIONSETTINGS_RETENTIONSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=19693,
-  serialized_end=19776,
+  serialized_start=19723,
+  serialized_end=19806,
 )
 _sym_db.RegisterEnumDescriptor(_RETENTIONSETTINGS_RETENTIONSTATE)
 
@@ -2219,8 +2219,8 @@ _UPDATEREACTIONREQUEST_REACTIONUPDATETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=21242,
-  serialized_end=21283,
+  serialized_start=21272,
+  serialized_end=21313,
 )
 _sym_db.RegisterEnumDescriptor(_UPDATEREACTIONREQUEST_REACTIONUPDATETYPE)
 
@@ -2244,8 +2244,8 @@ _CREATEDMREQUEST_FETCHOPTIONS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=23081,
-  serialized_end=23149,
+  serialized_start=23111,
+  serialized_end=23179,
 )
 _sym_db.RegisterEnumDescriptor(_CREATEDMREQUEST_FETCHOPTIONS)
 
@@ -2274,8 +2274,8 @@ _LISTTOPICSREQUEST_FETCHOPTIONS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=23895,
-  serialized_end=23964,
+  serialized_start=23925,
+  serialized_end=23994,
 )
 _sym_db.RegisterEnumDescriptor(_LISTTOPICSREQUEST_FETCHOPTIONS)
 
@@ -2299,8 +2299,8 @@ _MESSAGEREACTIONEVENT_REACTIONEVENTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=25783,
-  serialized_end=25823,
+  serialized_start=25813,
+  serialized_end=25853,
 )
 _sym_db.RegisterEnumDescriptor(_MESSAGEREACTIONEVENT_REACTIONEVENTTYPE)
 
@@ -2339,8 +2339,8 @@ _GROUPUPDATEDEVENT_UPDATETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=26488,
-  serialized_end=26579,
+  serialized_start=26518,
+  serialized_end=26609,
 )
 _sym_db.RegisterEnumDescriptor(_GROUPUPDATEDEVENT_UPDATETYPE)
 
@@ -2374,8 +2374,8 @@ _WEBPUSHNOTIFICATIONEVENT_DISPATCHAPPROACHTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=26860,
-  serialized_end=27034,
+  serialized_start=26890,
+  serialized_end=27064,
 )
 _sym_db.RegisterEnumDescriptor(_WEBPUSHNOTIFICATIONEVENT_DISPATCHAPPROACHTYPE)
 
@@ -2404,8 +2404,8 @@ _WEBPUSHNOTIFICATIONEVENT_ENDPOINTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=27036,
-  serialized_end=27128,
+  serialized_start=27066,
+  serialized_end=27158,
 )
 _sym_db.RegisterEnumDescriptor(_WEBPUSHNOTIFICATIONEVENT_ENDPOINTTYPE)
 
@@ -2434,8 +2434,8 @@ _CLIENTNOTIFICATIONSSTATE_DEVICENOTIFICATIONSETTINGSTATE = _descriptor.EnumDescr
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=27663,
-  serialized_end=27811,
+  serialized_start=27693,
+  serialized_end=27841,
 )
 _sym_db.RegisterEnumDescriptor(_CLIENTNOTIFICATIONSSTATE_DEVICENOTIFICATIONSETTINGSTATE)
 
@@ -2464,8 +2464,8 @@ _PINGEVENT_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=28211,
-  serialized_end=28267,
+  serialized_start=28241,
+  serialized_end=28297,
 )
 _sym_db.RegisterEnumDescriptor(_PINGEVENT_STATE)
 
@@ -2494,8 +2494,8 @@ _PINGEVENT_APPLICATIONFOCUSSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=28269,
-  serialized_end=28377,
+  serialized_start=28299,
+  serialized_end=28407,
 )
 _sym_db.RegisterEnumDescriptor(_PINGEVENT_APPLICATIONFOCUSSTATE)
 
@@ -2534,8 +2534,8 @@ _PINGEVENT_CLIENTINTERACTIVESTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=28379,
-  serialized_end=28471,
+  serialized_start=28409,
+  serialized_end=28501,
 )
 _sym_db.RegisterEnumDescriptor(_PINGEVENT_CLIENTINTERACTIVESTATE)
 
@@ -2569,8 +2569,8 @@ _PINGEVENT_DEVICEACTIVESTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=28473,
-  serialized_end=28577,
+  serialized_start=28503,
+  serialized_end=28607,
 )
 _sym_db.RegisterEnumDescriptor(_PINGEVENT_DEVICEACTIVESTATE)
 
@@ -2839,8 +2839,8 @@ _EVENT_EVENTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=29737,
-  serialized_end=31124,
+  serialized_start=29767,
+  serialized_end=31154,
 )
 _sym_db.RegisterEnumDescriptor(_EVENT_EVENTTYPE)
 
@@ -2869,8 +2869,8 @@ _INVITETYPE_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=31156,
-  serialized_end=31207,
+  serialized_start=31186,
+  serialized_end=31237,
 )
 _sym_db.RegisterEnumDescriptor(_INVITETYPE_TYPE)
 
@@ -2894,8 +2894,8 @@ _MEETINGSPACE_RECORDINGINFO_RECORDINGEVENT_EVENTTYPE = _descriptor.EnumDescripto
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=32944,
-  serialized_end=33005,
+  serialized_start=32974,
+  serialized_end=33035,
 )
 _sym_db.RegisterEnumDescriptor(_MEETINGSPACE_RECORDINGINFO_RECORDINGEVENT_EVENTTYPE)
 
@@ -2929,8 +2929,8 @@ _MEETINGSPACE_RECORDINGINFO_RECORDINGSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=33007,
-  serialized_end=33122,
+  serialized_start=33037,
+  serialized_end=33152,
 )
 _sym_db.RegisterEnumDescriptor(_MEETINGSPACE_RECORDINGINFO_RECORDINGSTATUS)
 
@@ -2949,8 +2949,8 @@ _MEETINGSPACE_STREAMINGSESSIONINFO_SESSIONEVENT_EVENTTYPE = _descriptor.EnumDesc
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=33653,
-  serialized_end=33687,
+  serialized_start=33683,
+  serialized_end=33717,
 )
 _sym_db.RegisterEnumDescriptor(_MEETINGSPACE_STREAMINGSESSIONINFO_SESSIONEVENT_EVENTTYPE)
 
@@ -2984,8 +2984,8 @@ _MEETINGSPACE_STREAMINGSESSIONINFO_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=33742,
-  serialized_end=33812,
+  serialized_start=33772,
+  serialized_end=33842,
 )
 _sym_db.RegisterEnumDescriptor(_MEETINGSPACE_STREAMINGSESSIONINFO_STATUS)
 
@@ -3049,8 +3049,8 @@ _MEMBERSHIPCHANGEDMETADATA_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=35616,
-  serialized_end=35785,
+  serialized_start=35646,
+  serialized_end=35815,
 )
 _sym_db.RegisterEnumDescriptor(_MEMBERSHIPCHANGEDMETADATA_TYPE)
 
@@ -3094,8 +3094,8 @@ _USERMENTIONMETADATA_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=35947,
-  serialized_end=36050,
+  serialized_start=35977,
+  serialized_end=36080,
 )
 _sym_db.RegisterEnumDescriptor(_USERMENTIONMETADATA_TYPE)
 
@@ -3129,8 +3129,8 @@ _SLASHCOMMANDMETADATA_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=36231,
-  serialized_end=36299,
+  serialized_start=36261,
+  serialized_end=36329,
 )
 _sym_db.RegisterEnumDescriptor(_SLASHCOMMANDMETADATA_TYPE)
 
@@ -3159,8 +3159,8 @@ _GROUPVISIBILITY_VISIBILITYSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=36320,
-  serialized_end=36375,
+  serialized_start=36350,
+  serialized_end=36405,
 )
 _sym_db.RegisterEnumDescriptor(_GROUPVISIBILITY_VISIBILITYSTATE)
 
@@ -3204,8 +3204,8 @@ _CATCHUPRESPONSE_RESPONSESTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=37077,
-  serialized_end=37232,
+  serialized_start=37107,
+  serialized_end=37262,
 )
 _sym_db.RegisterEnumDescriptor(_CATCHUPRESPONSE_RESPONSESTATUS)
 
@@ -3254,8 +3254,8 @@ _GETGROUPREQUEST_FETCHOPTIONS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=37504,
-  serialized_end=37688,
+  serialized_start=37534,
+  serialized_end=37718,
 )
 _sym_db.RegisterEnumDescriptor(_GETGROUPREQUEST_FETCHOPTIONS)
 
@@ -3354,8 +3354,8 @@ _WORLDSECTION_WORLDSECTIONTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=38114,
-  serialized_end=38685,
+  serialized_start=38144,
+  serialized_end=38715,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDSECTION_WORLDSECTIONTYPE)
 
@@ -3384,8 +3384,8 @@ _WORLDFILTER_STARREDSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39121,
-  serialized_end=39196,
+  serialized_start=39151,
+  serialized_end=39226,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_STARREDSTATE)
 
@@ -3414,8 +3414,8 @@ _WORLDFILTER_VISIBILITYSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39198,
-  serialized_end=39274,
+  serialized_start=39228,
+  serialized_end=39304,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_VISIBILITYSTATE)
 
@@ -3449,8 +3449,8 @@ _WORLDFILTER_READSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39276,
-  serialized_end=39366,
+  serialized_start=39306,
+  serialized_end=39396,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_READSTATE)
 
@@ -3479,8 +3479,8 @@ _WORLDFILTER_BLOCKSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39368,
-  serialized_end=39437,
+  serialized_start=39398,
+  serialized_end=39467,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_BLOCKSTATE)
 
@@ -3509,8 +3509,8 @@ _WORLDFILTER_NAMEDSTATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39439,
-  serialized_end=39504,
+  serialized_start=39469,
+  serialized_end=39534,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_NAMEDSTATE)
 
@@ -3539,8 +3539,8 @@ _WORLDFILTER_MEMBERTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39506,
-  serialized_end=39567,
+  serialized_start=39536,
+  serialized_end=39597,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_MEMBERTYPE)
 
@@ -3569,8 +3569,8 @@ _WORLDFILTER_GROUPTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=39569,
-  serialized_end=39626,
+  serialized_start=39599,
+  serialized_end=39656,
 )
 _sym_db.RegisterEnumDescriptor(_WORLDFILTER_GROUPTYPE)
 
@@ -3609,8 +3609,8 @@ _PAGINATEDWORLDREQUEST_FETCHOPTIONS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=41656,
-  serialized_end=41803,
+  serialized_start=41716,
+  serialized_end=41863,
 )
 _sym_db.RegisterEnumDescriptor(_PAGINATEDWORLDREQUEST_FETCHOPTIONS)
 
@@ -3634,8 +3634,8 @@ _INVITENOTIFICATIONSETTINGS_NOTIFICATIONOPTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=42762,
-  serialized_end=42823,
+  serialized_start=42822,
+  serialized_end=42883,
 )
 _sym_db.RegisterEnumDescriptor(_INVITENOTIFICATIONSETTINGS_NOTIFICATIONOPTION)
 
@@ -3664,8 +3664,8 @@ _SETDNDDURATIONREQUEST_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=43933,
-  serialized_end=43977,
+  serialized_start=43993,
+  serialized_end=44037,
 )
 _sym_db.RegisterEnumDescriptor(_SETDNDDURATIONREQUEST_STATE)
 
@@ -3709,8 +3709,8 @@ _UPDATEGROUPREQUEST_UPDATEMASK = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=44288,
-  serialized_end=44409,
+  serialized_start=44348,
+  serialized_end=44469,
 )
 _sym_db.RegisterEnumDescriptor(_UPDATEGROUPREQUEST_UPDATEMASK)
 
@@ -9082,8 +9082,8 @@ _GROUP_FLATGROUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18104,
-  serialized_end=18115,
+  serialized_start=18134,
+  serialized_end=18145,
 )
 
 _GROUP_THREADEDGROUP = _descriptor.Descriptor(
@@ -9106,8 +9106,8 @@ _GROUP_THREADEDGROUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18117,
-  serialized_end=18132,
+  serialized_start=18147,
+  serialized_end=18162,
 )
 
 _GROUP = _descriptor.Descriptor(
@@ -9286,6 +9286,13 @@ _GROUP = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='flat_threads_enabled', full_name='Group.flat_threads_enabled', index=24,
+      number=44, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -9305,7 +9312,7 @@ _GROUP = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=17284,
-  serialized_end=18226,
+  serialized_end=18256,
 )
 
 
@@ -9343,8 +9350,8 @@ _GROUPREADSTATEID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18228,
-  serialized_end=18300,
+  serialized_start=18258,
+  serialized_end=18330,
 )
 
 
@@ -9396,8 +9403,8 @@ _INVITESTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18303,
-  serialized_end=18453,
+  serialized_start=18333,
+  serialized_end=18483,
 )
 
 
@@ -9568,8 +9575,8 @@ _GROUPREADSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18456,
-  serialized_end=19232,
+  serialized_start=18486,
+  serialized_end=19262,
 )
 
 
@@ -9609,8 +9616,8 @@ _GROUPNOTIFICATIONSETTINGS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19235,
-  serialized_end=19593,
+  serialized_start=19265,
+  serialized_end=19623,
 )
 
 
@@ -9649,8 +9656,8 @@ _RETENTIONSETTINGS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19596,
-  serialized_end=19776,
+  serialized_start=19626,
+  serialized_end=19806,
 )
 
 
@@ -9681,8 +9688,8 @@ _GROUPDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19778,
-  serialized_end=19849,
+  serialized_start=19808,
+  serialized_end=19879,
 )
 
 
@@ -9720,8 +9727,8 @@ _TOPICID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19851,
-  serialized_end=19906,
+  serialized_start=19881,
+  serialized_end=19936,
 )
 
 
@@ -9801,8 +9808,8 @@ _TOPIC = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19909,
-  serialized_end=20166,
+  serialized_start=19939,
+  serialized_end=20196,
 )
 
 
@@ -9833,8 +9840,8 @@ _TOPICREADSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20168,
-  serialized_end=20213,
+  serialized_start=20198,
+  serialized_end=20243,
 )
 
 
@@ -9865,8 +9872,8 @@ _MESSAGEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20215,
-  serialized_end=20263,
+  serialized_start=20245,
+  serialized_end=20293,
 )
 
 
@@ -9953,8 +9960,8 @@ _CREATETOPICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20266,
-  serialized_end=20559,
+  serialized_start=20296,
+  serialized_end=20589,
 )
 
 
@@ -9999,8 +10006,8 @@ _CREATETOPICRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20562,
-  serialized_end=20693,
+  serialized_start=20592,
+  serialized_end=20723,
 )
 
 
@@ -10073,8 +10080,8 @@ _CREATEMESSAGEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20696,
-  serialized_end=20922,
+  serialized_start=20726,
+  serialized_end=20952,
 )
 
 
@@ -10119,8 +10126,8 @@ _CREATEMESSAGERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20925,
-  serialized_end=21062,
+  serialized_start=20955,
+  serialized_end=21092,
 )
 
 
@@ -10173,8 +10180,8 @@ _UPDATEREACTIONREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21065,
-  serialized_end=21283,
+  serialized_start=21095,
+  serialized_end=21313,
 )
 
 
@@ -10205,8 +10212,8 @@ _UPDATEREACTIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21285,
-  serialized_end=21349,
+  serialized_start=21315,
+  serialized_end=21379,
 )
 
 
@@ -10244,8 +10251,8 @@ _DELETEMESSAGEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21351,
-  serialized_end=21445,
+  serialized_start=21381,
+  serialized_end=21475,
 )
 
 
@@ -10290,8 +10297,8 @@ _DELETEMESSAGERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21447,
-  serialized_end=21560,
+  serialized_start=21477,
+  serialized_end=21590,
 )
 
 
@@ -10350,8 +10357,8 @@ _EDITMESSAGEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21563,
-  serialized_end=21744,
+  serialized_start=21593,
+  serialized_end=21774,
 )
 
 
@@ -10389,8 +10396,8 @@ _EDITMESSAGERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21746,
-  serialized_end=21834,
+  serialized_start=21776,
+  serialized_end=21864,
 )
 
 
@@ -10428,8 +10435,8 @@ _INVITEEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21836,
-  serialized_end=21890,
+  serialized_start=21866,
+  serialized_end=21920,
 )
 
 
@@ -10465,8 +10472,8 @@ _INVITEEMEMBERINFO = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=21892,
-  serialized_end=21955,
+  serialized_start=21922,
+  serialized_end=21985,
 )
 
 
@@ -10490,8 +10497,8 @@ _SPACECREATIONINFO_FLATGROUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18104,
-  serialized_end=18115,
+  serialized_start=18134,
+  serialized_end=18145,
 )
 
 _SPACECREATIONINFO_THREADEDGROUP = _descriptor.Descriptor(
@@ -10514,8 +10521,8 @@ _SPACECREATIONINFO_THREADEDGROUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18117,
-  serialized_end=18132,
+  serialized_start=18147,
+  serialized_end=18162,
 )
 
 _SPACECREATIONINFO_SPACETYPE = _descriptor.Descriptor(
@@ -10538,8 +10545,8 @@ _SPACECREATIONINFO_SPACETYPE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=22403,
-  serialized_end=22414,
+  serialized_start=22433,
+  serialized_end=22444,
 )
 
 _SPACECREATIONINFO = _descriptor.Descriptor(
@@ -10625,8 +10632,8 @@ _SPACECREATIONINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21958,
-  serialized_end=22414,
+  serialized_start=21988,
+  serialized_end=22444,
 )
 
 
@@ -10683,8 +10690,8 @@ _CREATEGROUPREQUEST = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=22417,
-  serialized_end=22584,
+  serialized_start=22447,
+  serialized_end=22614,
 )
 
 
@@ -10715,8 +10722,8 @@ _CREATEMEMBERSHIPRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=22586,
-  serialized_end=22643,
+  serialized_start=22616,
+  serialized_end=22673,
 )
 
 
@@ -10768,8 +10775,8 @@ _CREATEGROUPRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=22646,
-  serialized_end=22811,
+  serialized_start=22676,
+  serialized_end=22841,
 )
 
 
@@ -10843,8 +10850,8 @@ _CREATEDMREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=22814,
-  serialized_end=23149,
+  serialized_start=22844,
+  serialized_end=23179,
 )
 
 
@@ -10896,8 +10903,8 @@ _CREATEDMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23152,
-  serialized_end=23287,
+  serialized_start=23182,
+  serialized_end=23317,
 )
 
 
@@ -10963,8 +10970,8 @@ _LISTTOPICSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23290,
-  serialized_end=23513,
+  serialized_start=23320,
+  serialized_end=23543,
 )
 
 
@@ -11052,8 +11059,8 @@ _LISTTOPICSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23516,
-  serialized_end=23964,
+  serialized_start=23546,
+  serialized_end=23994,
 )
 
 
@@ -11098,8 +11105,8 @@ _LISTMESSAGESREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23966,
-  serialized_end=24083,
+  serialized_start=23996,
+  serialized_end=24113,
 )
 
 
@@ -11137,8 +11144,8 @@ _LISTMESSAGESRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24085,
-  serialized_end=24174,
+  serialized_start=24115,
+  serialized_end=24204,
 )
 
 
@@ -11204,8 +11211,8 @@ _LISTMEMBERSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24177,
-  serialized_end=24376,
+  serialized_start=24207,
+  serialized_end=24406,
 )
 
 
@@ -11271,8 +11278,8 @@ _LISTMEMBERSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24379,
-  serialized_end=24594,
+  serialized_start=24409,
+  serialized_end=24624,
 )
 
 
@@ -11310,8 +11317,8 @@ _READRECEIPT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24596,
-  serialized_end=24656,
+  serialized_start=24626,
+  serialized_end=24686,
 )
 
 
@@ -11349,8 +11356,8 @@ _READRECEIPTSET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24658,
-  serialized_end=24728,
+  serialized_start=24688,
+  serialized_end=24758,
 )
 
 
@@ -11409,8 +11416,8 @@ _WEBPUSHNOTIFICATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24731,
-  serialized_end=24882,
+  serialized_start=24761,
+  serialized_end=24912,
 )
 
 
@@ -11490,8 +11497,8 @@ _ANDROIDLOCALNOTIFICATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=24885,
-  serialized_end=25055,
+  serialized_start=24915,
+  serialized_end=25085,
 )
 
 
@@ -11578,8 +11585,8 @@ _IOSLOCALNOTIFICATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=25058,
-  serialized_end=25322,
+  serialized_start=25088,
+  serialized_end=25352,
 )
 
 
@@ -11617,8 +11624,8 @@ _MOBILELOCALNOTIFICATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=25325,
-  serialized_end=25468,
+  serialized_start=25355,
+  serialized_end=25498,
 )
 
 
@@ -11670,8 +11677,8 @@ _MESSAGEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=25471,
-  serialized_end=25601,
+  serialized_start=25501,
+  serialized_end=25631,
 )
 
 
@@ -11731,8 +11738,8 @@ _MESSAGEREACTIONEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=25604,
-  serialized_end=25823,
+  serialized_start=25634,
+  serialized_end=25853,
 )
 
 
@@ -11770,8 +11777,8 @@ _MESSAGEDELETEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=25825,
-  serialized_end=25897,
+  serialized_start=25855,
+  serialized_end=25927,
 )
 
 
@@ -11823,8 +11830,8 @@ _TYPINGSTATECHANGEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=25900,
-  serialized_end=26043,
+  serialized_start=25930,
+  serialized_end=26073,
 )
 
 
@@ -11869,8 +11876,8 @@ _MEMBERSHIPCHANGEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=26046,
-  serialized_end=26205,
+  serialized_start=26076,
+  serialized_end=26235,
 )
 
 
@@ -11908,8 +11915,8 @@ _READRECEIPTCHANGEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=26207,
-  serialized_end=26303,
+  serialized_start=26237,
+  serialized_end=26333,
 )
 
 
@@ -11947,8 +11954,8 @@ _GROUPVIEWEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=26305,
-  serialized_end=26370,
+  serialized_start=26335,
+  serialized_end=26400,
 )
 
 
@@ -11994,8 +12001,8 @@ _GROUPUPDATEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=26373,
-  serialized_end=26579,
+  serialized_start=26403,
+  serialized_end=26609,
 )
 
 
@@ -12049,8 +12056,8 @@ _WEBPUSHNOTIFICATIONEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=26582,
-  serialized_end=27128,
+  serialized_start=26612,
+  serialized_end=27158,
 )
 
 
@@ -12137,8 +12144,8 @@ _STREAMEVENTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=27131,
-  serialized_end=27446,
+  serialized_start=27161,
+  serialized_end=27476,
 )
 
 
@@ -12183,8 +12190,8 @@ _CLIENTINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=27448,
-  serialized_end=27543,
+  serialized_start=27478,
+  serialized_end=27573,
 )
 
 
@@ -12216,8 +12223,8 @@ _CLIENTNOTIFICATIONSSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=27546,
-  serialized_end=27811,
+  serialized_start=27576,
+  serialized_end=27841,
 )
 
 
@@ -12301,8 +12308,8 @@ _PINGEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=27814,
-  serialized_end=28577,
+  serialized_start=27844,
+  serialized_end=28607,
 )
 
 
@@ -12333,8 +12340,8 @@ _CLOCKSYNCREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=28579,
-  serialized_end=28623,
+  serialized_start=28609,
+  serialized_end=28653,
 )
 
 
@@ -12379,8 +12386,8 @@ _CLOCKSYNCRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=28625,
-  serialized_end=28725,
+  serialized_start=28655,
+  serialized_end=28755,
 )
 
 
@@ -12411,8 +12418,8 @@ _GROUPSUBSCRIPTIONEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=28727,
-  serialized_end=28780,
+  serialized_start=28757,
+  serialized_end=28810,
 )
 
 
@@ -12457,8 +12464,8 @@ _STREAMEVENTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=28782,
-  serialized_end=28895,
+  serialized_start=28812,
+  serialized_end=28925,
 )
 
 
@@ -12571,8 +12578,8 @@ _EVENT_EVENTBODY = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=29143,
-  serialized_end=29734,
+  serialized_start=29173,
+  serialized_end=29764,
 )
 
 _EVENT = _descriptor.Descriptor(
@@ -12650,8 +12657,8 @@ _EVENT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=28898,
-  serialized_end=31140,
+  serialized_start=28928,
+  serialized_end=31170,
 )
 
 
@@ -12676,8 +12683,8 @@ _INVITETYPE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=31142,
-  serialized_end=31207,
+  serialized_start=31172,
+  serialized_end=31237,
 )
 
 
@@ -12715,8 +12722,8 @@ _GROUPDETAILS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=31209,
-  serialized_end=31264,
+  serialized_start=31239,
+  serialized_end=31294,
 )
 
 
@@ -12754,8 +12761,8 @@ _ROOMUPDATEDMETADATA_ROOMRENAMEMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=31552,
-  serialized_end=31609,
+  serialized_start=31582,
+  serialized_end=31639,
 )
 
 _ROOMUPDATEDMETADATA_GROUPDETAILSUPDATEDMETADATA = _descriptor.Descriptor(
@@ -12792,8 +12799,8 @@ _ROOMUPDATEDMETADATA_GROUPDETAILSUPDATEDMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=31611,
-  serialized_end=31725,
+  serialized_start=31641,
+  serialized_end=31755,
 )
 
 _ROOMUPDATEDMETADATA = _descriptor.Descriptor(
@@ -12858,8 +12865,8 @@ _ROOMUPDATEDMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=31267,
-  serialized_end=31725,
+  serialized_start=31297,
+  serialized_end=31755,
 )
 
 
@@ -12918,8 +12925,8 @@ _MEETINGSPACE_PHONEACCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=32282,
-  serialized_end=32406,
+  serialized_start=32312,
+  serialized_end=32436,
 )
 
 _MEETINGSPACE_UNIVERSALPHONEACCESS = _descriptor.Descriptor(
@@ -12956,8 +12963,8 @@ _MEETINGSPACE_UNIVERSALPHONEACCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=32408,
-  serialized_end=32466,
+  serialized_start=32438,
+  serialized_end=32496,
 )
 
 _MEETINGSPACE_PRESENTER = _descriptor.Descriptor(
@@ -12994,8 +13001,8 @@ _MEETINGSPACE_PRESENTER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=32468,
-  serialized_end=32530,
+  serialized_start=32498,
+  serialized_end=32560,
 )
 
 _MEETINGSPACE_RECORDINGINFO_RECORDINGEVENT = _descriptor.Descriptor(
@@ -13033,8 +13040,8 @@ _MEETINGSPACE_RECORDINGINFO_RECORDINGEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=32839,
-  serialized_end=33005,
+  serialized_start=32869,
+  serialized_end=33035,
 )
 
 _MEETINGSPACE_RECORDINGINFO = _descriptor.Descriptor(
@@ -13100,8 +13107,8 @@ _MEETINGSPACE_RECORDINGINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=32533,
-  serialized_end=33122,
+  serialized_start=32563,
+  serialized_end=33152,
 )
 
 _MEETINGSPACE_STREAMINGSESSIONINFO_SESSIONEVENT = _descriptor.Descriptor(
@@ -13139,8 +13146,8 @@ _MEETINGSPACE_STREAMINGSESSIONINFO_SESSIONEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=33545,
-  serialized_end=33687,
+  serialized_start=33575,
+  serialized_end=33717,
 )
 
 _MEETINGSPACE_STREAMINGSESSIONINFO_STREAMVIEWERSTATS = _descriptor.Descriptor(
@@ -13170,8 +13177,8 @@ _MEETINGSPACE_STREAMINGSESSIONINFO_STREAMVIEWERSTATS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=33689,
-  serialized_end=33740,
+  serialized_start=33719,
+  serialized_end=33770,
 )
 
 _MEETINGSPACE_STREAMINGSESSIONINFO = _descriptor.Descriptor(
@@ -13251,8 +13258,8 @@ _MEETINGSPACE_STREAMINGSESSIONINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=33125,
-  serialized_end=33812,
+  serialized_start=33155,
+  serialized_end=33842,
 )
 
 _MEETINGSPACE_CALLINFO_CALLSETTINGS = _descriptor.Descriptor(
@@ -13331,8 +13338,8 @@ _MEETINGSPACE_CALLINFO_CALLSETTINGS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34299,
-  serialized_end=34499,
+  serialized_start=34329,
+  serialized_end=34529,
 )
 
 _MEETINGSPACE_CALLINFO_PAYGATEINFO = _descriptor.Descriptor(
@@ -13376,8 +13383,8 @@ _MEETINGSPACE_CALLINFO_PAYGATEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34502,
-  serialized_end=34667,
+  serialized_start=34532,
+  serialized_end=34697,
 )
 
 _MEETINGSPACE_CALLINFO_CSEINFO = _descriptor.Descriptor(
@@ -13407,8 +13414,8 @@ _MEETINGSPACE_CALLINFO_CSEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34669,
-  serialized_end=34699,
+  serialized_start=34699,
+  serialized_end=34729,
 )
 
 _MEETINGSPACE_CALLINFO = _descriptor.Descriptor(
@@ -13508,8 +13515,8 @@ _MEETINGSPACE_CALLINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=33815,
-  serialized_end=34699,
+  serialized_start=33845,
+  serialized_end=34729,
 )
 
 _MEETINGSPACE_GATEWAYACCESS = _descriptor.Descriptor(
@@ -13539,8 +13546,8 @@ _MEETINGSPACE_GATEWAYACCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34701,
-  serialized_end=34733,
+  serialized_start=34731,
+  serialized_end=34763,
 )
 
 _MEETINGSPACE_GATEWAYSIPACCESS = _descriptor.Descriptor(
@@ -13577,8 +13584,8 @@ _MEETINGSPACE_GATEWAYSIPACCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34735,
-  serialized_end=34791,
+  serialized_start=34765,
+  serialized_end=34821,
 )
 
 _MEETINGSPACE_BROADCASTACCESS = _descriptor.Descriptor(
@@ -13608,8 +13615,8 @@ _MEETINGSPACE_BROADCASTACCESS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34793,
-  serialized_end=34828,
+  serialized_start=34823,
+  serialized_end=34858,
 )
 
 _MEETINGSPACE_SETTINGS = _descriptor.Descriptor(
@@ -13674,8 +13681,8 @@ _MEETINGSPACE_SETTINGS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34831,
-  serialized_end=34987,
+  serialized_start=34861,
+  serialized_end=35017,
 )
 
 _MEETINGSPACE = _descriptor.Descriptor(
@@ -13789,8 +13796,8 @@ _MEETINGSPACE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=31728,
-  serialized_end=34987,
+  serialized_start=31758,
+  serialized_end=35017,
 )
 
 
@@ -13835,8 +13842,8 @@ _VIDEOCALLMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34989,
-  serialized_end=35111,
+  serialized_start=35019,
+  serialized_end=35141,
 )
 
 
@@ -13888,8 +13895,8 @@ _MEMBERSHIPCHANGEDMETADATA_AFFECTEDMEMBERSHIP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=35410,
-  serialized_end=35613,
+  serialized_start=35440,
+  serialized_end=35643,
 )
 
 _MEMBERSHIPCHANGEDMETADATA = _descriptor.Descriptor(
@@ -13955,8 +13962,8 @@ _MEMBERSHIPCHANGEDMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=35114,
-  serialized_end=35785,
+  serialized_start=35144,
+  serialized_end=35815,
 )
 
 
@@ -14016,8 +14023,8 @@ _USERMENTIONMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=35788,
-  serialized_end=36050,
+  serialized_start=35818,
+  serialized_end=36080,
 )
 
 
@@ -14084,8 +14091,8 @@ _SLASHCOMMANDMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36053,
-  serialized_end=36299,
+  serialized_start=36083,
+  serialized_end=36329,
 )
 
 
@@ -14110,8 +14117,8 @@ _GROUPVISIBILITY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36301,
-  serialized_end=36375,
+  serialized_start=36331,
+  serialized_end=36405,
 )
 
 
@@ -14149,8 +14156,8 @@ _COMGOOGLEPROTOBUFTIMESTAMP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36377,
-  serialized_end=36437,
+  serialized_start=36407,
+  serialized_end=36467,
 )
 
 
@@ -14181,8 +14188,8 @@ _GETSERVERTIMEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36439,
-  serialized_end=36501,
+  serialized_start=36469,
+  serialized_end=36531,
 )
 
 
@@ -14213,8 +14220,8 @@ _GETSERVERTIMERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36503,
-  serialized_end=36574,
+  serialized_start=36533,
+  serialized_end=36604,
 )
 
 
@@ -14252,8 +14259,8 @@ _CATCHUPRANGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36576,
-  serialized_end=36654,
+  serialized_start=36606,
+  serialized_end=36684,
 )
 
 
@@ -14312,8 +14319,8 @@ _CATCHUPGROUPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36657,
-  serialized_end=36816,
+  serialized_start=36687,
+  serialized_end=36846,
 )
 
 
@@ -14365,8 +14372,8 @@ _CATCHUPUSERREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36819,
-  serialized_end=36949,
+  serialized_start=36849,
+  serialized_end=36979,
 )
 
 
@@ -14412,8 +14419,8 @@ _CATCHUPRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=36952,
-  serialized_end=37232,
+  serialized_start=36982,
+  serialized_end=37262,
 )
 
 
@@ -14480,8 +14487,8 @@ _GETGROUPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=37235,
-  serialized_end=37688,
+  serialized_start=37265,
+  serialized_end=37718,
 )
 
 
@@ -14568,8 +14575,8 @@ _GETGROUPRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=37691,
-  serialized_end=38034,
+  serialized_start=37721,
+  serialized_end=38064,
 )
 
 
@@ -14601,8 +14608,8 @@ _WORLDSECTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=38037,
-  serialized_end=38685,
+  serialized_start=38067,
+  serialized_end=38715,
 )
 
 
@@ -14696,8 +14703,8 @@ _WORLDFILTER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=38688,
-  serialized_end=39626,
+  serialized_start=38718,
+  serialized_end=39656,
 )
 
 
@@ -14742,8 +14749,8 @@ _NAMEUSERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=39628,
-  serialized_end=39720,
+  serialized_start=39658,
+  serialized_end=39750,
 )
 
 
@@ -14781,8 +14788,8 @@ _WORLDITEMLITE_MEMBERSHIPLITE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=40441,
-  serialized_end=40527,
+  serialized_start=40501,
+  serialized_end=40587,
 )
 
 _WORLDITEMLITE_DMMEMBERS = _descriptor.Descriptor(
@@ -14826,8 +14833,8 @@ _WORLDITEMLITE_DMMEMBERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=40529,
-  serialized_end=40647,
+  serialized_start=40589,
+  serialized_end=40707,
 )
 
 _WORLDITEMLITE_GROUPLITE = _descriptor.Descriptor(
@@ -14892,8 +14899,8 @@ _WORLDITEMLITE_GROUPLITE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=40650,
-  serialized_end=40823,
+  serialized_start=40710,
+  serialized_end=40883,
 )
 
 _WORLDITEMLITE_FLATGROUP = _descriptor.Descriptor(
@@ -14916,8 +14923,8 @@ _WORLDITEMLITE_FLATGROUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18104,
-  serialized_end=18115,
+  serialized_start=18134,
+  serialized_end=18145,
 )
 
 _WORLDITEMLITE_THREADEDGROUP = _descriptor.Descriptor(
@@ -14940,8 +14947,8 @@ _WORLDITEMLITE_THREADEDGROUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18117,
-  serialized_end=18132,
+  serialized_start=18147,
+  serialized_end=18162,
 )
 
 _WORLDITEMLITE = _descriptor.Descriptor(
@@ -15078,6 +15085,13 @@ _WORLDITEMLITE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='flat_threads_enabled', full_name='WorldItemLite.flat_threads_enabled', index=18,
+      number=27, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -15090,8 +15104,8 @@ _WORLDITEMLITE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=39723,
-  serialized_end=40853,
+  serialized_start=39753,
+  serialized_end=40913,
 )
 
 
@@ -15162,8 +15176,8 @@ _WORLDSECTIONREQUEST = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=40856,
-  serialized_end=41088,
+  serialized_start=40916,
+  serialized_end=41148,
 )
 
 
@@ -15229,8 +15243,8 @@ _WORLDSECTIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=41091,
-  serialized_end=41322,
+  serialized_start=41151,
+  serialized_end=41382,
 )
 
 
@@ -15304,8 +15318,8 @@ _PAGINATEDWORLDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=41325,
-  serialized_end=41803,
+  serialized_start=41385,
+  serialized_end=41863,
 )
 
 
@@ -15357,8 +15371,8 @@ _PAGINATEDWORLDRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=41806,
-  serialized_end=41994,
+  serialized_start=41866,
+  serialized_end=42054,
 )
 
 
@@ -15410,8 +15424,8 @@ _REMOVEMEMBERSHIPSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=41997,
-  serialized_end=42166,
+  serialized_start=42057,
+  serialized_end=42226,
 )
 
 
@@ -15456,8 +15470,8 @@ _REMOVEMEMBERSHIPRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=42168,
-  serialized_end=42293,
+  serialized_start=42228,
+  serialized_end=42353,
 )
 
 
@@ -15502,8 +15516,8 @@ _REMOVEMEMBERSHIPSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=42296,
-  serialized_end=42472,
+  serialized_start=42356,
+  serialized_end=42532,
 )
 
 
@@ -15548,8 +15562,8 @@ _HIDEGROUPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=42474,
-  serialized_end=42568,
+  serialized_start=42534,
+  serialized_end=42628,
 )
 
 
@@ -15587,8 +15601,8 @@ _HIDEGROUPRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=42570,
-  serialized_end=42665,
+  serialized_start=42630,
+  serialized_end=42725,
 )
 
 
@@ -15620,8 +15634,8 @@ _INVITENOTIFICATIONSETTINGS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=42668,
-  serialized_end=42823,
+  serialized_start=42728,
+  serialized_end=42883,
 )
 
 
@@ -15687,8 +15701,8 @@ _CREATEMEMBERSHIPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=42826,
-  serialized_end=43104,
+  serialized_start=42886,
+  serialized_end=43164,
 )
 
 
@@ -15740,8 +15754,8 @@ _CREATEMEMBERSHIPRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43107,
-  serialized_end=43322,
+  serialized_start=43167,
+  serialized_end=43382,
 )
 
 
@@ -15786,8 +15800,8 @@ _MARKGROUPREADSTATEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43324,
-  serialized_end=43437,
+  serialized_start=43384,
+  serialized_end=43497,
 )
 
 
@@ -15825,8 +15839,8 @@ _MARKGROUPREADSTATERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43439,
-  serialized_end=43543,
+  serialized_start=43499,
+  serialized_end=43603,
 )
 
 
@@ -15864,8 +15878,8 @@ _SETPRESENCESHAREDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43545,
-  serialized_end=43636,
+  serialized_start=43605,
+  serialized_end=43696,
 )
 
 
@@ -15903,8 +15917,8 @@ _SETPRESENCESHAREDRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43638,
-  serialized_end=43738,
+  serialized_start=43698,
+  serialized_end=43798,
 )
 
 
@@ -15962,8 +15976,8 @@ _SETDNDDURATIONREQUEST = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=43741,
-  serialized_end=43990,
+  serialized_start=43801,
+  serialized_end=44050,
 )
 
 
@@ -16001,8 +16015,8 @@ _SETDNDDURATIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43992,
-  serialized_end=44089,
+  serialized_start=44052,
+  serialized_end=44149,
 )
 
 
@@ -16062,8 +16076,8 @@ _UPDATEGROUPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=44092,
-  serialized_end=44409,
+  serialized_start=44152,
+  serialized_end=44469,
 )
 
 
@@ -16101,8 +16115,8 @@ _UPDATEGROUPRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=44411,
-  serialized_end=44495,
+  serialized_start=44471,
+  serialized_end=44555,
 )
 
 
@@ -16166,8 +16180,8 @@ _BLOCKENTITYREQUEST = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=44498,
-  serialized_end=44661,
+  serialized_start=44558,
+  serialized_end=44721,
 )
 
 
@@ -16205,8 +16219,8 @@ _BLOCKENTITYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=44663,
-  serialized_end=44760,
+  serialized_start=44723,
+  serialized_end=44820,
 )
 
 
@@ -16263,8 +16277,8 @@ _SETCUSTOMSTATUSREQUEST = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=44763,
-  serialized_end=44983,
+  serialized_start=44823,
+  serialized_end=45043,
 )
 
 
@@ -16302,8 +16316,8 @@ _SETCUSTOMSTATUSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=44985,
-  serialized_end=45083,
+  serialized_start=45045,
+  serialized_end=45143,
 )
 
 
@@ -16341,8 +16355,8 @@ _WRITEREVISION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=45085,
-  serialized_end=45143,
+  serialized_start=45145,
+  serialized_end=45203,
 )
 
 
@@ -16373,8 +16387,8 @@ _READREVISION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=45145,
-  serialized_end=45178,
+  serialized_start=45205,
+  serialized_end=45238,
 )
 
 
@@ -16405,8 +16419,8 @@ _REFERENCEREVISION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=45180,
-  serialized_end=45218,
+  serialized_start=45240,
+  serialized_end=45278,
 )
 
 _USERID.fields_by_name['type'].enum_type = _USERTYPE

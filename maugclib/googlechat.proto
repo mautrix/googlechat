@@ -1006,6 +1006,7 @@ message Group {
 	//optional DYNProtoHubGroupProperties hub_group_properties = 41;
 	//optional ?? ufr_upgrade_info = 42;
 	optional bool typing_indicators_enabled = 43;
+	optional bool flat_threads_enabled = 44;
 }
 
 enum GroupUnsupportedReason {
@@ -2303,6 +2304,7 @@ message WorldItemLite {
 	optional GroupSupportLevel group_support_level = 23;
 	optional GroupUnsupportedReason group_unsupported_reason = 24;
 	// optional ?? group_policies = 26;
+	optional bool flat_threads_enabled = 27;
 }
 
 message WorldSectionRequest {

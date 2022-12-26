@@ -40,7 +40,8 @@ class Portal:
     avatar_set: bool
     encrypted: bool
     revision: int | None
-    is_threaded: bool | None
+    threads_only: bool | None
+    threads_enabled: bool | None
 
     @classmethod
     def _from_row(cls, row: Record | None) -> Portal | None:
@@ -50,7 +51,7 @@ class Portal:
 
     columns = (
         "gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-        "name_set, avatar_set, encrypted, revision, is_threaded"
+        "name_set, avatar_set, encrypted, revision, threads_only, threads_enabled"
     )
 
     @classmethod
@@ -90,15 +91,18 @@ class Portal:
             self.avatar_set,
             self.encrypted,
             self.revision,
-            self.is_threaded,
+            self.threads_only,
+            self.threads_enabled,
         )
 
     async def insert(self) -> None:
-        q = (
-            "INSERT INTO portal (gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-            "                    name_set, avatar_set, encrypted, revision, is_threaded) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        q = """
+        INSERT INTO portal (
+            gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, name_set, avatar_set,
+            encrypted, revision, threads_only, threads_enabled
         )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        """
         await self.db.execute(q, *self._values)
 
     async def delete(self) -> None:
@@ -106,11 +110,12 @@ class Portal:
         await self.db.execute(q, self.gcid, self.gc_receiver)
 
     async def save(self) -> None:
-        q = (
-            "UPDATE portal SET other_user_id=$3, mxid=$4, name=$5, avatar_mxc=$6, name_set=$7, "
-            "                  avatar_set=$8, encrypted=$9, revision=$10, is_threaded=$11 "
-            "WHERE gcid=$1 AND gc_receiver=$2"
-        )
+        q = """
+        UPDATE portal
+        SET other_user_id=$3, mxid=$4, name=$5, avatar_mxc=$6, name_set=$7, avatar_set=$8,
+            encrypted=$9, revision=$10, threads_only=$11, threads_enabled=$12
+        WHERE gcid=$1 AND gc_receiver=$2
+        """
         await self.db.execute(q, *self._values)
 
     async def set_revision(self, revision: int) -> None:
