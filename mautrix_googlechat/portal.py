@@ -194,6 +194,10 @@ class Portal(DBPortal, BasePortal):
         return self.gcid.startswith("dm:")
 
     @property
+    def is_space(self) -> bool:
+        return self.gcid.startswith("space:")
+
+    @property
     def main_intent(self) -> IntentAPI:
         if not self._main_intent:
             raise ValueError("Portal must be postinit()ed before main_intent can be used")
@@ -804,7 +808,9 @@ class Portal(DBPortal, BasePortal):
         reply_to = await DBMessage.get_by_mxid(
             message.get_thread_parent() or message.get_reply_to(), self.mxid
         )
-        thread_id = (reply_to.gc_parent_id or reply_to.gcid) if reply_to else None
+        thread_id = (
+            (reply_to.gc_parent_id or reply_to.gcid) if reply_to and self.is_space else None
+        )
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
         self._local_dedup.add(local_id)
 
