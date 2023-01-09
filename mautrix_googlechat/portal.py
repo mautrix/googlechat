@@ -306,11 +306,27 @@ class Portal(DBPortal, BasePortal):
             await self.save()
         if not self.mxid and not self.is_direct:
             return
+        extra_members = await self.main_intent.get_joined_members(self.mxid)
         users = await source.get_users(user_ids + bots)
-        await asyncio.gather(*[self._update_participant(source, user) for user in users])
+        tasks = []
+        for user in users:
+            puppet: p.Puppet = await p.Puppet.get_by_gcid(user.user_id.id)
+            tasks.append(asyncio.create_task(self._update_participant(source, puppet, user)))
+            extra_members.pop(puppet.intent_for(self).mxid, None)
+        await asyncio.gather(*tasks)
+        for member in extra_members:
+            puppet: p.Puppet = await p.Puppet.get_by_mxid(member)
+            if puppet:
+                try:
+                    await puppet.default_mxid_intent.leave_room(
+                        self.mxid, reason="User is not in group"
+                    )
+                except Exception:
+                    self.log.exception("Failed to leave extra ghost user from room")
 
-    async def _update_participant(self, source: u.User, user: googlechat.User) -> None:
-        puppet: p.Puppet = await p.Puppet.get_by_gcid(user.user_id.id)
+    async def _update_participant(
+        self, source: u.User, puppet: p.Puppet, user: googlechat.User
+    ) -> None:
         await puppet.update_info(source=source, info=user)
         if self.mxid and (not puppet.is_real_user or puppet.gcid != source.gcid):
             await puppet.intent_for(self).ensure_joined(self.mxid, bot=self.main_intent)
