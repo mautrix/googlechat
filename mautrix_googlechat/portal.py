@@ -1139,7 +1139,7 @@ class Portal(DBPortal, BasePortal):
         self.log.debug("Handled Google Chat edit of %s at %s -> %s", msg_id, edit_ts, event_id)
         await self._send_delivery_receipt(event_id)
 
-    async def handle_googlechat_update(
+    async def handle_googlechat_room_update(
         self, sender: p.Puppet, timestamp: int, update: googlechat.RoomUpdatedMetadata
     ) -> bool:
         if update.HasField("rename_metadata") and update.rename_metadata.new_name:
@@ -1155,6 +1155,62 @@ class Portal(DBPortal, BasePortal):
             return True
         else:
             return False
+
+    async def handle_googlechat_membership_change(
+        self,
+        source: u.User,
+        sender: p.Puppet,
+        update: googlechat.MembershipChangedMetadata,
+    ) -> None:
+        infos = await source.get_users(
+            [member_id.user_id.id for member_id in update.affected_members]
+        )
+        sender_intent = sender.intent_for(self)
+        for member_id, info in zip(update.affected_members, infos):
+            target: p.Puppet = await p.Puppet.get_by_gcid(member_id.user_id.id)
+            target_intent = target.intent_for(self)
+            await target.update_info(source, info)
+            if update.type == googlechat.MembershipChangedMetadata.JOINED:
+                await target_intent.ensure_joined(self.mxid)
+            elif update.type == googlechat.MembershipChangedMetadata.INVITED:
+                try:
+                    await sender_intent.invite_user(self.mxid, target_intent.mxid)
+                except MForbidden:
+                    await self.main_intent.invite_user(
+                        self.mxid, target_intent.mxid, reason=f"Invited by {sender.name}"
+                    )
+            elif update.type in (
+                googlechat.MembershipChangedMetadata.BOT_ADDED,
+                googlechat.MembershipChangedMetadata.ADDED,
+            ):
+                try:
+                    await sender_intent.invite_user(self.mxid, target_intent.mxid)
+                except MForbidden:
+                    pass  # will auto-invite in ensure_joined
+                await target_intent.ensure_joined(self.mxid)
+            elif update.type == googlechat.MembershipChangedMetadata.LEFT:
+                await target_intent.leave_room(self.mxid)
+            elif update.type in (
+                googlechat.MembershipChangedMetadata.REMOVED,
+                googlechat.MembershipChangedMetadata.BOT_REMOVED,
+            ):
+                try:
+                    await sender_intent.kick_user(self.mxid, target_intent.mxid)
+                except MForbidden:
+                    await self.main_intent.kick_user(
+                        self.mxid, target_intent.mxid, reason=f"Removed by {sender.name}"
+                    )
+            elif update.type == googlechat.MembershipChangedMetadata.KICKED_DUE_TO_OTR_CONFLICT:
+                try:
+                    await sender_intent.kick_user(
+                        self.mxid, target_intent.mxid, reason="OTR conflict"
+                    )
+                except MForbidden:
+                    await self.main_intent.kick_user(
+                        self.mxid,
+                        target_intent.mxid,
+                        reason=f"Removed by {sender.name} due to OTR conflict",
+                    )
 
     async def handle_googlechat_message(self, source: u.User, evt: googlechat.Message) -> None:
         sender = await p.Puppet.get_by_gcid(evt.creator.user_id.id)
@@ -1181,11 +1237,18 @@ class Portal(DBPortal, BasePortal):
         # Google Chat timestamps are in microseconds, Matrix wants milliseconds
         timestamp = evt.create_time // 1000
 
-        if len(evt.annotations) == 1 and evt.annotations[0].type == googlechat.ROOM_UPDATED:
-            self.log.debug("Handling Google Chat room update message %s", msg_id)
-            if await self.handle_googlechat_update(
-                sender, update=evt.annotations[0].room_updated, timestamp=timestamp
-            ):
+        if evt.message_type == googlechat.Message.SYSTEM_MESSAGE and len(evt.annotations) == 1:
+            self.log.debug("Handling Google Chat update message %s", msg_id)
+            update_type = evt.annotations[0].type
+            if update_type == googlechat.ROOM_UPDATED:
+                if await self.handle_googlechat_room_update(
+                    sender, update=evt.annotations[0].room_updated, timestamp=timestamp
+                ):
+                    return
+            elif update_type == googlechat.MEMBERSHIP_CHANGED:
+                await self.handle_googlechat_membership_change(
+                    source, sender, update=evt.annotations[0].membership_changed
+                )
                 return
         intent = sender.intent_for(self)
         self.log.debug("Handling Google Chat message %s", msg_id)
