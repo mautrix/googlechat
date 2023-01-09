@@ -36,8 +36,10 @@ class Portal:
     mxid: RoomID | None
     name: str | None
     avatar_mxc: ContentURI | None
+    description: str | None
     name_set: bool
     avatar_set: bool
+    description_set: bool
     encrypted: bool
     revision: int | None
     threads_only: bool | None
@@ -50,8 +52,8 @@ class Portal:
         return cls(**row)
 
     columns = (
-        "gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, "
-        "name_set, avatar_set, encrypted, revision, threads_only, threads_enabled"
+        "gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, description, "
+        "name_set, avatar_set, description_set, encrypted, revision, threads_only, threads_enabled"
     )
 
     @classmethod
@@ -87,8 +89,10 @@ class Portal:
             self.mxid,
             self.name,
             self.avatar_mxc,
+            self.description,
             self.name_set,
             self.avatar_set,
+            self.description_set,
             self.encrypted,
             self.revision,
             self.threads_only,
@@ -98,10 +102,11 @@ class Portal:
     async def insert(self) -> None:
         q = """
         INSERT INTO portal (
-            gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, name_set, avatar_set,
-            encrypted, revision, threads_only, threads_enabled
+            gcid, gc_receiver, other_user_id, mxid, name, avatar_mxc, description,
+            name_set, avatar_set, description_set, encrypted,
+            revision, threads_only, threads_enabled
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         """
         await self.db.execute(q, *self._values)
 
@@ -112,8 +117,9 @@ class Portal:
     async def save(self) -> None:
         q = """
         UPDATE portal
-        SET other_user_id=$3, mxid=$4, name=$5, avatar_mxc=$6, name_set=$7, avatar_set=$8,
-            encrypted=$9, revision=$10, threads_only=$11, threads_enabled=$12
+        SET other_user_id=$3, mxid=$4, name=$5, avatar_mxc=$6, description=$7,
+            name_set=$8, avatar_set=$9, description_set=$10, encrypted=$11,
+            revision=$12, threads_only=$13, threads_enabled=$14
         WHERE gcid=$1 AND gc_receiver=$2
         """
         await self.db.execute(q, *self._values)

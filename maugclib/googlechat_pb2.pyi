@@ -3678,6 +3678,7 @@ class Group(google.protobuf.message.Message):
     AVATAR_URL_FIELD_NUMBER: builtins.int
     ATTRIBUTE_CHECKER_GROUP_TYPE_FIELD_NUMBER: builtins.int
     NAME_USERS_FIELD_NUMBER: builtins.int
+    GROUP_DETAILS_FIELD_NUMBER: builtins.int
     GROUP_SUPPORT_LEVEL_FIELD_NUMBER: builtins.int
     GROUP_UNSUPPORTED_REASON_FIELD_NUMBER: builtins.int
     TYPING_INDICATORS_ENABLED_FIELD_NUMBER: builtins.int
@@ -3722,8 +3723,9 @@ class Group(google.protobuf.message.Message):
     """
     @property
     def name_users(self) -> global___NameUsers: ...
+    @property
+    def group_details(self) -> global___GroupDetails: ...
     group_support_level: global___GroupSupportLevel.ValueType
-    """optional ?? space_details = 37;"""
     group_unsupported_reason: global___GroupUnsupportedReason.ValueType
     typing_indicators_enabled: builtins.bool
     """optional DYNProtoHubGroupProperties hub_group_properties = 41;
@@ -3754,13 +3756,14 @@ class Group(google.protobuf.message.Message):
         avatar_url: builtins.str | None = ...,
         attribute_checker_group_type: global___SharedAttributeCheckerGroupType.ValueType | None = ...,
         name_users: global___NameUsers | None = ...,
+        group_details: global___GroupDetails | None = ...,
         group_support_level: global___GroupSupportLevel.ValueType | None = ...,
         group_unsupported_reason: global___GroupUnsupportedReason.ValueType | None = ...,
         typing_indicators_enabled: builtins.bool | None = ...,
         flat_threads_enabled: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_details", b"group_details", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["ThreadedModel", b"ThreadedModel", "attribute_checker_group_type", b"attribute_checker_group_type", "avatar_url", b"avatar_url", "create_time", b"create_time", "creator", b"creator", "flat_group", b"flat_group", "flat_threads_enabled", b"flat_threads_enabled", "group_details", b"group_details", "group_id", b"group_id", "group_read_state", b"group_read_state", "group_support_level", b"group_support_level", "group_type", b"group_type", "group_unsupported_reason", b"group_unsupported_reason", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "last_modified_time", b"last_modified_time", "name", b"name", "name_users", b"name_users", "retention_duration_seconds", b"retention_duration_seconds", "retention_horizon_time", b"retention_horizon_time", "retention_settings", b"retention_settings", "revision_time", b"revision_time", "roster_email", b"roster_email", "sort_time", b"sort_time", "threaded_group", b"threaded_group", "typing_indicators_enabled", b"typing_indicators_enabled", "visibility", b"visibility"]) -> None: ...
     def WhichOneof(self, oneof_group: typing_extensions.Literal["ThreadedModel", b"ThreadedModel"]) -> typing_extensions.Literal["flat_group", "threaded_group"] | None: ...
 
 global___Group = Group
@@ -7276,6 +7279,7 @@ class WorldItemLite(google.protobuf.message.Message):
         RETENTION_SETTINGS_FIELD_NUMBER: builtins.int
         INTEROP_ENABLED_FIELD_NUMBER: builtins.int
         ROSTER_EMAIL_FIELD_NUMBER: builtins.int
+        GROUP_DETAILS_FIELD_NUMBER: builtins.int
         @property
         def creator_id(self) -> global___UserId: ...
         create_time: builtins.int
@@ -7284,9 +7288,9 @@ class WorldItemLite(google.protobuf.message.Message):
         def retention_settings(self) -> global___RetentionSettings: ...
         interop_enabled: builtins.bool
         roster_email: builtins.str
-        """optional DasherDomainPolicies dasher_domain_policies = 6;
-        optional ?? space_details = 8;
-        """
+        """optional DasherDomainPolicies dasher_domain_policies = 6;"""
+        @property
+        def group_details(self) -> global___GroupDetails: ...
         def __init__(
             self,
             *,
@@ -7296,9 +7300,10 @@ class WorldItemLite(google.protobuf.message.Message):
             retention_settings: global___RetentionSettings | None = ...,
             interop_enabled: builtins.bool | None = ...,
             roster_email: builtins.str | None = ...,
+            group_details: global___GroupDetails | None = ...,
         ) -> None: ...
-        def HasField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "creator_id", b"creator_id", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "retention_settings", b"retention_settings", "roster_email", b"roster_email"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "creator_id", b"creator_id", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "retention_settings", b"retention_settings", "roster_email", b"roster_email"]) -> None: ...
+        def HasField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "creator_id", b"creator_id", "group_details", b"group_details", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "retention_settings", b"retention_settings", "roster_email", b"roster_email"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "creator_id", b"creator_id", "group_details", b"group_details", "interop_enabled", b"interop_enabled", "is_flat", b"is_flat", "retention_settings", b"retention_settings", "roster_email", b"roster_email"]) -> None: ...
 
     @typing_extensions.final
     class FlatGroup(google.protobuf.message.Message):

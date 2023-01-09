@@ -18,7 +18,7 @@ from mautrix.util.async_db import Connection
 from . import upgrade_table
 
 
-@upgrade_table.register(description="Latest revision", upgrades_to=5)
+@upgrade_table.register(description="Latest revision", upgrades_to=6)
 async def upgrade_latest(conn: Connection) -> None:
     await conn.execute(
         """CREATE TABLE "user" (
@@ -37,8 +37,10 @@ async def upgrade_latest(conn: Connection) -> None:
             mxid          TEXT UNIQUE,
             name          TEXT,
             avatar_mxc    TEXT,
+            description   TEXT,
             name_set      BOOLEAN NOT NULL DEFAULT false,
             avatar_set    BOOLEAN NOT NULL DEFAULT false,
+            description_set BOOLEAN NOT NULL DEFAULT false,
             encrypted     BOOLEAN NOT NULL DEFAULT false,
             revision      BIGINT,
             threads_only  BOOLEAN,

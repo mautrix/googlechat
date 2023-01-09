@@ -1000,7 +1000,7 @@ message Group {
 	//optional DYNProtoAvatarInfo avatar_info = 30;
 	optional SharedAttributeCheckerGroupType attribute_checker_group_type = 33;
 	optional NameUsers name_users = 34;
-	//optional ?? space_details = 37;
+	optional GroupDetails group_details = 37;
 	optional GroupSupportLevel group_support_level = 38;
 	optional GroupUnsupportedReason group_unsupported_reason = 39;
 	//optional DYNProtoHubGroupProperties hub_group_properties = 41;
@@ -2280,7 +2280,7 @@ message WorldItemLite {
 		optional bool interop_enabled = 5;
 		//optional DasherDomainPolicies dasher_domain_policies = 6;
 		optional string roster_email = 7;
-		// optional ?? space_details = 8;
+		optional GroupDetails group_details = 8;
 	}
 	optional GroupLite group_lite = 7;
 	//optional GroupGuestAccessSettings group_guest_access_settings = 10;

@@ -118,8 +118,10 @@ class Portal(DBPortal, BasePortal):
         mxid: RoomID | None = None,
         name: str | None = None,
         avatar_mxc: ContentURI | None = None,
+        description: str | None = None,
         name_set: bool = False,
         avatar_set: bool = False,
+        description_set: bool = False,
         encrypted: bool = False,
         revision: int | None = None,
         threads_only: bool | None = None,
@@ -132,8 +134,10 @@ class Portal(DBPortal, BasePortal):
             mxid=mxid,
             name=name,
             avatar_mxc=avatar_mxc,
+            description=description,
             name_set=name_set,
             avatar_set=avatar_set,
+            description_set=description_set,
             encrypted=encrypted,
             revision=revision,
             threads_only=threads_only,
@@ -216,6 +220,7 @@ class Portal(DBPortal, BasePortal):
         self.mxid = None
         self.name_set = False
         self.avatar_set = False
+        self.description_set = False
         await super().save()
 
     # endregion
@@ -235,7 +240,14 @@ class Portal(DBPortal, BasePortal):
             )
 
         changed = False
-        group_meta = info if isinstance(info, googlechat.WorldItemLite) else info.group
+        if isinstance(info, googlechat.WorldItemLite):
+            group_meta = info
+            description = group_meta.group_lite.group_details.description
+        elif isinstance(info, googlechat.GetGroupResponse):
+            group_meta = info.group
+            description = group_meta.group_details.description
+        else:
+            raise RuntimeError(f"Unexpected group metadata type {type(info)} in update_info()")
         threads_only = group_meta.HasField("threaded_group")
         if threads_only != self.threads_only:
             self.threads_only = threads_only
@@ -249,13 +261,14 @@ class Portal(DBPortal, BasePortal):
             self.threads_enabled = threads_enabled
             changed = True
         changed = await self._update_participants(source, info) or changed
-        changed = await self._update_name(info) or changed
+        changed = await self._update_description(description) or changed
+        changed = await self._update_name_from_info(info) or changed
         if changed:
             await self.save()
             await self.update_bridge_info()
         return info
 
-    async def _update_name(self, info: ChatInfo) -> bool:
+    async def _update_name_from_info(self, info: ChatInfo) -> bool:
         if self.is_direct:
             puppet = await self.get_dm_puppet()
             name = puppet.name
@@ -265,10 +278,35 @@ class Portal(DBPortal, BasePortal):
             name = info.group.name
         else:
             return False
-        if self.name != name:
+        return await self._update_name_direct(name)
+
+    async def _update_name_direct(self, name: str, timestamp: int | None = None) -> bool:
+        if self.name != name or (not self.name_set and self.mxid and not self.is_direct):
             self.name = name
+            self.name_set = False
             if self.mxid and (self.encrypted or not self.is_direct):
-                await self.main_intent.set_room_name(self.mxid, self.name)
+                try:
+                    await self.main_intent.set_room_name(self.mxid, self.name, timestamp=timestamp)
+                    self.name_set = True
+                except Exception:
+                    self.log.exception("Failed to update room name")
+            return True
+        return False
+
+    async def _update_description(self, description: str, timestamp: int | None = None) -> bool:
+        if self.description != description or (
+            not self.description_set and self.mxid and not self.is_direct
+        ):
+            self.description = description
+            self.description_set = False
+            if self.mxid:
+                try:
+                    await self.main_intent.set_room_topic(
+                        self.mxid, self.description, timestamp=timestamp
+                    )
+                    self.description_set = True
+                except Exception:
+                    self.log.exception("Failed to update room topic")
             return True
         return False
 
@@ -639,6 +677,7 @@ class Portal(DBPortal, BasePortal):
         with self.backfill_lock:
             self.mxid = await self.main_intent.create_room(
                 name=self.name if self.encrypted or not self.is_direct else None,
+                topic=self.description,
                 is_direct=self.is_direct,
                 initial_state=initial_state,
                 invitees=invites,
@@ -646,6 +685,8 @@ class Portal(DBPortal, BasePortal):
             )
             if not self.mxid:
                 raise Exception("Failed to create room: no mxid returned")
+            self.name_set = bool(self.name) and (self.encrypted or not self.is_direct)
+            self.description_set = bool(self.description)
             if self.encrypted and self.matrix.e2ee and self.is_direct:
                 try:
                     await self.az.intent.ensure_joined(self.mxid)
@@ -1159,15 +1200,17 @@ class Portal(DBPortal, BasePortal):
         self, sender: p.Puppet, timestamp: int, update: googlechat.RoomUpdatedMetadata
     ) -> bool:
         if update.HasField("rename_metadata") and update.rename_metadata.new_name:
-            if self.name != update.rename_metadata.new_name:
-                self.name = update.rename_metadata.new_name
-                try:
-                    await sender.intent_for(self).set_room_name(
-                        self.mxid, self.name, timestamp=timestamp
-                    )
-                except (MForbidden, IntentError):
-                    await self.main_intent.set_room_name(self.mxid, self.name, timestamp=timestamp)
+            if await self._update_name_direct(
+                update.rename_metadata.new_name, timestamp=timestamp
+            ):
                 await self.update_bridge_info(timestamp=timestamp)
+                await self.save()
+            return True
+        elif update.HasField("group_details_metadata"):
+            if await self._update_description(
+                update.group_details_metadata.new_group_details.description, timestamp=timestamp
+            ):
+                await self.save()
             return True
         else:
             return False

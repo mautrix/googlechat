@@ -8,4 +8,5 @@ from . import (
     v03_store_gc_revision,
     v04_store_photo_hash,
     v05_rename_thread_columns,
+    v06_space_description,
 )
