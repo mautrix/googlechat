@@ -294,7 +294,7 @@ class Portal(DBPortal, BasePortal):
         return False
 
     async def _update_description(self, description: str, timestamp: int | None = None) -> bool:
-        if self.description != description or (
+        if (self.description or "") != description or (
             not self.description_set and self.mxid and not self.is_direct
         ):
             self.description = description
