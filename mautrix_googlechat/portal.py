@@ -1002,7 +1002,6 @@ class Portal(DBPortal, BasePortal):
                 status.status = MessageStatus.FAIL
         else:
             status.status = MessageStatus.SUCCESS
-        status.fill_legacy_booleans()
 
         await intent.send_message_event(
             room_id=self.mxid,
@@ -1526,7 +1525,7 @@ class Portal(DBPortal, BasePortal):
             if membership != Membership.JOIN:
                 return
         await puppet.intent_for(self).set_typing(
-            self.mxid, status == googlechat.TYPING, timeout=6000
+            self.mxid, timeout=6000 if status == googlechat.TYPING else 0
         )
 
     # endregion
