@@ -344,7 +344,7 @@ class Portal(DBPortal, BasePortal):
             await self.save()
         if not self.mxid and not self.is_direct:
             return
-        extra_members = await self.main_intent.get_joined_members(self.mxid)
+        extra_members = await self.main_intent.get_joined_members(self.mxid) if self.mxid else {}
         users = await source.get_users(user_ids + bots)
         tasks = []
         for user in users:
