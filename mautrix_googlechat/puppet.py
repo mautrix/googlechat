@@ -112,7 +112,7 @@ class Puppet(DBPuppet, BasePuppet):
         }
         cls.login_device_name = "Google Chat Bridge"
 
-        return (puppet.start() async for puppet in Puppet.get_all_with_custom_mxid())
+        return (puppet.try_start() async for puppet in Puppet.get_all_with_custom_mxid())
 
     async def default_puppet_should_leave_room(self, room_id: RoomID) -> bool:
         portal = await p.Portal.get_by_mxid(room_id)
