@@ -107,6 +107,7 @@ class User(DBUser, BaseUser):
         self.users_lock = asyncio.Lock()
         self._intentional_disconnect = False
         self.periodic_sync_task = None
+        self.remote_id = self.gcid
 
     # region Sessions
 
@@ -178,7 +179,7 @@ class User(DBUser, BaseUser):
 
     async def fill_bridge_state(self, state: BridgeState) -> None:
         await super().fill_bridge_state(state)
-        state.remote_id = str(self.gcid)
+        state.remote_id = str(self.remote_id)
         state.remote_name = ""
         if self.gcid:
             puppet = await pu.Puppet.get_by_gcid(self.gcid)
@@ -356,6 +357,7 @@ class User(DBUser, BaseUser):
                 googlechat.GetSelfUserStatusRequest(request_header=self.client.gc_request_header)
             )
             self.gcid = info.user_status.user_id.id
+            self.remote_id = self.gcid
             self.by_gcid[self.gcid] = self
 
         resp = await self.client.proto_get_members(
