@@ -542,8 +542,19 @@ class User(DBUser, BaseUser):
             except asyncio.CancelledError:
                 self.log.debug("Periodic sync cancelled")
                 break
-            except Exception:
+            except Exception as e:
                 self.log.exception("Exception in periodic sync")
+                if isinstance(e, ResponseError):
+                    self.log.debug("Response error body: %s", e.body)
+                if isinstance(e, UnexpectedStatusError) and (
+                    e.error_code == "invalid_grant" or e.status == 401
+                ):
+                    self.log.info(
+                        "Periodic sync error has 401 status or invalid_grant error code, "
+                        "logging out"
+                    )
+                    asyncio.create_task(self.logout(is_manual=False, error=e))
+                    return
 
     @async_time(METRIC_SYNC)
     async def sync(self, limit: int | None = None) -> int:
