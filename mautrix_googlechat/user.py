@@ -310,8 +310,12 @@ class User(DBUser, BaseUser):
                 self.log.exception("Exception in connection")
                 if isinstance(e, ResponseError):
                     self.log.debug("Response error body: %s", e.body)
-                if isinstance(e, UnexpectedStatusError) and e.error_code == "invalid_grant":
-                    self.log.info("Connection error has invalid_grant error code, logging out")
+                if isinstance(e, UnexpectedStatusError) and (
+                    e.error_code == "invalid_grant" or e.status == 401
+                ):
+                    self.log.info(
+                        "Connection error has 401 status or invalid_grant error code, logging out"
+                    )
                     asyncio.create_task(self.logout(is_manual=False, error=e))
                     return
                 error_msg = f"Exception in Google Chat connection: {e}"
