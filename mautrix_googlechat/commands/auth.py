@@ -15,7 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import textwrap
 
-from maugclib.auth import GoogleAuthError, TokenManager
+from maugclib.auth import TokenManager
+from maugclib.exceptions import ResponseError
 from mautrix.bridge.commands import HelpSection, command_handler
 from mautrix.errors import MForbidden
 from mautrix.types import EventID
@@ -69,7 +70,7 @@ async def enter_oauth_code(evt: CommandEvent) -> EventID:
         token_mgr = await TokenManager.from_authorization_code(
             evt.args[0], u.UserRefreshTokenCache(evt.sender)
         )
-    except GoogleAuthError as e:
+    except ResponseError as e:
         evt.log.exception(f"Login for {evt.sender.mxid} failed")
         return await evt.reply(f"Failed to log in: {e}")
     except Exception:
@@ -92,7 +93,7 @@ async def enter_oauth_code(evt: CommandEvent) -> EventID:
 )
 async def logout(evt: CommandEvent) -> None:
     puppet = await pu.Puppet.get_by_gcid(evt.sender.gcid)
-    await evt.sender.logout()
+    await evt.sender.logout(is_manual=True)
     if puppet and puppet.is_real_user:
         await puppet.switch_mxid(None, None)
     await evt.reply("Successfully logged out")

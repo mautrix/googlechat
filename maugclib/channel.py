@@ -256,12 +256,18 @@ class Channel:
         headers = {"Content-Type": "application/x-protobuf"}
         res = await self._session.fetch_raw("POST", CHANNEL_URL_BASE + "register", headers=headers)
 
-        if res.status != 200:
-            raise exceptions.NetworkError(
-                f"Request return unexpected status: {res.status}: {res.reason}"
-            )
-
         body = await res.read()
+
+        if res.status != 200:
+            logger.info(
+                "Register request HTTP %d %s response body: %s", res.status, res.reason, body
+            )
+            raise exceptions.UnexpectedStatusError(
+                f"Register request",
+                res.status,
+                res.reason,
+                body,
+            )
 
         morsel = self._session.get_cookie(CHANNEL_URL_BASE, "COMPASS")
         logger.debug("Cookies: %s", self._session._cookie_jar._cookies)
@@ -386,15 +392,20 @@ class Channel:
                 "GET", CHANNEL_URL_BASE + "events_encoded", params=params
             ) as res:
                 if res.status != 200:
+                    text = await res.text()
+                    logger.info(
+                        "Long poll HTTP %d %s response body: %s", res.status, res.reason, text
+                    )
+                    LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
                     if res.status == 400:
-                        text = await res.text()
-                        logger.info("400 %s response text: %s", res.reason, text)
                         if res.reason == "Unknown SID" or "Unknown SID" in text:
                             LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
                             raise ChannelSessionError("SID became invalid")
-                    LONG_POLLING_ERRORS.labels(reason=f"http {res.status}").inc()
-                    raise exceptions.NetworkError(
-                        f"Request returned unexpected status: {res.status}: {res.reason}"
+                    raise exceptions.UnexpectedStatusError(
+                        f"Long poll request",
+                        res.status,
+                        res.reason,
+                        text,
                     )
 
                 initial_response = res.headers.get("X-HTTP-Initial-Response", None)
@@ -417,7 +428,7 @@ class Channel:
 
         except asyncio.TimeoutError:
             LONG_POLLING_ERRORS.labels(reason="timeout").inc()
-            raise exceptions.NetworkError("Request timed out")
+            raise exceptions.NetworkError("Long poll request timed out")
         except aiohttp.ServerDisconnectedError as err:
             LONG_POLLING_ERRORS.labels(reason="server disconnected").inc()
             raise exceptions.NetworkError(f"Server disconnected error: {err}")
@@ -426,7 +437,7 @@ class Channel:
             raise ChannelSessionError("SID is about to expire")
         except aiohttp.ClientError as err:
             LONG_POLLING_ERRORS.labels(reason="connection error").inc()
-            raise exceptions.NetworkError(f"Request connection error: {err}")
+            raise exceptions.NetworkError(f"Long poll request connection error: {err}")
         LONG_POLLING_ERRORS.labels(reason="clean exit").inc()
 
     async def _on_push_data(self, data_bytes: bytes) -> None:

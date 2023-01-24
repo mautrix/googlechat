@@ -22,7 +22,8 @@ import urllib.parse
 
 from aiohttp import web
 
-from maugclib.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES, GoogleAuthError, TokenManager
+from maugclib.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES, TokenManager
+from maugclib.exceptions import ResponseError
 from mautrix.types import UserID
 
 from .. import user as u
@@ -118,7 +119,7 @@ class GoogleChatAuthServer:
     async def logout(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
         user = await u.User.get_by_mxid(user_id)
-        await user.logout()
+        await user.logout(is_manual=True)
         return web.json_response({})
 
     async def whoami(self, request: web.Request) -> web.Response:
@@ -191,7 +192,7 @@ class GoogleChatAuthServer:
             token_mgr = await TokenManager.from_authorization_code(
                 auth, u.UserRefreshTokenCache(user)
             )
-        except GoogleAuthError as e:
+        except ResponseError as e:
             log.exception(f"Login for {user.mxid} failed")
             return web.json_response(
                 {

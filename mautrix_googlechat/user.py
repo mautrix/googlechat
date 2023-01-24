@@ -22,9 +22,11 @@ import time
 from maugclib import (
     ChannelLifetimeExpired,
     Client,
-    GoogleAuthError,
+    HangupsError,
     RefreshTokenCache,
+    ResponseError,
     TokenManager,
+    UnexpectedStatusError,
     googlechat_pb2 as googlechat,
 )
 from mautrix.bridge import BaseUser, async_getter_lock
@@ -69,6 +71,7 @@ class User(DBUser, BaseUser):
     _skip_on_connect: bool
     _prev_sync: float
     periodic_sync_task: asyncio.Task | None
+    conn_task: asyncio.Task | None
 
     groups: dict[str, googlechat.GetGroupResponse]
     groups_lock: asyncio.Lock
@@ -107,6 +110,7 @@ class User(DBUser, BaseUser):
         self.users_lock = asyncio.Lock()
         self._intentional_disconnect = False
         self.periodic_sync_task = None
+        self.conn_task = None
 
     # region Sessions
 
@@ -232,22 +236,27 @@ class User(DBUser, BaseUser):
     async def _try_init(self) -> None:
         try:
             token_mgr = await TokenManager.from_refresh_token(UserRefreshTokenCache(self))
-        except GoogleAuthError as e:
-            await self.send_bridge_notice(
-                f"Failed to resume session with stored refresh token: {e}",
-                state_event=BridgeStateEvent.BAD_CREDENTIALS,
-                important=True,
-            )
+        except Exception as e:
             self.log.exception("Failed to resume session with stored refresh token")
-            self.refresh_token = None
-            await self.save()
+            if isinstance(e, ResponseError):
+                self.log.debug("Auth error body: %s", e.body)
+            if isinstance(e, UnexpectedStatusError) and e.error_code == "invalid_grant":
+                self.log.info("Resume session error has invalid_grant error code, logging out")
+                await self.logout(is_manual=False, error=e)
+            else:
+                await self.send_bridge_notice(
+                    f"Failed to resume session with stored refresh token: {e}",
+                    state_event=BridgeStateEvent.UNKNOWN_ERROR,
+                    important=True,
+                )
+                # TODO retry?
         else:
             self.login_complete(token_mgr)
 
     def login_complete(self, token_manager: TokenManager) -> None:
         self.log.debug("Running post-login actions")
         self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
-        asyncio.create_task(self.start())
+        self.conn_task = asyncio.create_task(self.start())
         if not self.periodic_sync_task:
             self.periodic_sync_task = asyncio.create_task(self._periodic_sync())
         self.client.on_stream_event.add_observer(self.on_stream_event)
@@ -276,6 +285,9 @@ class User(DBUser, BaseUser):
         state_event = BridgeStateEvent.TRANSIENT_DISCONNECT
         self._intentional_disconnect = False
         while True:
+            if self._intentional_disconnect:
+                self.log.warning("Client connection already finished, not restarting")
+                return
             try:
                 await self.client.connect(max_age=1.5 * 60 * 60)
                 self._track_metric(METRIC_CONNECTED, False)
@@ -296,6 +308,12 @@ class User(DBUser, BaseUser):
             except Exception as e:
                 self._track_metric(METRIC_CONNECTED, False)
                 self.log.exception("Exception in connection")
+                if isinstance(e, ResponseError):
+                    self.log.debug("Response error body: %s", e.body)
+                if isinstance(e, UnexpectedStatusError) and e.error_code == "invalid_grant":
+                    self.log.info("Connection error has invalid_grant error code, logging out")
+                    asyncio.create_task(self.logout(is_manual=False, error=e))
+                    return
                 error_msg = f"Exception in Google Chat connection: {e}"
 
             if last_disconnection + backoff_reset_in_seconds < time.time():
@@ -305,14 +323,20 @@ class User(DBUser, BaseUser):
                 backoff = int(backoff * 1.5)
                 if backoff > 60:
                     state_event = BridgeStateEvent.UNKNOWN_ERROR
-            await self.send_bridge_notice(
-                error_msg,
-                state_event=state_event,
-                important=state_event == BridgeStateEvent.UNKNOWN_ERROR,
-            )
-            last_disconnection = time.time()
-            self.log.debug(f"Reconnecting in {backoff} seconds")
-            await asyncio.sleep(backoff)
+            try:
+                await self.send_bridge_notice(
+                    error_msg,
+                    state_event=state_event,
+                    important=state_event == BridgeStateEvent.UNKNOWN_ERROR,
+                )
+                last_disconnection = time.time()
+                self.log.debug(f"Reconnecting in {backoff} seconds")
+                await asyncio.sleep(backoff)
+            except asyncio.CancelledError:
+                self.log.debug("Connection task was cancelled while waiting to reconnect")
+                return
+            except Exception:
+                self.log.exception("Error waiting to reconnect")
 
     async def stop(self) -> None:
         if self.client:
@@ -321,9 +345,24 @@ class User(DBUser, BaseUser):
         if self.periodic_sync_task:
             self.periodic_sync_task.cancel()
             self.periodic_sync_task = None
+        if self.conn_task:
+            self.conn_task.cancel()
+            self.conn_task = None
         await self.save()
 
-    async def logout(self) -> None:
+    async def logout(self, is_manual: bool, error: UnexpectedStatusError | None = None) -> None:
+        if self.gcid:
+            if is_manual:
+                await self.push_bridge_state(BridgeStateEvent.LOGGED_OUT)
+            else:
+                message = "Logged out from Google account"
+                if error and isinstance(error, UnexpectedStatusError) and error.error_code:
+                    message += f": {error.error_code}: {error.error_desc}"
+                await self.send_bridge_notice(
+                    message,
+                    state_event=BridgeStateEvent.BAD_CREDENTIALS,
+                    important=True,
+                )
         self._track_metric(METRIC_LOGGED_IN, False)
         self.by_gcid.pop(self.gcid, None)
         self.gcid = None

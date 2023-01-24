@@ -13,12 +13,15 @@ from __future__ import annotations
 from typing import Any
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+import json
 import logging
 import platform
 import urllib.parse
 import urllib.request
 
 import aiohttp
+
+from . import exceptions
 
 try:
     from aiohttp_socks import ProxyConnector
@@ -35,10 +38,6 @@ OAUTH2_SCOPES = [
 ]
 OAUTH2_TOKEN_REQUEST_URL = "https://accounts.google.com/o/oauth2/token"
 USER_AGENT = "hangups/0.5.0 ({} {})".format(platform.system(), platform.machine())
-
-
-class GoogleAuthError(Exception):
-    """A Google authentication request failed."""
 
 
 class RefreshTokenCache(ABC):
@@ -108,15 +107,19 @@ class TokenManager:
         """
         try:
             r = await self.session.post(OAUTH2_TOKEN_REQUEST_URL, data=data)
-            r.raise_for_status()
         except aiohttp.ClientError as e:
-            raise GoogleAuthError("Token request failed: {}".format(e))
-        else:
-            res = await r.json()
-            # If an error occurred, a key 'error' will contain an error code.
-            if "error" in res:
-                raise GoogleAuthError("Token request error: {!r}".format(res["error"]))
-            return res
+            raise exceptions.NetworkError(f"Token request failed: {e}") from e
+        body = await r.text()
+        if not r.ok:
+            raise exceptions.UnexpectedStatusError(f"Token request", r.status, r.reason, body)
+        try:
+            body = json.loads(body)
+        except json.JSONDecodeError:
+            raise exceptions.ResponseNotJSONError("Token request", body)
+
+        if "error" in body:
+            raise exceptions.UnexpectedStatusError(f"Token request", r.status, r.reason, body)
+        return body
 
     @staticmethod
     async def from_authorization_code(
@@ -156,7 +159,7 @@ class TokenManager:
 
         refresh_token = await self.refresh_token_cache.get()
         if refresh_token is None:
-            raise GoogleAuthError("Refresh token not found")
+            raise exceptions.HangupsError("Refresh token not found")
 
         data = {
             "client_id": OAUTH2_CLIENT_ID,
@@ -220,18 +223,25 @@ class TokenManager:
                 headers=headers,
                 data=data,
             )
-            r.raise_for_status()
         except aiohttp.ClientError as e:
-            raise GoogleAuthError("OAuthLogin request failed: {}".format(e))
+            raise exceptions.NetworkError(f"OAuthLogin request failed: {e}") from e
+        body = await r.text()
+        if not r.ok:
+            raise exceptions.UnexpectedStatusError(f"OAuthLogin request", r.status, r.reason, body)
 
-        body = await r.json()
+        try:
+            body = json.loads(body)
+        except json.JSONDecodeError:
+            raise exceptions.ResponseNotJSONError("OAuthLogin request", body)
 
         try:
             self.dynamite_token = body["token"]
             expires_in = timedelta(seconds=int(body["expiresIn"]))
             self.dynamite_expiration = datetime.now() + expires_in
         except IndexError:
-            raise GoogleAuthError("Failed to find the dynamite token")
+            raise exceptions.UnexpectedResponseDataError(
+                "Failed to find the dynamite token in OAuthLogin response", body
+            )
 
     async def get(self) -> str:
         if self.dynamite_expiration is None or datetime.now() >= self.dynamite_expiration:
