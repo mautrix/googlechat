@@ -22,9 +22,9 @@ import time
 from maugclib import (
     ChannelLifetimeExpired,
     Client,
-    HangupsError,
     RefreshTokenCache,
     ResponseError,
+    SIDInvalidError,
     TokenManager,
     UnexpectedStatusError,
     googlechat_pb2 as googlechat,
@@ -305,6 +305,28 @@ class User(DBUser, BaseUser):
                 self.log.debug("Client connection was terminated after being alive too long")
                 self._skip_on_connect = True
                 continue
+            except SIDInvalidError:
+                if self._prev_sync + 3 * 60 < time.monotonic():
+                    self.log.debug(
+                        "Client connection was terminated due to invalid SID error, "
+                        "doing small sync to check for missed messages"
+                    )
+                    backfilled_count = await self.sync(limit=3)
+                    if backfilled_count:
+                        self.log.debug(
+                            f"Sync backfilled {backfilled_count} chats,"
+                            " doing full sync on reconnect"
+                        )
+                    else:
+                        self.log.debug("Sync didn't backfill anything")
+                        self._skip_on_connect = True
+                    continue
+                else:
+                    self.log.warning(
+                        "Client connection was terminated due to invalid SID error, "
+                        "but previous sync was less than 3 minutes ago"
+                    )
+                    error_msg = f"Unknown SID error in Google Chat connection"
             except Exception as e:
                 self._track_metric(METRIC_CONNECTED, False)
                 self.log.exception("Exception in connection")

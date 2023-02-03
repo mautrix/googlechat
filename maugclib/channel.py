@@ -31,6 +31,7 @@ import async_timeout
 from mautrix.util.opt_prometheus import Counter
 
 from . import event, exceptions, googlechat_pb2, http_utils
+from .exceptions import SIDExpiringError, SIDInvalidError
 
 logger = logging.getLogger(__name__)
 Utf8IncrementalDecoder = codecs.getincrementaldecoder("utf-8")
@@ -54,10 +55,6 @@ RECEIVED_CHUNKS = Counter(
     name="bridge_gc_received_chunk_bytes",
     documentation="Received chunks from Google Chat long polling",
 )
-
-
-class ChannelSessionError(exceptions.HangupsError):
-    """hangups channel session error"""
 
 
 def _best_effort_decode(data_bytes):
@@ -218,7 +215,7 @@ class Channel:
             self._chunk_parser = ChunkParser()
             try:
                 await self._longpoll_request()
-            except ChannelSessionError as err:
+            except SIDExpiringError as err:
                 logger.debug("Long-polling interrupted: %s", err)
 
                 self._csessionid_param = await self._register()
@@ -400,7 +397,7 @@ class Channel:
                     if res.status == 400:
                         if res.reason == "Unknown SID" or "Unknown SID" in text:
                             LONG_POLLING_ERRORS.labels(reason="sid invalid").inc()
-                            raise ChannelSessionError("SID became invalid")
+                            raise SIDInvalidError()
                     raise exceptions.UnexpectedStatusError(
                         f"Long poll request",
                         res.status,
@@ -434,7 +431,7 @@ class Channel:
             raise exceptions.NetworkError(f"Server disconnected error: {err}")
         except aiohttp.ClientPayloadError:
             LONG_POLLING_ERRORS.labels(reason="sid expiry").inc()
-            raise ChannelSessionError("SID is about to expire")
+            raise SIDExpiringError()
         except aiohttp.ClientError as err:
             LONG_POLLING_ERRORS.labels(reason="connection error").inc()
             raise exceptions.NetworkError(f"Long poll request connection error: {err}")

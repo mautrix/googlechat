@@ -13,6 +13,9 @@ from .exceptions import (
     NetworkError,
     ResponseError,
     ResponseNotJSONError,
+    SIDError,
+    SIDExpiringError,
+    SIDInvalidError,
     UnexpectedResponseDataError,
     UnexpectedStatusError,
 )

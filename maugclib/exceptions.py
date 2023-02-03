@@ -20,6 +20,20 @@ class ChannelLifetimeExpired(HangupsError):
     pass
 
 
+class SIDError(HangupsError):
+    pass
+
+
+class SIDExpiringError(SIDError):
+    def __init__(self) -> None:
+        super().__init__("SID is about to expire")
+
+
+class SIDInvalidError(SIDError):
+    def __init__(self) -> None:
+        super().__init__("SID became invalid")
+
+
 class FileTooLargeError(HangupsError):
     pass
 
