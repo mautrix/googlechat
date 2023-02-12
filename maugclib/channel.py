@@ -94,7 +94,6 @@ class ChunkParser:
         self._buf += new_data_bytes
 
         while True:
-
             buf_decoded = _best_effort_decode(self._buf)
             buf_utf16 = buf_decoded.encode("utf-16")[2:]
 
@@ -442,7 +441,6 @@ class Channel:
         logger.debug("Received chunk:\n{}".format(data_bytes))
         RECEIVED_CHUNKS.inc(len(data_bytes))
         for chunk in self._chunk_parser.get_chunks(data_bytes):
-
             # Consider the channel connected once the first chunk is received.
             if not self._is_connected:
                 if self._on_connect_called:
