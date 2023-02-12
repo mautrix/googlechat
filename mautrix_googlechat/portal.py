@@ -28,7 +28,7 @@ import aiohttp
 from maugclib import FileTooLargeError, googlechat_pb2 as googlechat
 from mautrix.appservice import IntentAPI
 from mautrix.bridge import BasePortal, NotificationDisabler, async_getter_lock
-from mautrix.errors import IntentError, MatrixError, MForbidden
+from mautrix.errors import MatrixError, MForbidden
 from mautrix.types import (
     BeeperMessageStatusEventContent,
     ContentURI,
@@ -48,7 +48,7 @@ from mautrix.types import (
     TextMessageEventContent,
     UserID,
 )
-from mautrix.util import magic, variation_selector
+from mautrix.util import background_task, magic, variation_selector
 from mautrix.util.message_send_checkpoint import MessageSendCheckpointStatus
 from mautrix.util.opt_prometheus import Histogram
 from mautrix.util.simple_lock import SimpleLock
@@ -928,7 +928,7 @@ class Portal(DBPortal, BasePortal):
             message_type=msgtype,
             error=reason,
         )
-        asyncio.create_task(self._send_message_status(event_id, NotImplementedError(reason)))
+        background_task.create(self._send_message_status(event_id, NotImplementedError(reason)))
 
     async def _rec_error(
         self,
@@ -955,7 +955,7 @@ class Portal(DBPortal, BasePortal):
             message_type=msgtype,
             error=err,
         )
-        asyncio.create_task(self._send_message_status(event_id, err))
+        background_task.create(self._send_message_status(event_id, err))
         if self.config["bridge.delivery_error_reports"]:
             await self._send_message(
                 self.main_intent,
@@ -980,7 +980,7 @@ class Portal(DBPortal, BasePortal):
             message_type=msgtype,
         )
         await self._send_delivery_receipt(event_id)
-        asyncio.create_task(self._send_message_status(event_id, err=None))
+        background_task.create(self._send_message_status(event_id, err=None))
 
     async def _send_message_status(self, event_id: EventID, err: Exception | None) -> None:
         if not self.config["bridge.message_status_events"]:

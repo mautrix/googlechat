@@ -31,6 +31,7 @@ from maugclib import (
 )
 from mautrix.bridge import BaseUser, async_getter_lock
 from mautrix.types import MessageType, RoomID, UserID
+from mautrix.util import background_task
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Histogram, async_time
 import maugclib.parsers
@@ -264,20 +265,6 @@ class User(DBUser, BaseUser):
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)
 
-    def _in_background(
-        self, method: Callable[[Any], Awaitable[None]]
-    ) -> Callable[[Any], Awaitable[None]]:
-        async def try_proxy(*args, **kwargs) -> None:
-            try:
-                await method(*args, **kwargs)
-            except Exception:
-                self.log.exception("Exception in event handler")
-
-        async def proxy(*args, **kwargs) -> None:
-            asyncio.create_task(try_proxy(*args, **kwargs))
-
-        return proxy
-
     async def start(self) -> None:
         last_disconnection = 0
         backoff = 4
@@ -338,7 +325,7 @@ class User(DBUser, BaseUser):
                     self.log.info(
                         "Connection error has 401 status or invalid_grant error code, logging out"
                     )
-                    asyncio.create_task(self.logout(is_manual=False, error=e))
+                    background_task.create(self.logout(is_manual=False, error=e))
                     return
                 error_msg = f"Exception in Google Chat connection: {e}"
 
@@ -409,7 +396,7 @@ class User(DBUser, BaseUser):
     async def on_connect(self) -> None:
         self.connected = True
         if not self._skip_on_connect:
-            asyncio.create_task(self.on_connect_later())
+            background_task.create(self.on_connect_later())
             await self.send_bridge_notice("Connected to Google Chat")
         else:
             self._skip_on_connect = False
@@ -575,7 +562,7 @@ class User(DBUser, BaseUser):
                         "Periodic sync error has 401 status or invalid_grant error code, "
                         "logging out"
                     )
-                    asyncio.create_task(self.logout(is_manual=False, error=e))
+                    background_task.create(self.logout(is_manual=False, error=e))
                     return
 
     @async_time(METRIC_SYNC)
