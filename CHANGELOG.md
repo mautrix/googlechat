@@ -1,3 +1,9 @@
+# unreleased
+
+* Allowed thread bridging in non-thread-only chats.
+* Improved handling of getting logged out remotely.
+* Updated Docker image to Alpine 3.17.
+
 # v0.4.0 (2022-11-15)
 
 * Added support for bridging room mentions in both directions.
