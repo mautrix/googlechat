@@ -266,6 +266,12 @@ class User(DBUser, BaseUser):
         self.client.on_disconnect.add_observer(self.on_disconnect)
 
     async def start(self) -> None:
+        try:
+            await self._start()
+        except Exception:
+            self.log.exception("Fatal error in Google Chat connection")
+
+    async def _start(self) -> None:
         last_disconnection = 0
         backoff = 4
         backoff_reset_in_seconds = 60
@@ -298,7 +304,11 @@ class User(DBUser, BaseUser):
                         "Client connection was terminated due to invalid SID error, "
                         "doing small sync to check for missed messages"
                     )
-                    backfilled_count = await self.sync(limit=3)
+                    try:
+                        backfilled_count = await self.sync(limit=3)
+                    except Exception:
+                        self.log.exception("Failed to sync recent chats")
+                        backfilled_count = None
                     if backfilled_count:
                         self.log.debug(
                             f"Sync backfilled {backfilled_count} chats,"
