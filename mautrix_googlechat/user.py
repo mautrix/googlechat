@@ -252,11 +252,21 @@ class User(DBUser, BaseUser):
                 )
                 # TODO retry?
         else:
-            self.login_complete(token_mgr)
+            await self.login_complete(token_mgr)
 
-    def login_complete(self, token_manager: TokenManager) -> None:
+    async def login_complete(self, token_manager: TokenManager, get_self: bool = False) -> bool:
         self.log.debug("Running post-login actions")
         self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
+        if get_self or not self.gcid:
+            self.log.debug("Fetching own user ID before connecting")
+            try:
+                await self._fetch_own_id()
+            except Exception:
+                self.refresh_token = None
+                self.client = None
+                await self.save()
+                self.log.exception("Failed to get own info after login")
+                return False
         self.conn_task = asyncio.create_task(self.start())
         if not self.periodic_sync_task:
             self.periodic_sync_task = asyncio.create_task(self._periodic_sync())
@@ -264,6 +274,7 @@ class User(DBUser, BaseUser):
         self.client.on_connect.add_observer(self.on_connect)
         self.client.on_reconnect.add_observer(self.on_reconnect)
         self.client.on_disconnect.add_observer(self.on_disconnect)
+        return True
 
     async def start(self) -> None:
         try:
@@ -412,13 +423,18 @@ class User(DBUser, BaseUser):
             self._skip_on_connect = False
             await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
+    async def _fetch_own_id(self) -> None:
+        if self.gcid:
+            return
+        info = await self.client.proto_get_self_user_status(
+            googlechat.GetSelfUserStatusRequest(request_header=self.client.gc_request_header)
+        )
+        self.gcid = info.user_status.user_id.id
+        self.by_gcid[self.gcid] = self
+
     async def get_self(self) -> googlechat.User:
         if not self.gcid:
-            info = await self.client.proto_get_self_user_status(
-                googlechat.GetSelfUserStatusRequest(request_header=self.client.gc_request_header)
-            )
-            self.gcid = info.user_status.user_id.id
-            self.by_gcid[self.gcid] = self
+            await self._fetch_own_id()
 
         resp = await self.client.proto_get_members(
             googlechat.GetMembersRequest(

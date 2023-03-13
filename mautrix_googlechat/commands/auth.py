@@ -77,7 +77,8 @@ async def enter_oauth_code(evt: CommandEvent) -> EventID:
         evt.log.exception(f"Login for {evt.sender.mxid} errored")
         return await evt.reply("Unknown error logging in (see logs for more details)")
     else:
-        evt.sender.login_complete(token_mgr)
+        if not await evt.sender.login_complete(token_mgr, get_self=True):
+            return await evt.reply("Failed to get own info after login")
         await evt.sender.name_future
         return await evt.reply(
             f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "

@@ -210,7 +210,13 @@ class GoogleChatAuthServer:
                 status=500,
             )
         else:
-            user.login_complete(token_mgr)
+            if not await user.login_complete(token_mgr, get_self=True):
+                return web.json_response(
+                    {
+                        "status": "fail",
+                        "error": "Failed to get own info after login",
+                    }
+                )
             await asyncio.wait_for(asyncio.shield(user.name_future), 20)
             return web.json_response(
                 {
