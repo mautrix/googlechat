@@ -82,17 +82,10 @@ class GoogleChatAuthServer:
 
         self.app = web.Application(middlewares=[error_middleware])
         self.app.router.add_get("/v1/whoami", self.whoami)
+        self.app.router.add_post("/v1/get_login_url", self.start_login)
         self.app.router.add_post("/v1/login", self.login)
         self.app.router.add_post("/v1/logout", self.logout)
         self.app.router.add_post("/v1/reconnect", self.reconnect)
-
-        self.legacy_app = web.Application(middlewares=[error_middleware])
-        self.legacy_app.router.add_post("/api/verify", self.verify)
-        self.legacy_app.router.add_post("/api/start", self.start_login)
-        self.legacy_app.router.add_post("/api/logout", self.logout)
-        self.legacy_app.router.add_post("/api/authorization", self.login)
-        self.legacy_app.router.add_post("/api/reconnect", self.reconnect)
-        self.legacy_app.router.add_get("/api/whoami", self.whoami)
 
     def verify_token(self, request: web.Request) -> UserID | None:
         try:
@@ -108,13 +101,6 @@ class GoogleChatAuthServer:
             return UserID(request.query["user_id"])
         except KeyError:
             raise ErrorResponse(400, "Missing user_id query parameter", "M_MISSING_PARAM")
-
-    async def verify(self, request: web.Request) -> web.Response:
-        return web.json_response(
-            {
-                "user_id": self.verify_token(request),
-            }
-        )
 
     async def logout(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
@@ -160,8 +146,7 @@ class GoogleChatAuthServer:
             )
         return web.json_response(
             {
-                "next_step": "authorization",
-                "manual_auth_url": make_login_url(self.device_name),
+                "url": make_login_url(self.device_name),
             }
         )
 
