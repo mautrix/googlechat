@@ -15,11 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncIterable, Awaitable, Callable, Iterable, cast
+from typing import TYPE_CHECKING, AsyncIterable, Awaitable, Iterable, cast
 import asyncio
 import time
 
 from maugclib import (
+    AuthAdvice,
     ChannelLifetimeExpired,
     Client,
     RefreshTokenCache,
@@ -59,6 +60,8 @@ class User(DBUser, BaseUser):
     config: Config
 
     client: Client | None
+    auth_advice: AuthAdvice | None
+    auth_lock: asyncio.Lock
     is_admin: bool
     _db_instance: DBUser | None
 
@@ -98,6 +101,8 @@ class User(DBUser, BaseUser):
         self._notice_room_lock = asyncio.Lock()
         self.is_whitelisted, self.is_admin, self.level = self.config.get_permissions(mxid)
         self.client = None
+        self.auth_advice = None
+        self.auth_lock = asyncio.Lock()
         self.name = None
         self.email = None
         self.name_future = self.loop.create_future()
@@ -253,6 +258,12 @@ class User(DBUser, BaseUser):
                 # TODO retry?
         else:
             await self.login_complete(token_mgr)
+
+    async def get_auth_advice(self) -> AuthAdvice:
+        async with self.auth_lock:
+            if not self.auth_advice:
+                self.auth_advice = await TokenManager(None).auth_advice()
+            return self.auth_advice
 
     async def login_complete(self, token_manager: TokenManager, get_self: bool = False) -> bool:
         self.log.debug("Running post-login actions")

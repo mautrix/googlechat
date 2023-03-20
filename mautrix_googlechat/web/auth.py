@@ -18,11 +18,10 @@ from __future__ import annotations
 from typing import Any
 import asyncio
 import logging
-import urllib.parse
 
 from aiohttp import web
 
-from maugclib.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES, TokenManager
+from maugclib.auth import TokenManager
 from maugclib.exceptions import ResponseError
 from mautrix.types import UserID
 
@@ -56,18 +55,6 @@ async def error_middleware(request: web.Request, handler) -> web.Response:
 log = logging.getLogger("mau.gc.auth")
 
 LOGIN_TIMEOUT = 10 * 60
-
-
-def make_login_url(device_name: str) -> str:
-    query = urllib.parse.urlencode(
-        {
-            "scope": "+".join(OAUTH2_SCOPES),
-            "client_id": OAUTH2_CLIENT_ID,
-            "device_name": device_name,
-        },
-        safe="+",
-    )
-    return f"https://accounts.google.com/o/oauth2/programmatic_auth?{query}"
 
 
 class GoogleChatAuthServer:
@@ -134,7 +121,7 @@ class GoogleChatAuthServer:
 
     async def start_login(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
-        user = await u.User.get_by_mxid(user_id)
+        user: u.User = await u.User.get_by_mxid(user_id)
         if user.client:
             await user.name_future
             return web.json_response(
@@ -144,11 +131,7 @@ class GoogleChatAuthServer:
                     "email": user.email,
                 }
             )
-        return web.json_response(
-            {
-                "url": make_login_url(self.device_name),
-            }
-        )
+        return web.json_response((await user.get_auth_advice())._asdict())
 
     async def login(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
@@ -160,6 +143,13 @@ class GoogleChatAuthServer:
                     "status": "success",
                     "name": user.name,
                     "email": user.email,
+                }
+            )
+        elif not user.auth_advice:
+            return web.json_response(
+                {
+                    "status": "fail",
+                    "error": "Login state not found, please try again",
                 }
             )
         data = await request.json()
@@ -175,7 +165,7 @@ class GoogleChatAuthServer:
         user.log.debug("Trying to log in with auth code")
         try:
             token_mgr = await TokenManager.from_authorization_code(
-                auth, u.UserRefreshTokenCache(user)
+                auth, user.auth_advice.code_verifier, u.UserRefreshTokenCache(user)
             )
         except ResponseError as e:
             log.exception(f"Login for {user.mxid} failed")

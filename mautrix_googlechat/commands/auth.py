@@ -22,7 +22,6 @@ from mautrix.errors import MForbidden
 from mautrix.types import EventID
 
 from .. import puppet as pu, user as u
-from ..web.auth import make_login_url
 from .typehint import CommandEvent
 
 SECTION_AUTH = HelpSection("Authentication", 10, "")
@@ -35,9 +34,11 @@ SECTION_AUTH = HelpSection("Authentication", 10, "")
     help_text="Log in to Google Chat",
 )
 async def login(evt: CommandEvent) -> EventID:
-    direct_login_url = make_login_url(evt.config["hangouts.device_name"])
+    authadvice = await evt.sender.get_auth_advice()
     instructions = f"""
-        1. Open [this link]({direct_login_url}) in your browser.
+        0. Set your browser's user agent to `{authadvice.user_agent}`
+           (e.g. using responsive design mode).
+        1. Open [this link]({authadvice.url}).
         2. Log into your Google account normally.
         3. When you reach the loading screen after logging in that says *"One moment please..."*,
            press `F12` to open developer tools.
@@ -60,6 +61,10 @@ async def enter_oauth_code(evt: CommandEvent) -> EventID:
             "Please enter the value of the `oauth_code` cookie, "
             "or use the `cancel` command to cancel."
         )
+    elif not evt.sender.auth_advice:
+        return await evt.reply(
+            "Don't restart the bridge between generating the login URL and entering the code"
+        )
 
     try:
         await evt.az.intent.redact(evt.room_id, evt.event_id)
@@ -68,7 +73,7 @@ async def enter_oauth_code(evt: CommandEvent) -> EventID:
 
     try:
         token_mgr = await TokenManager.from_authorization_code(
-            evt.args[0], u.UserRefreshTokenCache(evt.sender)
+            evt.args[0], evt.sender.auth_advice.code_verifier, u.UserRefreshTokenCache(evt.sender)
         )
     except ResponseError as e:
         evt.log.exception(f"Login for {evt.sender.mxid} failed")

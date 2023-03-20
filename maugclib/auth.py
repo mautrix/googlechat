@@ -10,14 +10,19 @@ This module should avoid logging any sensitive login information.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NamedTuple
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+import base64
 import json
 import logging
 import platform
+import random
+import secrets
+import string
 import urllib.parse
 import urllib.request
+import uuid
 
 import aiohttp
 
@@ -36,8 +41,24 @@ OAUTH2_SCOPES = [
     "https://www.google.com/accounts/OAuthLogin",
     "https://www.googleapis.com/auth/userinfo.email",
 ]
-OAUTH2_TOKEN_REQUEST_URL = "https://accounts.google.com/o/oauth2/token"
+# OAUTH2_TOKEN_REQUEST_URL = "https://accounts.google.com/o/oauth2/token"
+OAUTH2_TOKEN_REQUEST_URL = "https://oauth2.googleapis.com/token"
+OAUTH2_AUTH_ADVICE_URL = "https://oauthaccountmanager.googleapis.com/v1/authadvice"
+OAUTH2_REDIRECT_URI = (
+    "com.google.sso.576267593750-sbi1m7khesgfh1e0f2nv5vqlfa4qr72m:/authCallback?login=code"
+)
+APP_CLIENT_ID = "576267593750-sbi1m7khesgfh1e0f2nv5vqlfa4qr72m.apps.googleusercontent.com"
+APP_VERSION = "0.336"
+LATEST_IOS_VERSION = "16.3.1"
+LATEST_APPLEWEBKIT_VERSION = "605.1.15"
+LATEST_SAFARI_VERSION = "604.1"
 USER_AGENT = "hangups/0.5.0 ({} {})".format(platform.system(), platform.machine())
+
+
+class AuthAdvice(NamedTuple):
+    url: str
+    code_verifier: str
+    user_agent: str
 
 
 class RefreshTokenCache(ABC):
@@ -51,7 +72,7 @@ class RefreshTokenCache(ABC):
 
 
 class TokenManager:
-    def __init__(self, refresh_token_cache: RefreshTokenCache) -> None:
+    def __init__(self, refresh_token_cache: RefreshTokenCache | None) -> None:
         connector = None
         try:
             http_proxy = urllib.request.getproxies()["http"]
@@ -122,18 +143,61 @@ class TokenManager:
         return body
 
     @staticmethod
+    async def auth_advice() -> AuthAdvice:
+        tm = TokenManager(None)
+        randstr = lambda n: "".join(random.choices(string.digits + string.ascii_letters, k=n))
+        resp = await tm.session.post(
+            OAUTH2_AUTH_ADVICE_URL,
+            json={
+                "external_browser": "true",
+                "report_user_id": "true",
+                "system_version": LATEST_IOS_VERSION,
+                "app_version": APP_VERSION,
+                "user_id": [],
+                "safari_authenticated_session": "true",
+                "redirect_uri": OAUTH2_REDIRECT_URI,
+                "client_id": APP_CLIENT_ID,
+                "mediator_client_id": OAUTH2_CLIENT_ID,
+                "device_id": str(uuid.uuid4()),
+                "device_challenge_request": (
+                    base64.urlsafe_b64encode(secrets.token_bytes(72)).decode("utf-8")
+                ),
+                "client_state": f"{randstr(20)}_{randstr(36)}",
+            },
+        )
+        if resp.status != 200:
+            logger.warning("Unexpected response from authadvice: %s", await resp.text())
+            resp.raise_for_status()
+        data = await resp.json()
+        ios_version_underscore = LATEST_IOS_VERSION.replace(".", "_")
+        ios_version_minor = LATEST_IOS_VERSION.rsplit(".", 1)[0]
+        # Minimal user agent: "(iPhone) AppleWebKit/"
+        user_agent = (
+            f"Mozilla/5.0 (iPhone; CPU iPhone OS {ios_version_underscore} like Mac OS X) "
+            f"AppleWebKit/{LATEST_APPLEWEBKIT_VERSION} (KHTML, like Gecko) "
+            f"Version/{ios_version_minor} Mobile/15E148 Safari/{LATEST_SAFARI_VERSION}"
+        )
+        return AuthAdvice(
+            url=data["uri"],
+            code_verifier=data["code_verifier"],
+            user_agent=user_agent,
+        )
+
+    @staticmethod
     async def from_authorization_code(
         authorization_code: str,
+        code_verifier: str,
         refresh_token_cache: RefreshTokenCache,
     ) -> TokenManager:
         r = TokenManager(refresh_token_cache)
 
         data = {
             "client_id": OAUTH2_CLIENT_ID,
-            "client_secret": OAUTH2_CLIENT_SECRET,
             "code": authorization_code,
+            "code_verifier": code_verifier,
             "grant_type": "authorization_code",
-            "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+            "redirect_uri": OAUTH2_REDIRECT_URI,
+            "scope": " ".join(OAUTH2_SCOPES),
         }
 
         res = await r._token_request(data)
@@ -201,7 +265,7 @@ class TokenManager:
         }
         data = {
             "app_id": "com.google.Dynamite",
-            "client_id": "576267593750-sbi1m7khesgfh1e0f2nv5vqlfa4qr72m.apps.googleusercontent.com",
+            "client_id": APP_CLIENT_ID,
             "passcode_present": "YES",
             "response_type": "token",
             "scope": " ".join(
