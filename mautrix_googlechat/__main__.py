@@ -34,6 +34,8 @@ from .web import GoogleChatAuthServer
 class GoogleChatBridge(Bridge):
     name = "mautrix-googlechat"
     module = "mautrix_googlechat"
+    beeper_service_name = "googlechat"
+    beeper_network_name = "googlechat"
     command = "python -m mautrix-googlechat"
     description = "A Matrix-Google Chat puppeting bridge."
     repo_url = "https://github.com/mautrix/googlechat"
