@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2022 Tulir Asokan
+# Copyright (C) 2023 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -61,6 +61,9 @@ class Config(BaseBridgeConfig):
         copy("bridge.resend_bridge_info")
         copy("bridge.unimportant_bridge_notices")
         copy("bridge.disable_bridge_notices")
+        copy("bridge.private_chat_portal_meta")
+        if base["bridge.private_chat_portal_meta"] not in ("default", "always", "never"):
+            base["bridge.private_chat_portal_meta"] = "default"
 
         copy("bridge.provisioning.prefix")
         if "bridge.web.auth.shared_secret" in self:
