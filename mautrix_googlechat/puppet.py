@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 
 class Puppet(DBPuppet, BasePuppet):
+    bridge: GoogleChatBridge
     config: Config
     hs_domain: str
     mxid_template: SimpleTemplate[str]
@@ -90,6 +91,7 @@ class Puppet(DBPuppet, BasePuppet):
 
     @classmethod
     def init_cls(cls, bridge: "GoogleChatBridge") -> AsyncIterable[Awaitable[None]]:
+        cls.bridge = bridge
         cls.config = bridge.config
         cls.loop = bridge.loop
         cls.mx = bridge.matrix
@@ -145,11 +147,34 @@ class Puppet(DBPuppet, BasePuppet):
     ) -> None:
         if info is None:
             info = (await source.get_users([self.gcid]))[0]
-        changed = await self._update_name(info)
+        changed = await self._update_contact_info(info)
+        changed = await self._update_name(info) or changed
         if update_avatar:
             changed = await self._update_photo(info.avatar_url) or changed
         if changed:
             await self.save()
+
+    async def _update_contact_info(self, info: googlechat.User) -> bool:
+        if not self.bridge.homeserver_software.is_hungry:
+            return False
+
+        if self.contact_info_set:
+            return False
+
+        try:
+            await self.default_mxid_intent.beeper_update_profile(
+                {
+                    "com.beeper.bridge.identifiers": [f"mailto:{info.email}"],
+                    "com.beeper.bridge.remote_id": self.gcid,
+                    "com.beeper.bridge.service": self.bridge.beeper_service_name,
+                    "com.beeper.bridge.network": self.bridge.beeper_network_name,
+                }
+            )
+            self.contact_info_set = True
+        except Exception:
+            self.log.exception("Error updating contact info")
+            self.contact_info_set = False
+        return True
 
     @classmethod
     def get_name_from_info(cls, info: googlechat.User) -> str | None:
