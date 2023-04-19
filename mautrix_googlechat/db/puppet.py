@@ -38,6 +38,7 @@ class Puppet:
     photo_hash: str | None
     name_set: bool
     avatar_set: bool
+    contact_info_set: bool
     is_registered: bool
 
     custom_mxid: UserID | None
@@ -54,7 +55,7 @@ class Puppet:
         return cls(**data, base_url=URL(base_url) if base_url else None)
 
     columns = (
-        "gcid, name, photo_id, photo_mxc, name_set, avatar_set, is_registered, "
+        "gcid, name, photo_id, photo_mxc, name_set, avatar_set, contact_info_set, is_registered, "
         "custom_mxid, access_token, next_batch, base_url, photo_hash"
     )
 
@@ -91,6 +92,7 @@ class Puppet:
             self.photo_mxc,
             self.name_set,
             self.avatar_set,
+            self.contact_info_set,
             self.is_registered,
             self.custom_mxid,
             self.access_token,
@@ -100,11 +102,10 @@ class Puppet:
         )
 
     async def insert(self) -> None:
-        q = (
-            "INSERT INTO puppet (gcid, name, photo_id, photo_mxc, name_set, avatar_set, "
-            "                    is_registered, custom_mxid, access_token, next_batch, base_url, photo_hash) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
-        )
+        q = f"""
+            INSERT INTO puppet ({self.columns})
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        """
         await self.db.execute(q, *self._values)
 
     async def delete(self) -> None:
@@ -112,10 +113,11 @@ class Puppet:
         await self.db.execute(q, self.gcid)
 
     async def save(self) -> None:
-        q = (
-            "UPDATE puppet SET name=$2, photo_id=$3, photo_mxc=$4, name_set=$5, avatar_set=$6, "
-            "                  is_registered=$7, custom_mxid=$8, access_token=$9, next_batch=$10,"
-            "                  base_url=$11, photo_hash=$12 "
-            "WHERE gcid=$1"
-        )
+        q = """
+            UPDATE puppet
+            SET name=$2, photo_id=$3, photo_mxc=$4, name_set=$5, avatar_set=$6,
+                contact_info_set=$7, is_registered=$8, custom_mxid=$9, access_token=$10,
+                next_batch=$11, base_url=$12, photo_hash=$13
+            WHERE gcid=$1
+        """
         await self.db.execute(q, *self._values)

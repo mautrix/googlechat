@@ -9,4 +9,5 @@ from . import (
     v04_store_photo_hash,
     v05_rename_thread_columns,
     v06_space_description,
+    v07_puppet_contact_info_set,
 )
