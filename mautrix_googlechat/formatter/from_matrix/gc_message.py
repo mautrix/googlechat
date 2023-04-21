@@ -162,3 +162,10 @@ class GCMessage(EntityString[GCEntity, GCEntityType]):
             for entity in self.entities
             if entity.internal.type != googlechat.ANNOTATION_TYPE_UNKNOWN
         ]
+
+    def format(
+        self, entity_type: GCEntityType, offset: int = None, length: int = None, **kwargs
+    ) -> EntityString:
+        if entity_type == GCEntityType.EMAIL:
+            return self
+        return super().format(entity_type, offset, length, **kwargs)
