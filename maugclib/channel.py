@@ -36,7 +36,7 @@ from .exceptions import SIDExpiringError, SIDInvalidError
 logger = logging.getLogger(__name__)
 Utf8IncrementalDecoder = codecs.getincrementaldecoder("utf-8")
 LEN_REGEX = re.compile(r"([0-9]+)\n", re.MULTILINE)
-CHANNEL_URL_BASE = "https://chat.google.com/webchannel/"
+CHANNEL_URL_BASE = "https://chat.google.com/u/0/webchannel/"
 # Long-polling requests send heartbeats every 15-30 seconds, so if we miss two
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
@@ -242,15 +242,17 @@ class Channel:
         logger.error("Ran out of retries for long-polling request")
 
     async def _register(self) -> str | None:
-        # we need to clear our cookies because registering with a valid cookie
-        # invalidates our cookie and doesn't get a new one sent back.
-        self._session.clear_cookies()
+        # Previously we had to clear the cookies as it would cause issues, but
+        # the uri has a query parameter to ignore the COMPASS/dynamite cookie.
         self._sid_param = None
         self._aid = 0
         self._ofs = 0
 
+        # required cookies: COMPASS, SSID, SID, OSID, HSID,
+        # new cookies after login: SIDCC
+
         headers = {"Content-Type": "application/x-protobuf"}
-        res = await self._session.fetch_raw("POST", CHANNEL_URL_BASE + "register", headers=headers)
+        res = await self._session.fetch_raw("GET", CHANNEL_URL_BASE + "register?ignore_compass_cookie=1", headers=headers)
 
         body = await res.read()
 
@@ -271,12 +273,12 @@ class Channel:
         logger.debug("Status: %s", res.status)
         logger.debug("Headers: %s", res.headers)
         if morsel is not None:
-            if morsel.value.startswith("dynamite="):
+            if morsel.value.startswith("dynamite-ui="):
                 logger.info("Registered new channel successfully")
-                return morsel.value[len("dynamite=") :]
+                return morsel.value[len("dynamite-ui=") :]
             else:
                 logger.warning(
-                    "COMPASS cookie doesn't start with dynamite= (value: %s)", morsel.value
+                    "COMPASS cookie doesn't start with dynamite-ui= (value: %s)", morsel.value
                 )
         return None
 
@@ -287,13 +289,15 @@ class Channel:
             "t": 1,  # trial
             "SID": self._sid_param,  # session ID
             "AID": self._aid,  # last acknowledged id
-            "CI": 0,  # 0 if streaming/chunked requests should be used
+            # No longer required with the web ui
+            # "CI": 0,  # 0 if streaming/chunked requests should be used
         }
 
         self._rid += 1
 
-        if self._csessionid_param is not None:
-            params["csessionid"] = self._csessionid_param
+        # This doesn't appear to be used at all anymore.
+        # if self._csessionid_param is not None:
+        #     params["csessionid"] = self._csessionid_param
 
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -317,7 +321,7 @@ class Channel:
 
         res = await self._session.fetch_raw(
             "POST",
-            CHANNEL_URL_BASE + "events_encoded",
+            CHANNEL_URL_BASE + "events",
             headers=headers,
             params=params,
             data=data,
@@ -385,7 +389,7 @@ class Channel:
         try:
             res: aiohttp.ClientResponse
             async with self._session.fetch_raw_ctx(
-                "GET", CHANNEL_URL_BASE + "events_encoded", params=params
+                "GET", CHANNEL_URL_BASE + "events", params=params
             ) as res:
                 if res.status != 200:
                     text = await res.text()

@@ -12,6 +12,8 @@ import logging
 import os
 import random
 
+from urllib.parse import urlencode
+
 from google.protobuf import message as proto
 from yarl import URL
 import aiohttp
@@ -25,7 +27,7 @@ UPLOAD_URL = "https://chat.google.com/uploads"
 API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
 # Base URL for API requests:
 GC_BASE_URL = "https://chat.google.com"
-
+BE_BASE_URL = "https://chat.google.com/u/0/_/DynamiteWebUi/data/batchexecute"
 
 class Client:
     """Instant messaging client for Google Chat.
@@ -86,7 +88,7 @@ class Client:
         self._listen_future = None
 
         self.gc_request_header = googlechat_pb2.RequestHeader(
-            client_type=googlechat_pb2.RequestHeader.ClientType.IOS,
+            client_type=googlechat_pb2.RequestHeader.ClientType.WEB,
             client_version=2440378181258,
             client_feature_capabilities=googlechat_pb2.ClientFeatureCapabilities(
                 spam_room_invites_level=googlechat_pb2.ClientFeatureCapabilities.FULLY_SUPPORTED,
@@ -104,6 +106,16 @@ class Client:
         self._last_active_secs = 0.0
         # ActiveClientState enum int value or None:
         self._active_client_state = None
+
+        # Use a 4 digit number as our reqid seed per
+        # https://kovatch.medium.com/deciphering-google-batchexecute-74991e4e446c
+        #
+        # each batchexecute request will increment this value by 100,000.
+        self._rpc_reqid = random.randint(10000, 99999)
+
+        # we should dynamically set this when we get it back from the server,
+        # but for now we just initalize it to a known version.
+        self.server_version = "boq_dynamiteuiserver_20230323.03_p1"
 
     ##########################################################################
     # Public methods
@@ -484,6 +496,53 @@ class Client:
             evt_copy.body.CopyFrom(body)
             evt_copy.type = body.event_type
             yield evt_copy
+
+    async def _batchexecute_request(
+        self, rpcid, request_pb : proto.Message, response_pb: proto.Message
+    ) -> None:
+        """Send a Protocol Buffer formatting Batch Execute request.
+
+        This will handle all of the batchexecute specifics just leaving the
+        caller to deal with their specific request and response.
+
+        Args:
+            endpoint (str): The RPC ID to use.
+            request_pb: The request body as a Protocol Buffer message.
+            response_pb: The response body as a Protocol Buffer message.
+
+        Raises:
+            NetworkError: If the request fails.
+        """
+        logger.debug("Sending Batch Execute request %s:\n%s", rpcid, request_pb)
+
+        rpc_request = googlechat_pb2.BatchExecuteReqest(
+            requests=googlechat_pb2.RpcRequests(requests=[
+                googlechat_pb2.RpcRequest(
+                    RPCID=rpcid,
+                    Payload=request_pb.SerializeToString(),
+                    Order="generic",
+                ),
+            ])
+        )
+
+        # increment the request id for this request
+        self._rpc_reqid += 100000
+
+        # build our query string
+        qs = {
+            "rcpids": rpcid,
+            "source-path": "/u/0/mole/world",
+            "f.sid": self.sid,
+            "bl": self.server_version,
+            "hl": "en",
+            "soc-app": 1,
+            "soc-platform": 1,
+            "soc-device": 1,
+            "_reqid": self._rpc_reqid,
+            # this will get us binary protobufs that _should_ be easier to work
+            # with.
+            "rt": "b",
+        }
 
     async def _gc_request(
         self, endpoint, request_pb: proto.Message, response_pb: proto.Message

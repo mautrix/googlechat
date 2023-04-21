@@ -10,7 +10,29 @@ syntax = "proto2";
 // oneof's have been commented out because they're a pain in the butt with protobuf-c, but I've tried to keep them in there in case other non-silly protobuf libraries want to take advantage of them
 //
 // Feel free to use this .proto for whatever you want to, under whatever license you want.
+//
+// Additions add from sniffing and minified js
 
+message RpcRequest {
+	optional string rpc_id = 1; // the rpcid to request
+	optional string payload = 2; // the payload for the rpcid
+	optional string order = 4; // I've only seen this set to 'generic' and numbers
+}
+
+message BatchExecuteRequest {
+	repeated RpcRequest requests = 1;
+}
+
+message RpcResponse {
+	optional string unknown_1 = 1; // seems to always be wrb.fr
+	optional string rpcid = 2; // The rcpid that this response is for
+	optional string payload = 3; // The payload, contents depend on the RPCID
+	optional string order = 6; // So far i've only seen this set to generic and numbers
+}
+
+message BatchExecuteResponse {
+	repeated RpcResponse responses = 1;
+}
 
 enum UserType {
 	HUMAN = 0;

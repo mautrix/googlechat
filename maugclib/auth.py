@@ -98,6 +98,9 @@ class TokenManager:
         self.dynamite_token = None
         self.dynamite_expiration = None
 
+        # the cookies to use for authentication
+        self.cookies = []
+
     async def _token_request(self, data: dict[str, Any]) -> dict[str, Any]:
         """Make OAuth token request.
 
@@ -248,3 +251,11 @@ class TokenManager:
             await self._refresh_dynamite()
 
         return self.dynamite_token
+
+    @staticmethod
+    async def from_cookies(cookies: list) -> TokenManager:
+        r = TokenManager(None)
+
+        r.cookies = cookies
+
+        return r

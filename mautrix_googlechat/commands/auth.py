@@ -129,3 +129,39 @@ async def set_notice_room(evt: CommandEvent) -> None:
     evt.sender.notice_room = evt.room_id
     await evt.sender.save()
     await evt.reply("This room has been marked as your bridge notice room")
+
+@command_handler(
+    needs_auth=False,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text="""
+        Set the cookies required for auth. This should be a new line separated
+        list of the full cookies named COMPASS, SSID, SID, OSID, HSID. The
+        order doesn't matter.
+        """
+)
+async def set_cookies(evt: CommandEvent) -> None:
+    if len(evt.args) == 0:
+        return await evt.reply(
+            "Please enter a JSON object with the cookies."
+        )
+
+    try:
+        await evt.az.intent.redact(evt.room_id, evt.event_id)
+    except MForbidden as e:
+        evt.log.warning(f"Failed to redact cookies during login: {e}")
+
+    try:
+        import json
+        data = json.loads(" ".join(evt.args))
+    except e:
+        return await evt.reply(f"Invalid JSON: {e}")
+
+    token_mgr = await TokenManager.from_cookies(data)
+
+    evt.sender.login_complete(token_mgr)
+    await evt.sender.name_future
+    return await evt.reply(
+        f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "
+        f"({evt.sender.gcid})"
+    )

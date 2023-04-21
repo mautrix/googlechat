@@ -38,6 +38,7 @@ class Session:
         self._cookie_jar = aiohttp.CookieJar(quote_cookie=False)
         timeout = aiohttp.ClientTimeout(connect=CONNECT_TIMEOUT)
         self._session = aiohttp.ClientSession(
+            cookies=token_manager.cookies,
             cookie_jar=self._cookie_jar,
             timeout=timeout,
             trust_env=True,
@@ -205,7 +206,8 @@ class Session:
             raise Exception("expected google.com domain")
 
         headers = headers or {}
-        headers["Authorization"] = f"Bearer {await self._token_manager.get()}"
+        if len(self._token_manager.cookies) == 0:
+            headers["Authorization"] = f"Bearer {await self._token_manager.get()}"
         headers["Connection"] = "Keep-Alive"
         return self._session.request(
             method,
