@@ -252,7 +252,9 @@ class Channel:
         # new cookies after login: SIDCC
 
         headers = {"Content-Type": "application/x-protobuf"}
-        res = await self._session.fetch_raw("GET", CHANNEL_URL_BASE + "register?ignore_compass_cookie=1", headers=headers)
+        res = await self._session.fetch_raw(
+            "GET", CHANNEL_URL_BASE + "register?ignore_compass_cookie=1", headers=headers
+        )
 
         body = await res.read()
 

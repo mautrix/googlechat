@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Iterator
+from urllib.parse import urlencode
 import asyncio
 import base64
 import binascii
@@ -11,8 +12,6 @@ import datetime
 import logging
 import os
 import random
-
-from urllib.parse import urlencode
 
 from google.protobuf import message as proto
 from yarl import URL
@@ -28,6 +27,7 @@ API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
 # Base URL for API requests:
 GC_BASE_URL = "https://chat.google.com"
 BE_BASE_URL = "https://chat.google.com/u/0/_/DynamiteWebUi/data/batchexecute"
+
 
 class Client:
     """Instant messaging client for Google Chat.
@@ -498,7 +498,7 @@ class Client:
             yield evt_copy
 
     async def _batchexecute_request(
-        self, rpcid, request_pb : proto.Message, response_pb: proto.Message
+        self, rpcid, request_pb: proto.Message, response_pb: proto.Message
     ) -> None:
         """Send a Protocol Buffer formatting Batch Execute request.
 
@@ -516,13 +516,15 @@ class Client:
         logger.debug("Sending Batch Execute request %s:\n%s", rpcid, request_pb)
 
         rpc_request = googlechat_pb2.BatchExecuteReqest(
-            requests=googlechat_pb2.RpcRequests(requests=[
-                googlechat_pb2.RpcRequest(
-                    RPCID=rpcid,
-                    Payload=request_pb.SerializeToString(),
-                    Order="generic",
-                ),
-            ])
+            requests=googlechat_pb2.RpcRequests(
+                requests=[
+                    googlechat_pb2.RpcRequest(
+                        RPCID=rpcid,
+                        Payload=request_pb.SerializeToString(),
+                        Order="generic",
+                    ),
+                ]
+            )
         )
 
         # increment the request id for this request
