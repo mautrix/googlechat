@@ -18,6 +18,7 @@ import logging
 
 # pylint: disable=no-name-in-module,import-error
 from google.protobuf.descriptor import FieldDescriptor
+
 # pylint: enable=no-name-in-module,import-error
 
 
@@ -37,8 +38,9 @@ def _decode_field(message, field, value):
             # ValueError: invalid enum value, negative unsigned int value, or
             # invalid base64
             # TypeError: mismatched type
-            logger.warning('Message %r ignoring field %s: %s',
-                           message.__class__.__name__, field.name, e)
+            logger.warning(
+                "Message %r ignoring field %s: %s", message.__class__.__name__, field.name, e
+            )
 
 
 def _decode_repeated_field(message, field, value_list):
@@ -56,8 +58,12 @@ def _decode_repeated_field(message, field, value_list):
             # ValueError: invalid enum value, negative unsigned int value, or
             # invalid base64
             # TypeError: mismatched type
-            logger.warning('Message %r ignoring repeated field %s: %s',
-                           message.__class__.__name__, field.name, e)
+            logger.warning(
+                "Message %r ignoring repeated field %s: %s",
+                message.__class__.__name__,
+                field.name,
+                e,
+            )
             # Ignore any values already decoded by clearing list
             message.ClearField(field.name)
 
@@ -81,8 +87,7 @@ def decode(message, pblite, ignore_first_item=False):
             message.
     """
     if not isinstance(pblite, list):
-        logger.warning('Ignoring invalid message: expected list, got %r',
-                       type(pblite))
+        logger.warning("Ignoring invalid message: expected list, got %r", type(pblite))
         return
     if ignore_first_item:
         pblite = pblite[1:]
@@ -90,13 +95,11 @@ def decode(message, pblite, ignore_first_item=False):
     # mappings. This seems to be an optimization added for dealing with really
     # high field numbers.
     if pblite and isinstance(pblite[-1], dict):
-        extra_fields = {int(field_number): value for field_number, value
-                        in pblite[-1].items()}
+        extra_fields = {int(field_number): value for field_number, value in pblite[-1].items()}
         pblite = pblite[:-1]
     else:
         extra_fields = {}
-    fields_values = itertools.chain(enumerate(pblite, start=1),
-                                    extra_fields.items())
+    fields_values = itertools.chain(enumerate(pblite, start=1), extra_fields.items())
     for field_number, value in fields_values:
         if value is None:
             continue
@@ -106,15 +109,19 @@ def decode(message, pblite, ignore_first_item=False):
             # If the tag number is unknown and the value is non-trivial, log a
             # message to aid reverse-engineering the missing field in the
             # message.
-            if value not in [[], '', 0]:
-                logger.debug('Message %r contains unknown field %s with value '
-                             '%r', message.__class__.__name__, field_number,
-                             value)
+            if value not in [[], "", 0]:
+                logger.debug(
+                    "Message %r contains unknown field %s with value " "%r",
+                    message.__class__.__name__,
+                    field_number,
+                    value,
+                )
             continue
         if field.label == FieldDescriptor.LABEL_REPEATED:
             _decode_repeated_field(message, field, value)
         else:
             _decode_field(message, field, value)
+
 
 def _encode_field(message, field):
     ret = None
@@ -126,6 +133,7 @@ def _encode_field(message, field):
         ret = getattr(message, field.name)
 
     return ret
+
 
 def _encode_repeated_field(message, field):
     ret = []
@@ -140,10 +148,19 @@ def _encode_repeated_field(message, field):
 
     return ret
 
+
 def encode(message):
     ret = []
+    last = 1
 
     for field in message.DESCRIPTOR.fields:
+        # check if we need to add any padding fields
+        if field.number > last + 1:
+            for idx in range(last + 1, field.number):
+                ret.append(None)
+
+        last = field.number
+
         value = None
 
         if field.label == FieldDescriptor.LABEL_REPEATED:
@@ -155,12 +172,11 @@ def encode(message):
 
     return ret
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import googlechat_pb2
 
-    status = googlechat_pb2.GetSelfUserStatusRequest(
-        request_header=googlechat_pb2.RequestHeader(
-            locale="suP"))
+    status = googlechat_pb2.GetSelfUserStatusRequest()
     nested = json.dumps(encode(status))
 
     m = googlechat_pb2.BatchExecuteRequest(
