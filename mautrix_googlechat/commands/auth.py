@@ -136,9 +136,8 @@ async def set_notice_room(evt: CommandEvent) -> None:
     management_only=True,
     help_section=SECTION_AUTH,
     help_text="""
-        Set the cookies required for auth. This should be a new line separated
-        list of the full cookies named COMPASS, SSID, SID, OSID, HSID. The
-        order doesn't matter.
+        Set the cookies required for auth. This should be JSON object of the
+        full cookie values for COMPASS, SSID, SID, OSID, HSID.
         """,
 )
 async def set_cookies(evt: CommandEvent) -> None:
