@@ -257,10 +257,11 @@ class User(DBUser, BaseUser):
     async def login_complete(self, token_manager: TokenManager, get_self: bool = False) -> bool:
         self.log.debug("Running post-login actions")
         self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
+        await self.client.refresh_tokens()
         if get_self or not self.gcid:
             self.log.debug("Fetching own user ID before connecting")
             try:
-                await self._fetch_own_id()
+                await self._get_self()
             except Exception:
                 self.refresh_token = None
                 self.client = None
@@ -423,29 +424,14 @@ class User(DBUser, BaseUser):
             self._skip_on_connect = False
             await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
-    async def _fetch_own_id(self) -> None:
-        if self.gcid:
-            return
-        info = await self.client.proto_get_self_user_status(
-            googlechat.GetSelfUserStatusRequest(request_header=self.client.gc_request_header)
-        )
-        self.gcid = info.user_status.user_id.id
-        self.by_gcid[self.gcid] = self
-
     async def get_self(self) -> googlechat.User:
-        if not self.gcid:
-            await self._fetch_own_id()
+        resp = await self.client.proto_get_self(googlechat.GetSelfRequest())
 
-        resp = await self.client.proto_get_members(
-            googlechat.GetMembersRequest(
-                request_header=self.client.gc_request_header,
-                member_ids=[
-                    googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
-                ],
-            )
-        )
-        user: googlechat.User = resp.members[0].user
-        self.users[user.user_id.id] = user
+        user: googlechat.User = resp.user
+        self.users[user.id] = user
+        self.gcid = user.id
+        self.by_gcid[user.id] = self
+
         return user
 
     async def get_users(self, ids: Iterable[str]) -> list[googlechat.User]:

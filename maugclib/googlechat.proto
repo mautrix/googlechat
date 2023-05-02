@@ -27,11 +27,11 @@ message RpcResponse {
 	optional string unknown_1 = 1; // seems to always be wrb.fr
 	optional string rpcid = 2; // The rcpid that this response is for
 	optional string payload = 3; // The payload, contents depend on the RPCID
-	optional string order = 6; // So far i've only seen this set to generic and numbers
+	optional string order = 7; // So far i've only seen this set to generic and numbers
 }
 
 message BatchExecuteResponse {
-	repeated RpcResponse responses = 1;
+	optional RpcResponse response = 1;
 }
 
 enum UserType {
@@ -41,25 +41,31 @@ enum UserType {
 
 message UserId {
 	optional string id = 1;
-	optional UserType type = 2;
+	optional string full_id = 2;
 	//optional DYNProtoAppId origin_app_id = 3;
 }
 
 message User {
-	optional UserId user_id = 1;
+	optional string id = 1;
 	optional string name = 2;
 	optional string avatar_url = 3;
 	optional string email = 4;
-	optional string first_name = 5;
-	optional string last_name = 6;
-	optional bool deleted = 7;
-	optional bool is_anonymous = 8;
+	optional string first_name = 7;
+	optional UserId user_id = 10;
+
+	// The rest of this is a jumbled mess that doesn't look like the ios
+	// version at all. Fields 18 and 19 appear to be numbers. I've only seen
+	// them set to 1, but I have no context to what they are.
+
+	// optional string last_name = 6;
+	// optional bool deleted = 7;
+	// optional bool is_anonymous = 8;
 	//optional DYNProtoBotInfo bot_info = 9;
-	optional string gender = 10;
+	// optional string gender = 10;
 	//optional DYNProtoUserAccountState user_account_state = 11;
 	//optional DYNProtoUserProfileVisibility user_profile_visibility = 15;
 	//optional DYNProtoOrganizationInfo organization_info = 12;
-	optional UserBlockRelationship block_relationship = 13;
+	// optional UserBlockRelationship block_relationship = 13;
 	//repeated DYNProtoPhoneNumber phone_number = 14;
 }
 
@@ -114,6 +120,15 @@ message GetUserStatusRequest {
 
 message GetUserStatusResponse {
 	repeated UserStatus user_statuses = 1;
+}
+
+message GetSelfRequest {
+}
+
+message GetSelfResponse {
+	optional User user = 1;
+	// Field 2 has only been seen as null.
+	// Field 3 is a list of eight 9-digits numbers.
 }
 
 message GetSelfUserStatusRequest {
@@ -199,7 +214,6 @@ message MemberProfile {
 }
 
 message GetMembersRequest {
-	optional RequestHeader request_header = 100;
 	repeated MemberId member_ids = 1;
 	repeated MembershipId membership_ids = 2;
 }

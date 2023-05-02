@@ -9,15 +9,17 @@ import base64
 import binascii
 import cgi
 import datetime
+import json
 import logging
 import os
 import random
+import re
 
 from google.protobuf import message as proto
 from yarl import URL
 import aiohttp
 
-from . import auth, channel, event, exceptions, googlechat_pb2, http_utils, parsers
+from . import auth, channel, event, exceptions, googlechat_pb2, http_utils, parsers, pblite
 
 logger = logging.getLogger(__name__)
 dl_log = logger.getChild("download")
@@ -113,9 +115,11 @@ class Client:
         # each batchexecute request will increment this value by 100,000.
         self._rpc_reqid = random.randint(10000, 99999)
 
-        # we should dynamically set this when we get it back from the server,
-        # but for now we just initalize it to a known version.
-        self.server_version = "boq_dynamiteuiserver_20230323.03_p1"
+        # These are values that need to be acquired from the server via the
+        # check_login() method.
+        self.f_sid = None
+        self.bl = None
+        self.at = None
 
     ##########################################################################
     # Public methods
@@ -455,6 +459,47 @@ class Client:
         )
         return resp.start_timestamp_usec
 
+    async def refresh_tokens(self):
+        """Makes a request to /mole/world to get the values for bl, at, and
+        f.sid which are used for all batchexecute requests.
+        """
+
+        def get_value(body, id):
+            pattern = re.compile(f'\\"{id}\\":\\s*\\"(?P<value>[^\\"]+)\\"')
+            pattern = re.compile(r"\"" + id + r"\":\s*\"(?P<value>[^\"]+)\"")
+            match = pattern.search(body)
+            if match is None:
+                raise Exception(f"no match for {id}")
+
+            return match.group("value")
+
+        qs = {
+            "origin": "https://mail.google.com",
+            "shell": "9",
+            "hl": "en",
+            "wfi": "gtn-roster-iframe-id",
+        }
+        headers = {
+            "authority": "chat.google.com",
+            "refer": "https://mail.google.com/",
+        }
+
+        url = f"{GC_BASE_URL}/u/0/mole/world?{urlencode(qs)}"
+
+        res = await self._session.fetch(
+            "GET",
+            url,
+            headers=headers,
+        )
+
+        body = res.body.decode("utf-8")
+        with open("body.html", "w+") as fp:
+            fp.write(body)
+
+        self.bl = get_value(body, "cfb2h")
+        self.f_sid = get_value(body, "FdrFJe")
+        self.at = get_value(body, "SNlM0e")
+
     ##########################################################################
     # Private methods
     ##########################################################################
@@ -515,36 +560,74 @@ class Client:
         """
         logger.debug("Sending Batch Execute request %s:\n%s", rpcid, request_pb)
 
-        rpc_request = googlechat_pb2.BatchExecuteReqest(
-            requests=googlechat_pb2.RpcRequests(
-                requests=[
-                    googlechat_pb2.RpcRequest(
-                        RPCID=rpcid,
-                        Payload=request_pb.SerializeToString(),
-                        Order="generic",
-                    ),
-                ]
-            )
+        payload = pblite.encode(request_pb)
+        rpc_request = googlechat_pb2.BatchExecuteRequest(
+            requests=[
+                googlechat_pb2.RpcRequest(
+                    rpc_id=rpcid,
+                    payload=json.dumps(payload),
+                    order="generic",
+                ),
+            ],
         )
 
         # increment the request id for this request
         self._rpc_reqid += 100000
 
         # build our query string
-        qs = {
+        params = {
             "rcpids": rpcid,
             "source-path": "/u/0/mole/world",
-            "f.sid": self.sid,
-            "bl": self.server_version,
+            "f.sid": self.f_sid,
+            "bl": self.bl,
             "hl": "en",
             "soc-app": 1,
             "soc-platform": 1,
             "soc-device": 1,
             "_reqid": self._rpc_reqid,
-            # this will get us binary protobufs that _should_ be easier to work
-            # with.
-            "rt": "b",
+            # b gives up binary protobufs but everything is failing to parse them.
+            # c gives us chunks like the channel
+            # j gives us a json like array with pblite in it?
+            # p gives us a normal pblite
+            # "rt": "j",
         }
+
+        # build our form
+        form = {
+            "f.req": pblite.encode(rpc_request),
+            "at": self.at,
+        }
+        data = urlencode(form)
+
+        headers = {
+            "content-type": "application/x-www-form-urlencoded;charset=utf-8",
+            "referer": "https://chat.google.com/",
+        }
+
+        res = await self._session.fetch(
+            "POST",
+            BE_BASE_URL,
+            headers=headers,
+            params=params,
+            data=data,
+        )
+
+        body = res.body
+        if body.startswith(b")]}'\n\n"):
+            body = body[6:]
+
+        try:
+            envelope = googlechat_pb2.BatchExecuteResponse()
+            pblite.decode(envelope, json.loads(body))
+
+            logger.debug("envelope response:\n%s", envelope)
+
+            pblite.decode(response_pb, json.loads(envelope.response.payload))
+        except proto.DecodeError as e:
+            raise exceptions.NetworkError(
+                "Failed to decode Protocol Buffer response: {}".format(e)
+            )
+        logger.debug("Received Protocol Buffer response:\n%s", response_pb)
 
     async def _gc_request(
         self, endpoint, request_pb: proto.Message, response_pb: proto.Message
@@ -654,7 +737,7 @@ class Client:
         """Return one or more members"""
 
         response = googlechat_pb2.GetMembersResponse()
-        await self._gc_request("get_members", get_members_request, response)
+        await self._batchexecute_request("eCT9Zc", get_members_request, response)
         return response
 
     async def proto_paginated_world(
@@ -667,6 +750,19 @@ class Client:
 
         return response
 
+    async def proto_get_self(
+        self, get_self_request: googlechat_pb2.GetSelfRequest
+    ) -> googlechat_pb2.GetSelfResponse:
+        """Return info about the current user.
+
+        Replace get_self_user_status_request.
+        """
+
+        response = googlechat_pb2.GetSelfResponse()
+        await self._batchexecute_request("WgHvHd", get_self_request, response)
+
+        return response
+
     async def proto_get_self_user_status(
         self, get_self_user_status_request: googlechat_pb2.GetSelfUserStatusRequest
     ) -> googlechat_pb2.GetSelfUserStatusResponse:
@@ -675,7 +771,8 @@ class Client:
         Replace get_self_info.
         """
         response = googlechat_pb2.GetSelfUserStatusResponse()
-        await self._gc_request("get_self_user_status", get_self_user_status_request, response)
+        await self._batchexecute_request("UAfKqc", get_self_user_status_request, response)
+
         return response
 
     async def proto_get_group(

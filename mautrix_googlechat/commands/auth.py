@@ -159,7 +159,7 @@ async def set_cookies(evt: CommandEvent) -> None:
 
     token_mgr = await TokenManager.from_cookies(data)
 
-    evt.sender.login_complete(token_mgr)
+    await evt.sender.login_complete(token_mgr)
     await evt.sender.name_future
     return await evt.reply(
         f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "
