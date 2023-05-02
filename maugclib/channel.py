@@ -22,6 +22,7 @@ import base64
 import codecs
 import json
 import logging
+import random
 import re
 import time
 
@@ -133,6 +134,21 @@ def _parse_sid_response(res: str) -> str:
     return sid
 
 
+def _unique_id() -> str:
+    def base36(x) -> str:
+        keyspace = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+        encoded = 0
+        quotient = x
+        while quotient != 0:
+            quotient, remainder = divmod(quotient, len(keyspace))
+            encoded = keyspace[remainder] + encoded
+
+        return encoded
+
+    return base36(random.getrandbits(64))
+
+
 class Channel:
     """BrowserChannel client."""
 
@@ -179,7 +195,7 @@ class Channel:
 
         self._aid = 0
         self._ofs = 0  # used to track sent events
-        self._rid = 0
+        self._rid = random.randint(10000, 99999)
 
     @property
     def is_connected(self):
@@ -360,31 +376,29 @@ class Channel:
         """
         params = {
             "VER": 8,  # channel protocol version
-            "CVER": 22,  # client type
             "AID": self._aid,
             "t": 1,  # trial
+            "RID": self._rid,
+            "SID": self._sid_param,
+            "zx": _unique_id(),
         }
 
-        self._rid += 1
-
         if self._sid_param is None:
+            # RID continues across reconnects so we do not reset it, but the
+            # call to refresh the session id sets RID to rpc but doesn't
+            # increment the request id.
+
             params.update(
                 {
+                    "CVER": 22,  # client type
                     "$req": "count=0",  # noop request
-                    "RID": "0",
                     "SID": "null",
-                    "TYPE": "init",  # type of request
+                    "RID": "rpc",
                 }
             )
         else:
-            params.update(
-                {
-                    "CI": 0,
-                    "RID": "rpc",
-                    "SID": self._sid_param,
-                    "TYPE": "xmlhttp",
-                }
-            )
+            # Only increment the request id if we are not refreshing SID.
+            self._rid += 1
 
         logger.debug("Opening new long-polling request")
         LONG_POLLING_REQUESTS.inc()
