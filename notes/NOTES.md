@@ -62,6 +62,13 @@ Simplified sequence of calls from the web client.
 /u/0/webchannel/events
 /u/0/webchannel/events
 
+Errors:
+
+Invalid fields/data sent to batchexecute get the following response
+
+[["wrb.fr","RTBQkb",null,null,null,[13,null,[["type.googleapis.com/apps.dynamite.v1.web.datakeys.InvalidArgumentDataError",[null,0]]]],"generic"],["di",123],["af.httprm",122,"5452569223111664617",14]]
+
+
 # RPC ID's
 
 ## RJ8kkf
