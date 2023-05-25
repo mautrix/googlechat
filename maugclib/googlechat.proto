@@ -785,31 +785,31 @@ message Message {
 		GROUP_VISIBLE = 1;
 		ON_HOLD = 2;
 	}
-	optional MessageState message_state = 20;
 	optional User creator = 2;
 	optional int64 create_time = 3;
 	optional int64 last_update_time = 4;
-	optional int64 delete_time = 8;
-	optional int64 last_edit_time = 17;
-	optional string text_body = 10;
-	repeated Annotation annotations = 11;
-	//repeated DYNProtoBotResponse bot_responses = 19;
-	optional string local_id = 14;
-	repeated Attachment attachments = 15;
-	//optional DYNProtoAppProfile app_profile = 16;
-	optional RetentionSettings retention_settings = 18;
-	repeated Reaction reactions = 21;
-	//repeated DYNProtoCommunalLabelTag communal_labels = 27;
-	//repeated DYNProtoPersonalLabelTag personal_labels = 26;
-	//optional ?? message_integration_payload = 23;
-	//optional DYNProtoMessage_MessagePermission editable_by = 24;
-	//optional DYNProtoMessage_MessagePermission deletable_by = 25;
 	optional int64 last_reply_time = 5;
 	optional int64 last_view_time = 6;
 	optional int64 last_mention_time = 7;
+	optional int64 delete_time = 8;
 	optional int64 num_unread_replies = 9;
 	optional Message last_reply = 12;
 	optional int64 sort_time = 13;
+	optional string text_body = 10;
+	repeated Annotation annotations = 11;
+	optional string local_id = 14;
+	repeated Attachment attachments = 15;
+	//optional DYNProtoAppProfile app_profile = 16;
+	optional int64 last_edit_time = 17;
+	optional RetentionSettings retention_settings = 18;
+	//repeated DYNProtoBotResponse bot_responses = 19;
+	optional MessageState message_state = 20;
+	repeated Reaction reactions = 21;
+	//optional ?? message_integration_payload = 23;
+	//optional DYNProtoMessage_MessagePermission editable_by = 24;
+	//optional DYNProtoMessage_MessagePermission deletable_by = 25;
+	//repeated DYNProtoPersonalLabelTag personal_labels = 26;
+	//repeated DYNProtoCommunalLabelTag communal_labels = 27;
 
 	enum MessageType {
 		MESSAGE_TYPE_UNSPECIFIED = 0;
@@ -985,10 +985,13 @@ message SpaceId {
 }
 
 message GroupId {
-	oneof Id {
-		SpaceId space_id = 1;
-		DmId dm_id = 3;
-	}
+	optional string space_id = 1;
+	optional string dm_id = 2;
+	// Field 3 is an int or enum that I've only seen set to 5. I'm thinking
+	// this might be a group/space type or something. If so that'd mean the
+	// above fields are probably something more like full_id and type_id as so
+	// far I've only seen them as `dm/abc123` and `abc123` respectively.
+	optional int64 type = 3;
 }
 
 message Group {
@@ -1117,7 +1120,7 @@ message RetentionSettings {
 		EPHEMERAL_ONE_DAY = 2;
 	}
 	optional RetentionState state = 1;
-	optional int64 expiry_timestamp = 2;
+//	optional int64 expiry_timestamp = 2;
 }
 
 message GroupData {
@@ -1125,19 +1128,19 @@ message GroupData {
 }
 
 message TopicId {
+	optional string topic_id = 1;
 	optional GroupId group_id = 3;
-	optional string topic_id = 2;
 }
 
 message Topic {
 	optional TopicId id = 1;
 	optional int64 sort_time = 2;
-	optional int64 create_time_usec = 15;
 	repeated Message replies = 7;
 	optional TopicReadState topic_read_state = 11;
 	optional bool is_system_message = 12;
 	optional RetentionSettings retention_settings = 13;
 	optional bool contains_more_unread_replies = 14;
+	optional int64 create_time_usec = 15;
 }
 
 message TopicReadState {
@@ -1145,24 +1148,25 @@ message TopicReadState {
 }
 
 message MessageInfo {
-	optional bool accept_format_annotations = 1;
+	//optional bool accept_format_annotations = 1;
 }
 
 message CreateTopicRequest {
-	optional RequestHeader request_header = 100;
-	optional GroupId group_id = 5;
+	optional GroupId group_id = 1;
 	optional string text_body = 2;
 	repeated Annotation annotations = 3;
-	optional RetentionSettings retention_settings = 6;
 	optional string local_id = 4;
+	optional RetentionSettings retention_settings = 5;
+
 	optional string topic_and_message_id = 7;
 	optional bool history_v2 = 8;
-	optional MessageInfo message_info = 9;
+	optional MessageInfo message_info = 10;
+	optional bool receipt = 11;
 }
 
 message CreateTopicResponse {
-	optional Topic topic = 1;
-	optional WriteRevision group_revision = 2;
+	optional Topic topic = 2;
+	optional WriteRevision group_revision = 4;
 	optional ReadRevision current_group_revision = 3;
 }
 
@@ -1516,13 +1520,13 @@ message WebPushNotificationEvent {
 
 // used in the /webchannel/events
 message StreamEventsRequest {
+	optional string sample_id = 1;
+	optional PingEvent ping_event = 2;
+	optional ClockSyncRequest clock_sync_request = 3;
 	optional Platform platform = 4;
 	optional ClientInfo client_info = 5;
 	optional int64 client_session_id = 6;
-	optional string sample_id = 1;
 	repeated string sample_ids = 7;
-	optional PingEvent ping_event = 2;
-	optional ClockSyncRequest clock_sync_request = 3;
 	optional GroupSubscriptionEvent group_subscription_event = 8;
 	optional int64 test_user_gaia_id = 100;
 }

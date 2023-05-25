@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+from http.cookies import Morsel
 import json
 import logging
 import platform
@@ -37,7 +38,8 @@ OAUTH2_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
 ]
 OAUTH2_TOKEN_REQUEST_URL = "https://accounts.google.com/o/oauth2/token"
-USER_AGENT = "hangups/0.5.0 ({} {})".format(platform.system(), platform.machine())
+# USER_AGENT = "hangups/0.5.0 ({} {})".format(platform.system(), platform.machine())
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0"
 
 
 class RefreshTokenCache(ABC):
@@ -253,9 +255,19 @@ class TokenManager:
         return self.dynamite_token
 
     @staticmethod
-    async def from_cookies(cookies: list) -> TokenManager:
+    async def from_cookies(cookies: dict) -> TokenManager:
         r = TokenManager(None)
 
-        r.cookies = cookies
+        real_cookies = []
+
+        for path, cookies in cookies.items():
+            for name, value in cookies.items():
+                cookie = Morsel()
+                cookie.set(name, value, value)
+                cookie["domain"] = "chat.google.com"
+                cookie["path"] = path
+                real_cookies.append((name, cookie))
+
+        r.cookies = real_cookies
 
         return r

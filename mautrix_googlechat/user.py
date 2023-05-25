@@ -261,7 +261,7 @@ class User(DBUser, BaseUser):
         if get_self or not self.gcid:
             self.log.debug("Fetching own user ID before connecting")
             try:
-                await self._get_self()
+                await self.client.proto_get_self(googlechat.GetSelfRequest())
             except Exception:
                 self.refresh_token = None
                 self.client = None

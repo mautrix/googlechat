@@ -31,7 +31,7 @@ import async_timeout
 
 from mautrix.util.opt_prometheus import Counter
 
-from . import event, exceptions, googlechat_pb2, http_utils
+from . import event, exceptions, googlechat_pb2, http_utils, pblite
 from .exceptions import SIDExpiringError, SIDInvalidError
 
 logger = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ def _unique_id() -> str:
         quotient = x
         while quotient != 0:
             quotient, remainder = divmod(quotient, len(keyspace))
-            encoded = keyspace[remainder] + encoded
+            encoded = keyspace[remainder] + str(encoded)
 
         return encoded
 
@@ -321,19 +321,12 @@ class Channel:
             "Content-Type": "application/x-www-form-urlencoded",
         }
 
-        # base64 the raw protobuf
-        b64_bytes = base64.b64encode(events_request.SerializeToString())
-
-        json_body = json.dumps(
-            {
-                "data": b64_bytes.decode("ascii"),
-            }
-        )
-
+        body = pblite.encode(events_request)
+        json_body = json.dumps(body)
         data = {
             "count": 1,
             "ofs": self._ofs,
-            "req0___data__": json_body,
+            "req0_data": json_body,
         }
         self._ofs += 1
 
@@ -376,36 +369,35 @@ class Channel:
         """
         params = {
             "VER": 8,  # channel protocol version
-            "AID": self._aid,
-            "t": 1,  # trial
             "RID": self._rid,
             "SID": self._sid_param,
+            "t": 1,  # trial, sometimes seen as 2
             "zx": _unique_id(),
         }
 
         if self._sid_param is None:
-            # RID continues across reconnects so we do not reset it, but the
-            # call to refresh the session id sets RID to rpc but doesn't
-            # increment the request id.
-
             params.update(
                 {
-                    "CVER": 22,  # client type
-                    "$req": "count=0",  # noop request
+                    "CVER": 22,
+                    "$req": "count=1&ofs=0&req0_data=%5B%5D",
                     "SID": "null",
-                    "RID": "rpc",
                 }
             )
-        else:
-            # Only increment the request id if we are not refreshing SID.
+
             self._rid += 1
+        else:
+            params.update({"CI": 0, "TYPE": "xmlhttp", "RID": "rpc"})
+
+        headers = {
+            "referer": "https://chat.google.com/",
+        }
 
         logger.debug("Opening new long-polling request")
         LONG_POLLING_REQUESTS.inc()
         try:
             res: aiohttp.ClientResponse
             async with self._session.fetch_raw_ctx(
-                "GET", CHANNEL_URL_BASE + "events", params=params
+                "GET", CHANNEL_URL_BASE + "events", params=params, headers=headers
             ) as res:
                 if res.status != 200:
                     text = await res.text()
@@ -432,6 +424,24 @@ class Channel:
                         self._aid = 0
                         self._ofs = 0
 
+                        # Tell the server we got the sid. I'm not sure what else
+                        # this could be, but it does seem to be required.
+                        params = {
+                            "VER": 8,
+                            "RID": "rpc",
+                            "SID": self._sid_param,
+                            "AID": self._aid,
+                            "CI": 0,
+                            "TYPE": "xmlhttp",
+                            "zx": _unique_id(),
+                            "t": 1,
+                        }
+
+                        await self._session.fetch_raw(
+                            "GET", CHANNEL_URL_BASE + "events", params=params
+                        )
+
+                        # Finally send the initial ping
                         await self._send_initial_ping()
 
                 while True:

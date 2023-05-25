@@ -478,6 +478,9 @@ class Client:
             "shell": "9",
             "hl": "en",
             "wfi": "gtn-roster-iframe-id",
+            # TODO: some of these values are passed in via redirect during
+            # login and should probably be used instead of hard coding.
+            "hs": '["h_hs",null,null,[1,0],null,null,"gmail.pinto-server_20230515.06_p0",1,null,[36,35,26,18,24,11,15,14,6],null,null,"3Mu86PSulM4.en..es5",0,null,null,[2]]',
         }
         headers = {
             "authority": "chat.google.com",
@@ -576,7 +579,7 @@ class Client:
 
         # build our query string
         params = {
-            "rcpids": rpcid,
+            "rpcids": rpcid,
             "source-path": "/u/0/mole/world",
             "f.sid": self.f_sid,
             "bl": self.bl,
@@ -594,7 +597,7 @@ class Client:
 
         # build our form
         form = {
-            "f.req": pblite.encode(rpc_request),
+            "f.req": json.dumps(pblite.encode(rpc_request)),
             "at": self.at,
         }
         data = urlencode(form)
@@ -796,7 +799,7 @@ class Client:
     ) -> googlechat_pb2.CreateTopicResponse:
         """Creates a topic (sends a message)"""
         response = googlechat_pb2.CreateTopicResponse()
-        await self._gc_request("create_topic", create_topic_request, response)
+        await self._batchexecute_request("RTBQkb", create_topic_request, response)
         return response
 
     async def proto_create_message(
