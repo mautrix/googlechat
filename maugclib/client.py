@@ -512,21 +512,20 @@ class Client:
         if array[0] == "noop":
             pass  # This is just a keep-alive, ignore it.
         else:
-            if "data" in array[0]:
-                data = array[0]["data"]
+            data = array[0]
 
-                resp = googlechat_pb2.StreamEventsResponse()
-                resp.ParseFromString(base64.b64decode(data))
+            resp = googlechat_pb2.StreamEventsResponse()
+            pblite.decode(resp, data)
 
-                # An event can have multiple bodies embedded in it. However,
-                # instead of pushing all bodies in the same place, there first
-                # one is a separate field. So to simplify handling, we muck
-                # around with the class by swapping the embedded bodies into
-                # the top level body field and fire the event like it was the
-                # toplevel body.
-                for evt in self.split_event_bodies(resp.event):
-                    logger.debug("Dispatching stream event: %s", evt)
-                    await self.on_stream_event.fire(evt)
+            # An event can have multiple bodies embedded in it. However,
+            # instead of pushing all bodies in the same place, there first
+            # one is a separate field. So to simplify handling, we muck
+            # around with the class by swapping the embedded bodies into
+            # the top level body field and fire the event like it was the
+            # toplevel body.
+            for evt in self.split_event_bodies(resp.event):
+                logger.debug("Dispatching stream event: %s", evt)
+                await self.on_stream_event.fire(evt)
 
     @staticmethod
     def split_event_bodies(evt: googlechat_pb2.Event) -> Iterator[googlechat_pb2.Event]:
