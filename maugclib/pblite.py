@@ -33,6 +33,8 @@ def _decode_field(message, field, value):
         try:
             if field.type == FieldDescriptor.TYPE_BYTES:
                 value = base64.b64decode(value)
+            elif field.type == FieldDescriptor.TYPE_INT64:
+                value = int(value)
             setattr(message, field.name, value)
         except (ValueError, TypeError) as e:
             # ValueError: invalid enum value, negative unsigned int value, or
@@ -135,58 +137,40 @@ def _encode_field(message, field):
     return ret
 
 
-def _encode_repeated_field(message, field):
-    ret = []
-    items = getattr(message, field.name)
-
-    if field.type == FieldDescriptor.TYPE_MESSAGE:
-        for item in items:
-            ret.append(encode(item))
-    else:
-        for item in items:
-            ret.append(getattr(message, item))
-
-    return ret
-
-
 def encode(message):
-    ret = []
-    last = 1
+    """Encode Protocol Buffer message to pblite.
 
-    for field in message.DESCRIPTOR.fields:
-        # check if we need to add any padding fields
-        if field.number > last + 1:
-            for idx in range(last + 1, field.number):
-                ret.append(None)
+    Args:
+        message: protocol buffer message to encode.
 
-        last = field.number
+    Raises:
+        ValueError: one or more required fields in message are not set.
 
-        value = None
-
-        if field.label == FieldDescriptor.LABEL_REPEATED:
-            value = _encode_repeated_field(message, field)
+    Returns:
+        list representing a pblite-serialized message.
+    """
+    if not message.IsInitialized():
+        raise ValueError("Can not encode message: one or more required fields " "are not set")
+    pblite = []
+    # ListFields only returns fields that are set, so use this to only encode
+    # necessary fields
+    for field_descriptor, field_value in message.ListFields():
+        if field_descriptor.label == FieldDescriptor.LABEL_REPEATED:
+            if field_descriptor.type == FieldDescriptor.TYPE_MESSAGE:
+                encoded_value = [encode(item) for item in field_value]
+            elif field_descriptor.type == FieldDescriptor.TYPE_BYTES:
+                encoded_value = [base64.b64encode(val).decode() for val in field_value]
+            else:
+                encoded_value = list(field_value)
         else:
-            value = _encode_field(message, field)
-
-        ret.append(value)
-
-    return ret
-
-
-if __name__ == "__main__":
-    import googlechat_pb2
-
-    status = googlechat_pb2.GetSelfUserStatusRequest()
-    nested = json.dumps(encode(status))
-
-    m = googlechat_pb2.BatchExecuteRequest(
-        requests=[
-            googlechat_pb2.RpcRequest(
-                rpc_id="UAfKqc",
-                payload=nested,
-                order="generic",
-            ),
-        ]
-    )
-
-    print(encode(m))
+            if field_descriptor.type == FieldDescriptor.TYPE_MESSAGE:
+                encoded_value = encode(field_value)
+            elif field_descriptor.type == FieldDescriptor.TYPE_BYTES:
+                encoded_value = base64.b64encode(field_value).decode()
+            else:
+                encoded_value = field_value
+        # Add any necessary padding to the list
+        required_padding = max(field_descriptor.number - len(pblite), 0)
+        pblite.extend([None] * required_padding)
+        pblite[field_descriptor.number - 1] = encoded_value
+    return pblite
