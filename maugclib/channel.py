@@ -22,6 +22,7 @@ import base64
 import codecs
 import json
 import logging
+import random
 import re
 import time
 
@@ -30,13 +31,13 @@ import async_timeout
 
 from mautrix.util.opt_prometheus import Counter
 
-from . import event, exceptions, googlechat_pb2, http_utils
+from . import event, exceptions, googlechat_pb2, http_utils, pblite
 from .exceptions import SIDExpiringError, SIDInvalidError
 
 logger = logging.getLogger(__name__)
 Utf8IncrementalDecoder = codecs.getincrementaldecoder("utf-8")
 LEN_REGEX = re.compile(r"([0-9]+)\n", re.MULTILINE)
-CHANNEL_URL_BASE = "https://chat.google.com/webchannel/"
+CHANNEL_URL_BASE = "https://chat.google.com/u/0/webchannel/"
 # Long-polling requests send heartbeats every 15-30 seconds, so if we miss two
 # in a row, consider the connection dead.
 PUSH_TIMEOUT = 60
@@ -133,6 +134,21 @@ def _parse_sid_response(res: str) -> str:
     return sid
 
 
+def _unique_id() -> str:
+    def base36(x) -> str:
+        keyspace = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+        encoded = 0
+        quotient = x
+        while quotient != 0:
+            quotient, remainder = divmod(quotient, len(keyspace))
+            encoded = keyspace[remainder] + str(encoded)
+
+        return encoded
+
+    return base36(random.getrandbits(64))
+
+
 class Channel:
     """BrowserChannel client."""
 
@@ -179,7 +195,7 @@ class Channel:
 
         self._aid = 0
         self._ofs = 0  # used to track sent events
-        self._rid = 0
+        self._rid = random.randint(10000, 99999)
 
     @property
     def is_connected(self):
@@ -242,15 +258,19 @@ class Channel:
         logger.error("Ran out of retries for long-polling request")
 
     async def _register(self) -> str | None:
-        # we need to clear our cookies because registering with a valid cookie
-        # invalidates our cookie and doesn't get a new one sent back.
-        self._session.clear_cookies()
+        # Previously we had to clear the cookies as it would cause issues, but
+        # the uri has a query parameter to ignore the COMPASS/dynamite cookie.
         self._sid_param = None
         self._aid = 0
         self._ofs = 0
 
+        # required cookies: COMPASS, SSID, SID, OSID, HSID,
+        # new cookies after login: SIDCC
+
         headers = {"Content-Type": "application/x-protobuf"}
-        res = await self._session.fetch_raw("POST", CHANNEL_URL_BASE + "register", headers=headers)
+        res = await self._session.fetch_raw(
+            "GET", CHANNEL_URL_BASE + "register?ignore_compass_cookie=1", headers=headers
+        )
 
         body = await res.read()
 
@@ -271,12 +291,12 @@ class Channel:
         logger.debug("Status: %s", res.status)
         logger.debug("Headers: %s", res.headers)
         if morsel is not None:
-            if morsel.value.startswith("dynamite="):
+            if morsel.value.startswith("dynamite-ui="):
                 logger.info("Registered new channel successfully")
-                return morsel.value[len("dynamite=") :]
+                return morsel.value[len("dynamite-ui=") :]
             else:
                 logger.warning(
-                    "COMPASS cookie doesn't start with dynamite= (value: %s)", morsel.value
+                    "COMPASS cookie doesn't start with dynamite-ui= (value: %s)", morsel.value
                 )
         return None
 
@@ -287,37 +307,32 @@ class Channel:
             "t": 1,  # trial
             "SID": self._sid_param,  # session ID
             "AID": self._aid,  # last acknowledged id
-            "CI": 0,  # 0 if streaming/chunked requests should be used
+            # No longer required with the web ui
+            # "CI": 0,  # 0 if streaming/chunked requests should be used
         }
 
         self._rid += 1
 
-        if self._csessionid_param is not None:
-            params["csessionid"] = self._csessionid_param
+        # This doesn't appear to be used at all anymore.
+        # if self._csessionid_param is not None:
+        #     params["csessionid"] = self._csessionid_param
 
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
 
-        # base64 the raw protobuf
-        b64_bytes = base64.b64encode(events_request.SerializeToString())
-
-        json_body = json.dumps(
-            {
-                "data": b64_bytes.decode("ascii"),
-            }
-        )
-
+        body = pblite.encode(events_request)
+        json_body = json.dumps(body)
         data = {
             "count": 1,
             "ofs": self._ofs,
-            "req0___data__": json_body,
+            "req0_data": json_body,
         }
         self._ofs += 1
 
         res = await self._session.fetch_raw(
             "POST",
-            CHANNEL_URL_BASE + "events_encoded",
+            CHANNEL_URL_BASE + "events",
             headers=headers,
             params=params,
             data=data,
@@ -354,38 +369,35 @@ class Channel:
         """
         params = {
             "VER": 8,  # channel protocol version
-            "CVER": 22,  # client type
-            "AID": self._aid,
-            "t": 1,  # trial
+            "RID": self._rid,
+            "SID": self._sid_param,
+            "t": 1,  # trial, sometimes seen as 2
+            "zx": _unique_id(),
         }
-
-        self._rid += 1
 
         if self._sid_param is None:
             params.update(
                 {
-                    "$req": "count=0",  # noop request
-                    "RID": "0",
+                    "CVER": 22,
+                    "$req": "count=1&ofs=0&req0_data=%5B%5D",
                     "SID": "null",
-                    "TYPE": "init",  # type of request
                 }
             )
+
+            self._rid += 1
         else:
-            params.update(
-                {
-                    "CI": 0,
-                    "RID": "rpc",
-                    "SID": self._sid_param,
-                    "TYPE": "xmlhttp",
-                }
-            )
+            params.update({"CI": 0, "TYPE": "xmlhttp", "RID": "rpc", "AID": self._aid})
+
+        headers = {
+            "referer": "https://chat.google.com/",
+        }
 
         logger.debug("Opening new long-polling request")
         LONG_POLLING_REQUESTS.inc()
         try:
             res: aiohttp.ClientResponse
             async with self._session.fetch_raw_ctx(
-                "GET", CHANNEL_URL_BASE + "events_encoded", params=params
+                "GET", CHANNEL_URL_BASE + "events", params=params, headers=headers
             ) as res:
                 if res.status != 200:
                     text = await res.text()
@@ -412,6 +424,24 @@ class Channel:
                         self._aid = 0
                         self._ofs = 0
 
+                        # Tell the server we got the sid. I'm not sure what else
+                        # this could be, but it does seem to be required.
+                        params = {
+                            "VER": 8,
+                            "RID": "rpc",
+                            "SID": self._sid_param,
+                            "AID": self._aid,
+                            "CI": 0,
+                            "TYPE": "xmlhttp",
+                            "zx": _unique_id(),
+                            "t": 1,
+                        }
+
+                        await self._session.fetch_raw(
+                            "GET", CHANNEL_URL_BASE + "events", params=params
+                        )
+
+                        # Finally send the initial ping
                         await self._send_initial_ping()
 
                 while True:

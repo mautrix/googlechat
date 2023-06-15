@@ -67,11 +67,6 @@ appservice:
     as_token: "This value is generated when generating the registration"
     hs_token: "This value is generated when generating the registration"
 
-hangouts:
-    # Device name shown in Google account settings
-    # (probably doesn't actually work anymore)
-    device_name: Mautrix-Google Chat bridge
-
 # Prometheus telemetry config. Requires prometheus-client to be installed.
 metrics:
     enabled: false

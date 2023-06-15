@@ -38,6 +38,10 @@ class FileTooLargeError(HangupsError):
     pass
 
 
+class NotLoggedInError(HangupsError):
+    pass
+
+
 class ResponseError(HangupsError):
     body: Any
 

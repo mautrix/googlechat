@@ -1,8 +1,14 @@
-# unreleased
+# v0.5.0 (unreleased)
 
+* Switched to web app API to make authentication work again.
+  **This will require all users to relogin.**
 * Allowed thread bridging in non-thread-only chats.
 * Improved handling of getting logged out remotely.
-* Updated Docker image to Alpine 3.17.
+* Added options to automatically ratchet/delete megolm sessions to minimize
+  access to old messages.
+* Added option to not set room name/avatar even in encrypted rooms.
+* Implemented appservice pinging using MSC2659.
+* Updated Docker image to Alpine 3.18.
 
 # v0.4.0 (2022-11-15)
 

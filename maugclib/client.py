@@ -3,20 +3,23 @@
 from __future__ import annotations
 
 from typing import Iterator
+from urllib.parse import urlencode
 import asyncio
 import base64
 import binascii
 import cgi
 import datetime
+import json
 import logging
 import os
 import random
+import re
 
 from google.protobuf import message as proto
 from yarl import URL
 import aiohttp
 
-from . import auth, channel, event, exceptions, googlechat_pb2, http_utils, parsers
+from . import channel, event, exceptions, googlechat_pb2, http_utils, parsers, pblite
 
 logger = logging.getLogger(__name__)
 dl_log = logger.getChild("download")
@@ -24,7 +27,10 @@ UPLOAD_URL = "https://chat.google.com/uploads"
 # API key for `key` parameter (from Hangouts web client)
 API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
 # Base URL for API requests:
-GC_BASE_URL = "https://chat.google.com"
+GC_BASE_URL = "https://chat.google.com/u/0"
+
+
+wiz_pattern = re.compile(r">window.WIZ_global_data = ({.+?});</script>")
 
 
 class Client:
@@ -33,7 +39,7 @@ class Client:
     Maintains a connections to the servers, emits events, and accepts commands.
 
     Args:
-        token_manager: (auth.TokenManager): The token manager.
+        cookies: (http_utils.Cookies): The cookies.
         max_retries (int): (optional) Maximum number of connection attempts
             hangups will make before giving up. Defaults to 5.
         retry_backoff_base (int): (optional) The base term for the exponential
@@ -48,7 +54,11 @@ class Client:
     _listen_future: asyncio.Future | None
 
     def __init__(
-        self, token_manager: auth.TokenManager, max_retries: int = 5, retry_backoff_base: int = 2
+        self,
+        cookies: http_utils.Cookies,
+        user_agent: str | None = None,
+        max_retries: int = 5,
+        retry_backoff_base: int = 2,
     ) -> None:
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
@@ -77,7 +87,9 @@ class Client:
             state_update: A ``StateUpdate`` message.
         """
 
-        self._session = http_utils.Session(token_manager, proxy=os.environ.get("HTTP_PROXY"))
+        self._session = http_utils.Session(
+            cookies, user_agent=user_agent, proxy=os.environ.get("HTTP_PROXY")
+        )
 
         # channel.Channel instance (populated by .connect()):
         self._channel = None
@@ -86,7 +98,7 @@ class Client:
         self._listen_future = None
 
         self.gc_request_header = googlechat_pb2.RequestHeader(
-            client_type=googlechat_pb2.RequestHeader.ClientType.IOS,
+            client_type=googlechat_pb2.RequestHeader.ClientType.WEB,
             client_version=2440378181258,
             client_feature_capabilities=googlechat_pb2.ClientFeatureCapabilities(
                 spam_room_invites_level=googlechat_pb2.ClientFeatureCapabilities.FULLY_SUPPORTED,
@@ -104,6 +116,19 @@ class Client:
         self._last_active_secs = 0.0
         # ActiveClientState enum int value or None:
         self._active_client_state = None
+
+        # requests to /u/0/api have a query parameter named `c` that appears to
+        # be an incrementing counter. It seems to ignore duplicates, but we
+        # keep it around to not stand out.
+        self._api_reqid = 0
+
+        # These are values that need to be acquired from the server via the
+        # check_login() method.
+        self.xsrf_token = None
+
+    @property
+    def cookies(self) -> http_utils.Cookies:
+        return self._session.get_auth_cookies()
 
     ##########################################################################
     # Public methods
@@ -443,6 +468,47 @@ class Client:
         )
         return resp.start_timestamp_usec
 
+    async def refresh_tokens(self):
+        """Makes a request to /mole/world to get some magic values. Right now
+        this is just the xsrf token for api requests, but it could be more
+        at some point. Also if we ever need to go back to the batchexecute
+        api, all of the required values are in this response as well.
+        """
+
+        qs = {
+            "origin": "https://mail.google.com",
+            "shell": "9",
+            "hl": "en",
+            "wfi": "gtn-roster-iframe-id",
+            # TODO: some of these values are passed in via redirect during
+            # login and should probably be used instead of hard coding.
+            "hs": '["h_hs",null,null,[1,0],null,null,"gmail.pinto-server_20230515.06_p0",1,null,[36,35,26,18,24,11,15,14,6],null,null,"3Mu86PSulM4.en..es5",0,null,null,[2]]',
+        }
+        headers = {
+            "authority": "chat.google.com",
+            "refer": "https://mail.google.com/",
+        }
+
+        url = f"{GC_BASE_URL}/mole/world?{urlencode(qs)}"
+
+        res = await self._session.fetch(
+            "GET",
+            url,
+            headers=headers,
+        )
+
+        body = res.body.decode("utf-8")
+        wiz_match = wiz_pattern.search(body)
+        if not wiz_match:
+            raise Exception("Didn't find WIZ_global_data in /mole/world response")
+        try:
+            wiz_data = json.loads(wiz_match.group(1))
+        except json.JSONDecodeError as e:
+            raise Exception("Non-JSON WIZ_global_data in /mole/world response") from e
+        if wiz_data["qwAQke"] == "AccountsSignInUi":
+            raise exceptions.NotLoggedInError("Provided tokens aren't valid")
+        self.xsrf_token = wiz_data["SMqcke"]
+
     ##########################################################################
     # Private methods
     ##########################################################################
@@ -452,21 +518,20 @@ class Client:
         if array[0] == "noop":
             pass  # This is just a keep-alive, ignore it.
         else:
-            if "data" in array[0]:
-                data = array[0]["data"]
+            data = array[0]
 
-                resp = googlechat_pb2.StreamEventsResponse()
-                resp.ParseFromString(base64.b64decode(data))
+            resp = googlechat_pb2.StreamEventsResponse()
+            pblite.decode(resp, data)
 
-                # An event can have multiple bodies embedded in it. However,
-                # instead of pushing all bodies in the same place, there first
-                # one is a separate field. So to simplify handling, we muck
-                # around with the class by swapping the embedded bodies into
-                # the top level body field and fire the event like it was the
-                # toplevel body.
-                for evt in self.split_event_bodies(resp.event):
-                    logger.debug("Dispatching stream event: %s", evt)
-                    await self.on_stream_event.fire(evt)
+            # An event can have multiple bodies embedded in it. However,
+            # instead of pushing all bodies in the same place, there first
+            # one is a separate field. So to simplify handling, we muck
+            # around with the class by swapping the embedded bodies into
+            # the top level body field and fire the event like it was the
+            # toplevel body.
+            for evt in self.split_event_bodies(resp.event):
+                logger.debug("Dispatching stream event: %s", evt)
+                await self.on_stream_event.fire(evt)
 
     @staticmethod
     def split_event_bodies(evt: googlechat_pb2.Event) -> Iterator[googlechat_pb2.Event]:
@@ -498,12 +563,19 @@ class Client:
         Raises:
             NetworkError: If the request fails.
         """
+
+        headers = {}
+        if self.xsrf_token is not None:
+            headers["x-framework-xsrf-token"] = self.xsrf_token
+
         logger.debug("Sending Protocol Buffer request %s:\n%s", endpoint, request_pb)
+        self._api_reqid += 1
         res = await self._base_request(
-            "{}/api/{}?rt=b".format(GC_BASE_URL, endpoint),
+            "{}/api/{}?c={}&rt=b".format(GC_BASE_URL, endpoint, self._api_reqid),
             "application/x-protobuf",  # Request body is Protocol Buffer.
             "proto",  # Response body is Protocol Buffer.
             request_pb.SerializeToString(),
+            headers=headers,
         )
         try:
             response_pb.ParseFromString(res.body)
@@ -615,6 +687,7 @@ class Client:
         """
         response = googlechat_pb2.GetSelfUserStatusResponse()
         await self._gc_request("get_self_user_status", get_self_user_status_request, response)
+
         return response
 
     async def proto_get_group(

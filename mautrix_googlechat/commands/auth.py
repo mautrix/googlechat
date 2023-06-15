@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2022 Tulir Asokan
+# Copyright (C) 2023 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,77 +13,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import textwrap
+import json
 
-from maugclib.auth import TokenManager
-from maugclib.exceptions import ResponseError
+from maugclib import Cookies, NotLoggedInError
 from mautrix.bridge.commands import HelpSection, command_handler
 from mautrix.errors import MForbidden
 from mautrix.types import EventID
 
-from .. import puppet as pu, user as u
-from ..web.auth import make_login_url
+from .. import puppet as pu
 from .typehint import CommandEvent
 
 SECTION_AUTH = HelpSection("Authentication", 10, "")
-
-
-@command_handler(
-    needs_auth=False,
-    management_only=True,
-    help_section=SECTION_AUTH,
-    help_text="Log in to Google Chat",
-)
-async def login(evt: CommandEvent) -> EventID:
-    direct_login_url = make_login_url(evt.config["hangouts.device_name"])
-    instructions = f"""
-        1. Open [this link]({direct_login_url}) in your browser.
-        2. Log into your Google account normally.
-        3. When you reach the loading screen after logging in that says *"One moment please..."*,
-           press `F12` to open developer tools.
-        4. Select the "Application" (Chrome) or "Storage" (Firefox) tab.
-        5. In the sidebar, expand "Cookies" and select `https://accounts.google.com`.
-        6. In the cookie list, find the `oauth_code` row and double-click on the value,
-           then copy the value and send it here.
-    """
-    evt.sender.command_status = {
-        "action": "Login",
-        "room_id": evt.room_id,
-        "next": enter_oauth_code,
-    }
-    return await evt.reply(textwrap.dedent(instructions.lstrip("\n").rstrip()))
-
-
-async def enter_oauth_code(evt: CommandEvent) -> EventID:
-    if len(evt.args) == 0:
-        return await evt.reply(
-            "Please enter the value of the `oauth_code` cookie, "
-            "or use the `cancel` command to cancel."
-        )
-
-    try:
-        await evt.az.intent.redact(evt.room_id, evt.event_id)
-    except MForbidden as e:
-        evt.log.warning(f"Failed to redact OAuth token during login: {e}")
-
-    try:
-        token_mgr = await TokenManager.from_authorization_code(
-            evt.args[0], u.UserRefreshTokenCache(evt.sender)
-        )
-    except ResponseError as e:
-        evt.log.exception(f"Login for {evt.sender.mxid} failed")
-        return await evt.reply(f"Failed to log in: {e}")
-    except Exception:
-        evt.log.exception(f"Login for {evt.sender.mxid} errored")
-        return await evt.reply("Unknown error logging in (see logs for more details)")
-    else:
-        if not await evt.sender.login_complete(token_mgr, get_self=True):
-            return await evt.reply("Failed to get own info after login")
-        await evt.sender.name_future
-        return await evt.reply(
-            f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "
-            f"({evt.sender.gcid})"
-        )
 
 
 @command_handler(
@@ -129,3 +69,38 @@ async def set_notice_room(evt: CommandEvent) -> None:
     evt.sender.notice_room = evt.room_id
     await evt.sender.save()
     await evt.reply("This room has been marked as your bridge notice room")
+
+
+@command_handler(
+    needs_auth=False,
+    management_only=True,
+    help_section=SECTION_AUTH,
+    help_text=(
+        "Set the cookies required for auth. This should be JSON object with the "
+        "full cookie values from https://chat.google.com (path /) in the following format: "
+        '`{"compass": "", "ssid": "", "sid": "", "osid": "", "hsid": ""}`'
+    ),
+)
+async def login_cookie(evt: CommandEvent) -> EventID:
+    if len(evt.args) == 0:
+        return await evt.reply("Please enter a JSON object with the cookies.")
+
+    try:
+        await evt.az.intent.redact(evt.room_id, evt.event_id)
+    except MForbidden as e:
+        evt.log.warning(f"Failed to redact cookies during login: {e}")
+
+    try:
+        data = json.loads(" ".join(evt.args))
+    except Exception as e:
+        return await evt.reply(f"Invalid JSON: {e}")
+
+    try:
+        await evt.sender.connect(Cookies(**{k.lower(): v for k, v in data.items()}))
+    except NotLoggedInError:
+        return await evt.reply("Those cookies don't seem to be valid")
+    await evt.sender.name_future
+    return await evt.reply(
+        f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "
+        f"({evt.sender.gcid})"
+    )

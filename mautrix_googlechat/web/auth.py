@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2022 Tulir Asokan
+# Copyright (C) 2023 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -18,12 +18,11 @@ from __future__ import annotations
 from typing import Any
 import asyncio
 import logging
-import urllib.parse
 
 from aiohttp import web
 
-from maugclib.auth import OAUTH2_CLIENT_ID, OAUTH2_SCOPES, TokenManager
-from maugclib.exceptions import ResponseError
+from maugclib import Cookies
+from maugclib.exceptions import NotLoggedInError, ResponseError
 from mautrix.types import UserID
 
 from .. import user as u
@@ -58,26 +57,12 @@ log = logging.getLogger("mau.gc.auth")
 LOGIN_TIMEOUT = 10 * 60
 
 
-def make_login_url(device_name: str) -> str:
-    query = urllib.parse.urlencode(
-        {
-            "scope": "+".join(OAUTH2_SCOPES),
-            "client_id": OAUTH2_CLIENT_ID,
-            "device_name": device_name,
-        },
-        safe="+",
-    )
-    return f"https://accounts.google.com/o/oauth2/programmatic_auth?{query}"
-
-
 class GoogleChatAuthServer:
     app: web.Application
     shared_secret: str | None
-    device_name: str
 
-    def __init__(self, shared_secret: str | None, device_name: str) -> None:
+    def __init__(self, shared_secret: str | None) -> None:
         self.ongoing = {}
-        self.device_name = device_name
         self.shared_secret = shared_secret
 
         self.app = web.Application(middlewares=[error_middleware])
@@ -88,7 +73,6 @@ class GoogleChatAuthServer:
 
         self.legacy_app = web.Application(middlewares=[error_middleware])
         self.legacy_app.router.add_post("/api/verify", self.verify)
-        self.legacy_app.router.add_post("/api/start", self.start_login)
         self.legacy_app.router.add_post("/api/logout", self.logout)
         self.legacy_app.router.add_post("/api/authorization", self.login)
         self.legacy_app.router.add_post("/api/reconnect", self.reconnect)
@@ -146,25 +130,6 @@ class GoogleChatAuthServer:
         user.reconnect()
         return web.json_response({})
 
-    async def start_login(self, request: web.Request) -> web.Response:
-        user_id = self.verify_token(request)
-        user = await u.User.get_by_mxid(user_id)
-        if user.client:
-            await user.name_future
-            return web.json_response(
-                {
-                    "status": "success",
-                    "name": user.name,
-                    "email": user.email,
-                }
-            )
-        return web.json_response(
-            {
-                "next_step": "authorization",
-                "manual_auth_url": make_login_url(self.device_name),
-            }
-        )
-
     async def login(self, request: web.Request) -> web.Response:
         user_id = self.verify_token(request)
         user = await u.User.get_by_mxid(user_id)
@@ -181,18 +146,23 @@ class GoogleChatAuthServer:
         if not data:
             raise ErrorResponse(400, "Body is not JSON", "M_NOT_JSON")
         try:
-            auth = data["authorization"]
-        except KeyError:
+            cookies = Cookies(**{k.lower(): v for k, v in data["cookies"].items()})
+        except TypeError:
             raise ErrorResponse(
-                400, "Request body did not contain authorization field", "M_BAD_REQUEST"
+                400, "Request body did not contain the required fields", "M_BAD_REQUEST"
             )
+        user.user_agent = data.get("user_agent", None)
 
-        user.log.debug("Trying to log in with auth code")
+        user.log.debug("Trying to log in with cookies")
         try:
-            token_mgr = await TokenManager.from_authorization_code(
-                auth, u.UserRefreshTokenCache(user)
-            )
-        except ResponseError as e:
+            if not await user.connect(cookies, get_self=True):
+                return web.json_response(
+                    {
+                        "status": "fail",
+                        "error": "Failed to get own info after login",
+                    }
+                )
+        except (ResponseError, NotLoggedInError) as e:
             log.exception(f"Login for {user.mxid} failed")
             return web.json_response(
                 {
@@ -210,13 +180,6 @@ class GoogleChatAuthServer:
                 status=500,
             )
         else:
-            if not await user.login_complete(token_mgr, get_self=True):
-                return web.json_response(
-                    {
-                        "status": "fail",
-                        "error": "Failed to get own info after login",
-                    }
-                )
             await asyncio.wait_for(asyncio.shield(user.name_future), 20)
             return web.json_response(
                 {
