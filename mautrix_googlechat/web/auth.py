@@ -146,12 +146,12 @@ class GoogleChatAuthServer:
         if not data:
             raise ErrorResponse(400, "Body is not JSON", "M_NOT_JSON")
         try:
-            data = {k.lower(): v for k, v in data.items()}
-            cookies = Cookies(**data)
+            cookies = Cookies(**{k.lower(): v for k, v in data["cookies"].items()})
         except TypeError:
             raise ErrorResponse(
                 400, "Request body did not contain the required fields", "M_BAD_REQUEST"
             )
+        # TODO use user_agent from request body instead of hardcoding?
 
         user.log.debug("Trying to log in with cookies")
         try:

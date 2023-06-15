@@ -455,7 +455,7 @@ class User(DBUser, BaseUser):
             req_ids = [
                 googlechat.MemberId(user_id=googlechat.UserId(id=user_id))
                 for user_id in ids
-                if user_id not in self.users
+                if user_id not in self.users and user_id
             ]
             if req_ids:
                 self.log.debug(f"Fetching info of users {[user.user_id.id for user in req_ids]}")
