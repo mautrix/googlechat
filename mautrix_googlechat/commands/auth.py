@@ -145,7 +145,7 @@ async def set_notice_room(evt: CommandEvent) -> None:
             "SSID": "",
             "SID": "",
             "OSID": "",
-            "HSID": "",
+            "HSID": ""
           },
           "/u/0/webchannel/": {
             "COMPASS": ""
