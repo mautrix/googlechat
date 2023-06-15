@@ -28,7 +28,6 @@ UPLOAD_URL = "https://chat.google.com/uploads"
 API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
 # Base URL for API requests:
 GC_BASE_URL = "https://chat.google.com/u/0"
-BE_BASE_URL = "https://chat.google.com/u/0/_/DynamiteWebUi/data/batchexecute"
 
 
 class Client:
@@ -114,17 +113,8 @@ class Client:
         # keep it around to not stand out.
         self._api_reqid = 0
 
-        # Use a 4 digit number as our reqid seed per
-        # https://kovatch.medium.com/deciphering-google-batchexecute-74991e4e446c
-        #
-        # each batchexecute request will increment this value by 100,000.
-        self._rpc_reqid = random.randint(10000, 99999)
-
         # These are values that need to be acquired from the server via the
         # check_login() method.
-        self.f_sid = None
-        self.bl = None
-        self.at = None
         self.xsrf_token = None
 
     ##########################################################################
@@ -466,8 +456,10 @@ class Client:
         return resp.start_timestamp_usec
 
     async def refresh_tokens(self):
-        """Makes a request to /mole/world to get the values for bl, at, and
-        f.sid which are used for all batchexecute requests.
+        """Makes a request to /mole/world to get some magic values. Right now
+        this is just the xsrf token for api requests, but it could be more
+        at some point. Also if we ever need to go back to the batchexecute
+        api, all of the required values are in this response as well.
         """
 
         def get_value(body, id):
@@ -505,9 +497,6 @@ class Client:
         with open("body.html", "w+") as fp:
             fp.write(body)
 
-        self.bl = get_value(body, "cfb2h")
-        self.f_sid = get_value(body, "FdrFJe")
-        self.at = get_value(body, "SNlM0e")
         self.xsrf_token = get_value(body, "SMqcke")
 
     ##########################################################################
@@ -550,93 +539,6 @@ class Client:
             evt_copy.body.CopyFrom(body)
             evt_copy.type = body.event_type
             yield evt_copy
-
-    async def _batchexecute_request(
-        self, rpcid, request_pb: proto.Message, response_pb: proto.Message
-    ) -> None:
-        """Send a Protocol Buffer formatting Batch Execute request.
-
-        This will handle all of the batchexecute specifics just leaving the
-        caller to deal with their specific request and response.
-
-        Args:
-            endpoint (str): The RPC ID to use.
-            request_pb: The request body as a Protocol Buffer message.
-            response_pb: The response body as a Protocol Buffer message.
-
-        Raises:
-            NetworkError: If the request fails.
-        """
-        logger.debug("Sending Batch Execute request %s:\n%s", rpcid, request_pb)
-
-        payload = pblite.encode(request_pb)
-        rpc_request = googlechat_pb2.BatchExecuteRequest(
-            requests=[
-                googlechat_pb2.RpcRequest(
-                    rpc_id=rpcid,
-                    payload=json.dumps(payload),
-                    order="generic",
-                ),
-            ],
-        )
-
-        # increment the request id for this request
-        self._rpc_reqid += 100000
-
-        # build our query string
-        params = {
-            "rpcids": rpcid,
-            "source-path": "/u/0/mole/world",
-            "f.sid": self.f_sid,
-            "bl": self.bl,
-            "hl": "en",
-            "soc-app": 1,
-            "soc-platform": 1,
-            "soc-device": 1,
-            "_reqid": self._rpc_reqid,
-            # b gives up binary protobufs but everything is failing to parse them.
-            # c gives us chunks like the channel
-            # j gives us a json like array with pblite in it?
-            # p gives us a normal pblite
-            # "rt": "j",
-        }
-
-        # build our form
-        form = {
-            "f.req": json.dumps(pblite.encode(rpc_request)),
-            "at": self.at,
-        }
-        data = urlencode(form)
-
-        headers = {
-            "content-type": "application/x-www-form-urlencoded;charset=utf-8",
-            "referer": "https://chat.google.com/",
-        }
-
-        res = await self._session.fetch(
-            "POST",
-            BE_BASE_URL,
-            headers=headers,
-            params=params,
-            data=data,
-        )
-
-        body = res.body
-        if body.startswith(b")]}'\n\n"):
-            body = body[6:]
-
-        try:
-            envelope = googlechat_pb2.BatchExecuteResponse()
-            pblite.decode(envelope, json.loads(body))
-
-            logger.debug("envelope response:\n%s", envelope)
-
-            pblite.decode(response_pb, json.loads(envelope.response.payload))
-        except proto.DecodeError as e:
-            raise exceptions.NetworkError(
-                "Failed to decode Protocol Buffer response: {}".format(e)
-            )
-        logger.debug("Received Protocol Buffer response:\n%s", response_pb)
 
     async def _gc_request(
         self, endpoint, request_pb: proto.Message, response_pb: proto.Message
