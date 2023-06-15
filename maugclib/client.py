@@ -493,7 +493,7 @@ class Client:
             "refer": "https://mail.google.com/",
         }
 
-        url = f"{GC_BASE_URL}/u/0/mole/world?{urlencode(qs)}"
+        url = f"{GC_BASE_URL}/mole/world?{urlencode(qs)}"
 
         res = await self._session.fetch(
             "GET",
