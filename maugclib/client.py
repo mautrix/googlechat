@@ -51,7 +51,11 @@ class Client:
     _listen_future: asyncio.Future | None
 
     def __init__(
-        self, cookies: http_utils.Cookies, max_retries: int = 5, retry_backoff_base: int = 2
+        self,
+        cookies: http_utils.Cookies,
+        user_agent: str | None = None,
+        max_retries: int = 5,
+        retry_backoff_base: int = 2,
     ) -> None:
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
@@ -80,7 +84,9 @@ class Client:
             state_update: A ``StateUpdate`` message.
         """
 
-        self._session = http_utils.Session(cookies, proxy=os.environ.get("HTTP_PROXY"))
+        self._session = http_utils.Session(
+            cookies, user_agent=user_agent, proxy=os.environ.get("HTTP_PROXY")
+        )
 
         # channel.Channel instance (populated by .connect()):
         self._channel = None

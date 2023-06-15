@@ -151,7 +151,7 @@ class GoogleChatAuthServer:
             raise ErrorResponse(
                 400, "Request body did not contain the required fields", "M_BAD_REQUEST"
             )
-        # TODO use user_agent from request body instead of hardcoding?
+        user.user_agent = data.get("user_agent", None)
 
         user.log.debug("Trying to log in with cookies")
         try:

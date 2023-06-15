@@ -83,12 +83,14 @@ class User(DBUser, BaseUser):
         gcid: str | None = None,
         revision: int | None = None,
         cookies: Cookies | None = None,
+        user_agent: str | None = None,
         notice_room: RoomID | None = None,
     ) -> None:
         super().__init__(
             mxid=mxid,
             gcid=gcid,
             cookies=cookies,
+            user_agent=user_agent,
             revision=revision,
             notice_room=notice_room,
         )
@@ -252,7 +254,12 @@ class User(DBUser, BaseUser):
 
     async def connect(self, cookies: Cookies | None = None, get_self: bool = False) -> bool:
         self.log.debug("Running post-login actions")
-        self.client = Client(cookies or self.cookies, max_retries=3, retry_backoff_base=2)
+        self.client = Client(
+            cookies or self.cookies,
+            user_agent=self.user_agent,
+            max_retries=3,
+            retry_backoff_base=2,
+        )
         await self.client.refresh_tokens()
         if get_self or not self.gcid:
             self.log.debug("Fetching own user ID before connecting")
@@ -403,6 +410,7 @@ class User(DBUser, BaseUser):
         self.by_gcid.pop(self.gcid, None)
         self.gcid = None
         self.cookies = None
+        self.user_agent = None
         await self.stop()
         self.client = None
         self.connected = False

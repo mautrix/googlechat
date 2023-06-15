@@ -11,4 +11,5 @@ from . import (
     v06_space_description,
     v07_puppet_contact_info_set,
     v08_web_app_auth,
+    v09_web_app_ua,
 )

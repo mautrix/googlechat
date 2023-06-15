@@ -18,13 +18,14 @@ from mautrix.util.async_db import Connection
 from . import upgrade_table
 
 
-@upgrade_table.register(description="Latest revision", upgrades_to=8)
+@upgrade_table.register(description="Latest revision", upgrades_to=9)
 async def upgrade_latest(conn: Connection) -> None:
     await conn.execute(
         """CREATE TABLE "user" (
             mxid        TEXT PRIMARY KEY,
             gcid        TEXT UNIQUE,
             cookies     TEXT,
+            user_agent  TEXT,
             notice_room TEXT,
             revision    BIGINT
         )"""

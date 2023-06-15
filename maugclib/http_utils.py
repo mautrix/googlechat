@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from http.cookies import Morsel, SimpleCookie
 import asyncio
 import logging
+import re
 
 from yarl import URL
 import aiohttp
@@ -19,7 +20,14 @@ REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3
 ORIGIN_URL = "https://chat.google.com"
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+LATEST_CHROME_VERSION = "114"
+LATEST_FIREFOX_VERSION = "114"
+DEFAULT_USER_AGENT = (
+    f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+    f"Chrome/{LATEST_CHROME_VERSION}.0.0.0 Safari/537.36"
+)
+chrome_version_regex = re.compile(r"Chrome/\d+\.\d+\.\d+\.\d+")
+firefox_version_regex = re.compile(r"Firefox/\d+.\d+")
 
 
 class FetchResponse(NamedTuple):
@@ -47,7 +55,7 @@ class Session:
         proxy (str): (optional) HTTP proxy URL to use for requests.
     """
 
-    def __init__(self, cookies: Cookies, proxy: str = None) -> None:
+    def __init__(self, cookies: Cookies, proxy: str = None, user_agent: str = None) -> None:
         self._proxy = proxy
 
         # The server does not support quoting cookie values (see #498).
@@ -58,12 +66,22 @@ class Session:
             cookie[key.upper()].update({"domain": "chat.google.com", "path": "/"})
         self._cookie_jar.update_cookies(cookie, chat_google_com)
 
+        if user_agent:
+            user_agent = chrome_version_regex.sub(
+                f"Chrome/{LATEST_CHROME_VERSION}.0.0.0", user_agent
+            )
+            user_agent = firefox_version_regex.sub(
+                f"Firefox/{LATEST_FIREFOX_VERSION}.0", user_agent
+            )
+        else:
+            user_agent = DEFAULT_USER_AGENT
+
         timeout = aiohttp.ClientTimeout(connect=CONNECT_TIMEOUT)
         self._session = aiohttp.ClientSession(
             cookie_jar=self._cookie_jar,
             timeout=timeout,
             trust_env=True,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": user_agent},
         )
 
     def get_auth_cookies(self) -> Cookies:

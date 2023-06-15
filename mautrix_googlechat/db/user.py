@@ -35,6 +35,7 @@ class User:
     mxid: UserID
     gcid: str | None
     cookies: Cookies | None
+    user_agent: str | None
     notice_room: RoomID | None
     revision: int | None
 
@@ -50,7 +51,7 @@ class User:
     @classmethod
     async def all_logged_in(cls) -> list[User]:
         q = (
-            'SELECT mxid, gcid, cookies, notice_room, revision FROM "user" '
+            'SELECT mxid, gcid, cookies, user_agent, notice_room, revision FROM "user" '
             "WHERE cookies IS NOT NULL"
         )
         rows = await cls.db.fetch(q)
@@ -58,13 +59,17 @@ class User:
 
     @classmethod
     async def get_by_gcid(cls, gcid: str) -> User | None:
-        q = 'SELECT mxid, gcid, cookies, notice_room, revision FROM "user" WHERE gcid=$1'
+        q = """
+        SELECT mxid, gcid, cookies, user_agent, notice_room, revision FROM "user" WHERE gcid=$1
+        """
         row = await cls.db.fetchrow(q, gcid)
         return cls._from_row(row)
 
     @classmethod
     async def get_by_mxid(cls, mxid: UserID) -> User | None:
-        q = 'SELECT mxid, gcid, cookies, notice_room, revision FROM "user" WHERE mxid=$1'
+        q = """
+        SELECT mxid, gcid, cookies, user_agent, notice_room, revision FROM "user" WHERE mxid=$1
+        """
         row = await cls.db.fetchrow(q, mxid)
         return cls._from_row(row)
 
@@ -74,14 +79,15 @@ class User:
             self.mxid,
             self.gcid,
             json.dumps(self.cookies._asdict()) if self.cookies else None,
+            self.user_agent,
             self.notice_room,
             self.revision,
         )
 
     async def insert(self) -> None:
         q = (
-            'INSERT INTO "user" (mxid, gcid, cookies, notice_room, revision) '
-            "VALUES ($1, $2, $3, $4, $5)"
+            'INSERT INTO "user" (mxid, gcid, cookies, user_agent, notice_room, revision) '
+            "VALUES ($1, $2, $3, $4, $5, $6)"
         )
         await self.db.execute(q, *self._values)
 
@@ -89,7 +95,10 @@ class User:
         await self.db.execute('DELETE FROM "user" WHERE mxid=$1', self.mxid)
 
     async def save(self) -> None:
-        q = 'UPDATE "user" SET gcid=$2, cookies=$3, notice_room=$4, revision=$5 ' "WHERE mxid=$1"
+        q = (
+            'UPDATE "user" SET gcid=$2, cookies=$3, user_agent=$4, notice_room=$5, revision=$6 '
+            "WHERE mxid=$1"
+        )
         await self.db.execute(q, *self._values)
 
     async def set_revision(self, revision: int) -> None:
