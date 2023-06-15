@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import json
 
-from maugclib import Cookies
+from maugclib import Cookies, NotLoggedInError
 from mautrix.bridge.commands import HelpSection, command_handler
 from mautrix.errors import MForbidden
 from mautrix.types import EventID
@@ -95,7 +95,10 @@ async def login_cookie(evt: CommandEvent) -> EventID:
     except Exception as e:
         return await evt.reply(f"Invalid JSON: {e}")
 
-    await evt.sender.connect(Cookies(**{k.lower(): v for k, v in data.items()}))
+    try:
+        await evt.sender.connect(Cookies(**{k.lower(): v for k, v in data.items()}))
+    except NotLoggedInError:
+        return await evt.reply("Those cookies don't seem to be valid")
     await evt.sender.name_future
     return await evt.reply(
         f"Successfully logged in as {evt.sender.name} &lt;{evt.sender.email}&gt; "

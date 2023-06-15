@@ -30,6 +30,9 @@ API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
 GC_BASE_URL = "https://chat.google.com/u/0"
 
 
+wiz_pattern = re.compile(r">window.WIZ_global_data = ({.+?});</script>")
+
+
 class Client:
     """Instant messaging client for Google Chat.
 
@@ -472,15 +475,6 @@ class Client:
         api, all of the required values are in this response as well.
         """
 
-        def get_value(body, id):
-            pattern = re.compile(f'\\"{id}\\":\\s*\\"(?P<value>[^\\"]+)\\"')
-            pattern = re.compile(r"\"" + id + r"\":\s*\"(?P<value>[^\"]+)\"")
-            match = pattern.search(body)
-            if match is None:
-                raise Exception(f"no match for {id}")
-
-            return match.group("value")
-
         qs = {
             "origin": "https://mail.google.com",
             "shell": "9",
@@ -504,7 +498,16 @@ class Client:
         )
 
         body = res.body.decode("utf-8")
-        self.xsrf_token = get_value(body, "SMqcke")
+        wiz_match = wiz_pattern.search(body)
+        if not wiz_match:
+            raise Exception("Didn't find WIZ_global_data in /mole/world response")
+        try:
+            wiz_data = json.loads(wiz_match.group(1))
+        except json.JSONDecodeError as e:
+            raise Exception("Non-JSON WIZ_global_data in /mole/world response") from e
+        if wiz_data["qwAQke"] == "AccountsSignInUi":
+            raise exceptions.NotLoggedInError("Provided tokens aren't valid")
+        self.xsrf_token = wiz_data["SMqcke"]
 
     ##########################################################################
     # Private methods

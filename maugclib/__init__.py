@@ -9,6 +9,7 @@ from .exceptions import (
     FileTooLargeError,
     HangupsError,
     NetworkError,
+    NotLoggedInError,
     ResponseError,
     ResponseNotJSONError,
     SIDError,

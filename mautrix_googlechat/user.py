@@ -23,6 +23,7 @@ from maugclib import (
     ChannelLifetimeExpired,
     Client,
     Cookies,
+    NotLoggedInError,
     ResponseError,
     SIDInvalidError,
     UnexpectedStatusError,
@@ -244,6 +245,9 @@ class User(DBUser, BaseUser):
             if isinstance(e, UnexpectedStatusError) and e.error_code == "invalid_grant":
                 self.log.info("Resume session error has invalid_grant error code, logging out")
                 await self.logout(is_manual=False, error=e)
+            elif isinstance(e, NotLoggedInError):
+                self.log.info("Resume session error is NotLoggedInError, logging out")
+                await self.logout(is_manual=False)
             else:
                 await self.send_bridge_notice(
                     f"Failed to resume session with stored refresh token: {e}",
@@ -254,13 +258,14 @@ class User(DBUser, BaseUser):
 
     async def connect(self, cookies: Cookies | None = None, get_self: bool = False) -> bool:
         self.log.debug("Running post-login actions")
-        self.client = Client(
+        client = Client(
             cookies or self.cookies,
             user_agent=self.user_agent,
             max_retries=3,
             retry_backoff_base=2,
         )
-        await self.client.refresh_tokens()
+        await client.refresh_tokens()
+        self.client = client
         if get_self or not self.gcid:
             self.log.debug("Fetching own user ID before connecting")
             try:

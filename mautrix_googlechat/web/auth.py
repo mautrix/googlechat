@@ -22,7 +22,7 @@ import logging
 from aiohttp import web
 
 from maugclib import Cookies
-from maugclib.exceptions import ResponseError
+from maugclib.exceptions import NotLoggedInError, ResponseError
 from mautrix.types import UserID
 
 from .. import user as u
@@ -162,7 +162,7 @@ class GoogleChatAuthServer:
                         "error": "Failed to get own info after login",
                     }
                 )
-        except ResponseError as e:
+        except (ResponseError, NotLoggedInError) as e:
             log.exception(f"Login for {user.mxid} failed")
             return web.json_response(
                 {
