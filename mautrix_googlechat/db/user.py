@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2022 Tulir Asokan
+# Copyright (C) 2023 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -16,10 +16,12 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
+import json
 
 from asyncpg import Record
 from attr import dataclass
 
+from maugclib import Cookies
 from mautrix.types import RoomID, UserID
 from mautrix.util.async_db import Database
 
@@ -32,7 +34,7 @@ class User:
 
     mxid: UserID
     gcid: str | None
-    refresh_token: str | None
+    cookies: Cookies | None
     notice_room: RoomID | None
     revision: int | None
 
@@ -40,26 +42,29 @@ class User:
     def _from_row(cls, row: Record | None) -> User | None:
         if row is None:
             return None
-        return cls(**row)
+        data = {**row}
+        cookies_raw = data.pop("cookies")
+        cookies = Cookies(**json.loads(cookies_raw)) if cookies_raw else None
+        return cls(**data, cookies=cookies)
 
     @classmethod
     async def all_logged_in(cls) -> list[User]:
         q = (
-            'SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" '
-            "WHERE refresh_token IS NOT NULL"
+            'SELECT mxid, gcid, cookies, notice_room, revision FROM "user" '
+            "WHERE cookies IS NOT NULL"
         )
         rows = await cls.db.fetch(q)
         return [cls._from_row(row) for row in rows]
 
     @classmethod
     async def get_by_gcid(cls, gcid: str) -> User | None:
-        q = 'SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" WHERE gcid=$1'
+        q = 'SELECT mxid, gcid, cookies, notice_room, revision FROM "user" WHERE gcid=$1'
         row = await cls.db.fetchrow(q, gcid)
         return cls._from_row(row)
 
     @classmethod
     async def get_by_mxid(cls, mxid: UserID) -> User | None:
-        q = 'SELECT mxid, gcid, refresh_token, notice_room, revision FROM "user" WHERE mxid=$1'
+        q = 'SELECT mxid, gcid, cookies, notice_room, revision FROM "user" WHERE mxid=$1'
         row = await cls.db.fetchrow(q, mxid)
         return cls._from_row(row)
 
@@ -68,14 +73,14 @@ class User:
         return (
             self.mxid,
             self.gcid,
-            self.refresh_token,
+            json.dumps(self.cookies._asdict()) if self.cookies else None,
             self.notice_room,
             self.revision,
         )
 
     async def insert(self) -> None:
         q = (
-            'INSERT INTO "user" (mxid, gcid, refresh_token, notice_room, revision) '
+            'INSERT INTO "user" (mxid, gcid, cookies, notice_room, revision) '
             "VALUES ($1, $2, $3, $4, $5)"
         )
         await self.db.execute(q, *self._values)
@@ -84,10 +89,7 @@ class User:
         await self.db.execute('DELETE FROM "user" WHERE mxid=$1', self.mxid)
 
     async def save(self) -> None:
-        q = (
-            'UPDATE "user" SET gcid=$2, refresh_token=$3, notice_room=$4, revision=$5 '
-            "WHERE mxid=$1"
-        )
+        q = 'UPDATE "user" SET gcid=$2, cookies=$3, notice_room=$4, revision=$5 ' "WHERE mxid=$1"
         await self.db.execute(q, *self._values)
 
     async def set_revision(self, revision: int) -> None:

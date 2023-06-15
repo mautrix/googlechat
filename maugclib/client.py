@@ -19,7 +19,7 @@ from google.protobuf import message as proto
 from yarl import URL
 import aiohttp
 
-from . import auth, channel, event, exceptions, googlechat_pb2, http_utils, parsers, pblite
+from . import channel, event, exceptions, googlechat_pb2, http_utils, parsers, pblite
 
 logger = logging.getLogger(__name__)
 dl_log = logger.getChild("download")
@@ -36,7 +36,7 @@ class Client:
     Maintains a connections to the servers, emits events, and accepts commands.
 
     Args:
-        token_manager: (auth.TokenManager): The token manager.
+        cookies: (http_utils.Cookies): The cookies.
         max_retries (int): (optional) Maximum number of connection attempts
             hangups will make before giving up. Defaults to 5.
         retry_backoff_base (int): (optional) The base term for the exponential
@@ -51,7 +51,7 @@ class Client:
     _listen_future: asyncio.Future | None
 
     def __init__(
-        self, token_manager: auth.TokenManager, max_retries: int = 5, retry_backoff_base: int = 2
+        self, cookies: http_utils.Cookies, max_retries: int = 5, retry_backoff_base: int = 2
     ) -> None:
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
@@ -80,7 +80,7 @@ class Client:
             state_update: A ``StateUpdate`` message.
         """
 
-        self._session = http_utils.Session(token_manager, proxy=os.environ.get("HTTP_PROXY"))
+        self._session = http_utils.Session(cookies, proxy=os.environ.get("HTTP_PROXY"))
 
         # channel.Channel instance (populated by .connect()):
         self._channel = None
@@ -116,6 +116,10 @@ class Client:
         # These are values that need to be acquired from the server via the
         # check_login() method.
         self.xsrf_token = None
+
+    @property
+    def cookies(self) -> http_utils.Cookies:
+        return self._session.get_auth_cookies()
 
     ##########################################################################
     # Public methods

@@ -1,5 +1,5 @@
 # mautrix-googlechat - A Matrix-Google Chat puppeting bridge
-# Copyright (C) 2022 Tulir Asokan
+# Copyright (C) 2023 Tulir Asokan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -15,17 +15,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncIterable, Awaitable, Callable, Iterable, cast
+from typing import TYPE_CHECKING, AsyncIterable, Awaitable, Iterable, cast
 import asyncio
 import time
 
 from maugclib import (
     ChannelLifetimeExpired,
     Client,
-    RefreshTokenCache,
+    Cookies,
     ResponseError,
     SIDInvalidError,
-    TokenManager,
     UnexpectedStatusError,
     googlechat_pb2 as googlechat,
 )
@@ -46,7 +45,6 @@ if TYPE_CHECKING:
 METRIC_SYNC = Histogram("bridge_sync", "calls to sync")
 METRIC_LOGGED_IN = Gauge("bridge_logged_in", "Number of users logged into the bridge")
 METRIC_CONNECTED = Gauge("bridge_connected", "Number of users connected to Google Chat")
-
 
 BridgeState.human_readable_errors.update(
     {"get-self-fail": "Failed to get user info from Google Chat"}
@@ -84,13 +82,13 @@ class User(DBUser, BaseUser):
         mxid: UserID,
         gcid: str | None = None,
         revision: int | None = None,
-        refresh_token: str | None = None,
+        cookies: Cookies | None = None,
         notice_room: RoomID | None = None,
     ) -> None:
         super().__init__(
             mxid=mxid,
             gcid=gcid,
-            refresh_token=refresh_token,
+            cookies=cookies,
             revision=revision,
             notice_room=notice_room,
         )
@@ -236,7 +234,7 @@ class User(DBUser, BaseUser):
 
     async def _try_init(self) -> None:
         try:
-            token_mgr = await TokenManager.from_refresh_token(UserRefreshTokenCache(self))
+            await self.connect()
         except Exception as e:
             self.log.exception("Failed to resume session with stored refresh token")
             if isinstance(e, ResponseError):
@@ -251,23 +249,26 @@ class User(DBUser, BaseUser):
                     important=True,
                 )
                 # TODO retry?
-        else:
-            await self.login_complete(token_mgr)
 
-    async def login_complete(self, token_manager: TokenManager, get_self: bool = False) -> bool:
+    async def connect(self, cookies: Cookies | None = None, get_self: bool = False) -> bool:
         self.log.debug("Running post-login actions")
-        self.client = Client(token_manager, max_retries=3, retry_backoff_base=2)
+        self.client = Client(cookies or self.cookies, max_retries=3, retry_backoff_base=2)
         await self.client.refresh_tokens()
         if get_self or not self.gcid:
             self.log.debug("Fetching own user ID before connecting")
             try:
                 await self._fetch_own_id()
             except Exception:
-                self.refresh_token = None
+                self.cookies = None
                 self.client = None
                 await self.save()
                 self.log.exception("Failed to get own info after login")
                 return False
+        client_cookies = self.client.cookies
+        if client_cookies != self.cookies:
+            self.cookies = client_cookies
+            await self.save()
+            self.log.debug("Saved updated auth cookies")
         self.conn_task = asyncio.create_task(self.start())
         if not self.periodic_sync_task:
             self.periodic_sync_task = asyncio.create_task(self._periodic_sync())
@@ -401,7 +402,7 @@ class User(DBUser, BaseUser):
         self._track_metric(METRIC_LOGGED_IN, False)
         self.by_gcid.pop(self.gcid, None)
         self.gcid = None
-        self.refresh_token = None
+        self.cookies = None
         await self.stop()
         self.client = None
         self.connected = False
@@ -675,19 +676,3 @@ class User(DBUser, BaseUser):
                 last_read_time=int((timestamp or (time.time() * 1000)) * 1000),
             )
         )
-
-
-class UserRefreshTokenCache(RefreshTokenCache):
-    user: User
-
-    def __init__(self, user: User) -> None:
-        self.user = user
-
-    async def get(self) -> str:
-        return self.user.refresh_token
-
-    async def set(self, refresh_token: str) -> None:
-        self.user.log.debug("Got new refresh token")
-        self.user.log.trace("New refresh token: %s", refresh_token)
-        self.user.refresh_token = refresh_token
-        await self.user.save()

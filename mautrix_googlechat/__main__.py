@@ -57,7 +57,6 @@ class GoogleChatBridge(Bridge):
         super().prepare_bridge()
         self.auth_server = GoogleChatAuthServer(
             self.config["bridge.provisioning.shared_secret"],
-            self.config["hangouts.device_name"],
         )
         self.az.app.add_subapp("/login", self.auth_server.legacy_app)
         self.az.app.add_subapp(self.config["bridge.provisioning.prefix"], self.auth_server.app)

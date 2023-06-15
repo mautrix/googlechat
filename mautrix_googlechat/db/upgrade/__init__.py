@@ -10,4 +10,5 @@ from . import (
     v05_rename_thread_columns,
     v06_space_description,
     v07_puppet_contact_info_set,
+    v08_web_app_auth,
 )

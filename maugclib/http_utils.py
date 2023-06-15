@@ -1,11 +1,10 @@
 """HTTP request session."""
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, cast
+from typing import Any, AsyncIterator, NamedTuple, cast
 from contextlib import asynccontextmanager
-from http.cookies import Morsel
+from http.cookies import Morsel, SimpleCookie
 import asyncio
-import collections
 import logging
 
 from yarl import URL
@@ -13,7 +12,6 @@ import aiohttp
 import async_timeout
 
 from . import exceptions
-from .auth import USER_AGENT, TokenManager
 
 logger = logging.getLogger(__name__)
 CONNECT_TIMEOUT = 30
@@ -21,7 +19,24 @@ REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3
 ORIGIN_URL = "https://chat.google.com"
 
-FetchResponse = collections.namedtuple("FetchResponse", ["code", "headers", "body"])
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+
+
+class FetchResponse(NamedTuple):
+    code: int
+    headers: dict[str, str]
+    body: bytes
+
+
+class Cookies(NamedTuple):
+    compass: str
+    ssid: str
+    sid: str
+    osid: str
+    hsid: str
+
+
+chat_google_com = URL("https://chat.google.com/")
 
 
 class Session:
@@ -32,28 +47,36 @@ class Session:
         proxy (str): (optional) HTTP proxy URL to use for requests.
     """
 
-    def __init__(self, token_manager: TokenManager, proxy: str = None) -> None:
+    def __init__(self, cookies: Cookies, proxy: str = None) -> None:
         self._proxy = proxy
+
         # The server does not support quoting cookie values (see #498).
         self._cookie_jar = aiohttp.CookieJar(quote_cookie=False)
+        cookie = SimpleCookie()
+        for key, value in cookies._asdict().items():
+            cookie[key.upper()] = value
+            cookie[key.upper()].update({"domain": "chat.google.com", "path": "/"})
+        self._cookie_jar.update_cookies(cookie, chat_google_com)
+
         timeout = aiohttp.ClientTimeout(connect=CONNECT_TIMEOUT)
         self._session = aiohttp.ClientSession(
-            cookies=token_manager.cookies,
             cookie_jar=self._cookie_jar,
             timeout=timeout,
             trust_env=True,
             headers={"User-Agent": USER_AGENT},
         )
 
-        self._token_manager = token_manager
+    def get_auth_cookies(self) -> Cookies:
+        vals = {}
+        cookie = self._cookie_jar.filter_cookies(chat_google_com)
+        for field in Cookies._fields:
+            vals[field] = cookie[field.upper()].value
+        return Cookies(**vals)
 
     def get_cookie(self, url: URL | str, name: str) -> Morsel[str]:
         filtered = self._cookie_jar.filter_cookies(url)
 
         return cast(Morsel, filtered.get(name, None))
-
-    def clear_cookies(self) -> None:
-        self._session.cookie_jar.clear()
 
     async def fetch(
         self,
@@ -206,8 +229,6 @@ class Session:
             raise Exception("expected google.com domain")
 
         headers = headers or {}
-        if len(self._token_manager.cookies) == 0:
-            headers["Authorization"] = f"Bearer {await self._token_manager.get()}"
         headers["Connection"] = "Keep-Alive"
         return self._session.request(
             method,
