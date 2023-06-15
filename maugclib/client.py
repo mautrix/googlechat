@@ -494,9 +494,6 @@ class Client:
         )
 
         body = res.body.decode("utf-8")
-        with open("body.html", "w+") as fp:
-            fp.write(body)
-
         self.xsrf_token = get_value(body, "SMqcke")
 
     ##########################################################################
