@@ -386,7 +386,7 @@ class Channel:
 
             self._rid += 1
         else:
-            params.update({"CI": 0, "TYPE": "xmlhttp", "RID": "rpc"})
+            params.update({"CI": 0, "TYPE": "xmlhttp", "RID": "rpc", "AID": self._aid})
 
         headers = {
             "referer": "https://chat.google.com/",
