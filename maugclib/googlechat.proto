@@ -10,29 +10,7 @@ syntax = "proto2";
 // oneof's have been commented out because they're a pain in the butt with protobuf-c, but I've tried to keep them in there in case other non-silly protobuf libraries want to take advantage of them
 //
 // Feel free to use this .proto for whatever you want to, under whatever license you want.
-//
-// Additions added from sniffing and minified js
 
-message RpcRequest {
-	optional string rpc_id = 1; // the rpcid to request
-	optional string payload = 2; // the payload for the rpcid
-	optional string order = 4; // I've only seen this set to 'generic' and numbers
-}
-
-message BatchExecuteRequest {
-	repeated RpcRequest requests = 1;
-}
-
-message RpcResponse {
-	optional string unknown_1 = 1; // seems to always be wrb.fr
-	optional string rpcid = 2; // The rcpid that this response is for
-	optional string payload = 3; // The payload, contents depend on the RPCID
-	optional string order = 7; // So far i've only seen this set to generic and numbers
-}
-
-message BatchExecuteResponse {
-	optional RpcResponse response = 1;
-}
 
 enum UserType {
 	HUMAN = 0;
@@ -41,31 +19,25 @@ enum UserType {
 
 message UserId {
 	optional string id = 1;
-	optional string full_id = 2;
+	optional UserType type = 2;
 	//optional DYNProtoAppId origin_app_id = 3;
 }
 
 message User {
-	optional string id = 1;
+	optional UserId user_id = 1;
 	optional string name = 2;
 	optional string avatar_url = 3;
 	optional string email = 4;
-	optional string first_name = 7;
-	optional UserId user_id = 10;
-
-	// The rest of this is a jumbled mess that doesn't look like the ios
-	// version at all. Fields 18 and 19 appear to be numbers. I've only seen
-	// them set to 1, but I have no context to what they are.
-
-	// optional string last_name = 6;
-	// optional bool deleted = 7;
-	// optional bool is_anonymous = 8;
+	optional string first_name = 5;
+	optional string last_name = 6;
+	optional bool deleted = 7;
+	optional bool is_anonymous = 8;
 	//optional DYNProtoBotInfo bot_info = 9;
-	// optional string gender = 10;
+	optional string gender = 10;
 	//optional DYNProtoUserAccountState user_account_state = 11;
 	//optional DYNProtoUserProfileVisibility user_profile_visibility = 15;
 	//optional DYNProtoOrganizationInfo organization_info = 12;
-	// optional UserBlockRelationship block_relationship = 13;
+	optional UserBlockRelationship block_relationship = 13;
 	//repeated DYNProtoPhoneNumber phone_number = 14;
 }
 
@@ -122,16 +94,8 @@ message GetUserStatusResponse {
 	repeated UserStatus user_statuses = 1;
 }
 
-message GetSelfRequest {
-}
-
-message GetSelfResponse {
-	optional User user = 1;
-	// Field 2 has only been seen as null.
-	// Field 3 is a list of eight 9-digits numbers.
-}
-
 message GetSelfUserStatusRequest {
+	optional RequestHeader request_header = 100;
 }
 
 message GetSelfUserStatusResponse {
@@ -214,6 +178,7 @@ message MemberProfile {
 }
 
 message GetMembersRequest {
+	optional RequestHeader request_header = 100;
 	repeated MemberId member_ids = 1;
 	repeated MembershipId membership_ids = 2;
 }
@@ -785,31 +750,31 @@ message Message {
 		GROUP_VISIBLE = 1;
 		ON_HOLD = 2;
 	}
+	optional MessageState message_state = 20;
 	optional User creator = 2;
 	optional int64 create_time = 3;
 	optional int64 last_update_time = 4;
-	optional int64 last_reply_time = 5;
-	optional int64 last_view_time = 6;
-	optional int64 last_mention_time = 7;
 	optional int64 delete_time = 8;
-	optional int64 num_unread_replies = 9;
-	optional Message last_reply = 12;
-	optional int64 sort_time = 13;
+	optional int64 last_edit_time = 17;
 	optional string text_body = 10;
 	repeated Annotation annotations = 11;
+	//repeated DYNProtoBotResponse bot_responses = 19;
 	optional string local_id = 14;
 	repeated Attachment attachments = 15;
 	//optional DYNProtoAppProfile app_profile = 16;
-	optional int64 last_edit_time = 17;
 	optional RetentionSettings retention_settings = 18;
-	//repeated DYNProtoBotResponse bot_responses = 19;
-	optional MessageState message_state = 20;
 	repeated Reaction reactions = 21;
+	//repeated DYNProtoCommunalLabelTag communal_labels = 27;
+	//repeated DYNProtoPersonalLabelTag personal_labels = 26;
 	//optional ?? message_integration_payload = 23;
 	//optional DYNProtoMessage_MessagePermission editable_by = 24;
 	//optional DYNProtoMessage_MessagePermission deletable_by = 25;
-	//repeated DYNProtoPersonalLabelTag personal_labels = 26;
-	//repeated DYNProtoCommunalLabelTag communal_labels = 27;
+	optional int64 last_reply_time = 5;
+	optional int64 last_view_time = 6;
+	optional int64 last_mention_time = 7;
+	optional int64 num_unread_replies = 9;
+	optional Message last_reply = 12;
+	optional int64 sort_time = 13;
 
 	enum MessageType {
 		MESSAGE_TYPE_UNSPECIFIED = 0;
@@ -985,13 +950,10 @@ message SpaceId {
 }
 
 message GroupId {
-	optional string space_id = 1;
-	optional string dm_id = 2;
-	// Field 3 is an int or enum that I've only seen set to 5. I'm thinking
-	// this might be a group/space type or something. If so that'd mean the
-	// above fields are probably something more like full_id and type_id as so
-	// far I've only seen them as `dm/abc123` and `abc123` respectively.
-	optional int64 type = 3;
+	oneof Id {
+		SpaceId space_id = 1;
+		DmId dm_id = 3;
+	}
 }
 
 message Group {
@@ -1120,7 +1082,7 @@ message RetentionSettings {
 		EPHEMERAL_ONE_DAY = 2;
 	}
 	optional RetentionState state = 1;
-//	optional int64 expiry_timestamp = 2;
+	optional int64 expiry_timestamp = 2;
 }
 
 message GroupData {
@@ -1128,19 +1090,19 @@ message GroupData {
 }
 
 message TopicId {
-	optional string topic_id = 1;
 	optional GroupId group_id = 3;
+	optional string topic_id = 2;
 }
 
 message Topic {
 	optional TopicId id = 1;
 	optional int64 sort_time = 2;
+	optional int64 create_time_usec = 15;
 	repeated Message replies = 7;
 	optional TopicReadState topic_read_state = 11;
 	optional bool is_system_message = 12;
 	optional RetentionSettings retention_settings = 13;
 	optional bool contains_more_unread_replies = 14;
-	optional int64 create_time_usec = 15;
 }
 
 message TopicReadState {
@@ -1148,25 +1110,24 @@ message TopicReadState {
 }
 
 message MessageInfo {
-	//optional bool accept_format_annotations = 1;
+	optional bool accept_format_annotations = 1;
 }
 
 message CreateTopicRequest {
-	optional GroupId group_id = 1;
+	optional RequestHeader request_header = 100;
+	optional GroupId group_id = 5;
 	optional string text_body = 2;
 	repeated Annotation annotations = 3;
+	optional RetentionSettings retention_settings = 6;
 	optional string local_id = 4;
-	optional RetentionSettings retention_settings = 5;
-
 	optional string topic_and_message_id = 7;
 	optional bool history_v2 = 8;
-	optional MessageInfo message_info = 10;
-	optional bool receipt = 11;
+	optional MessageInfo message_info = 9;
 }
 
 message CreateTopicResponse {
-	optional Topic topic = 2;
-	optional WriteRevision group_revision = 4;
+	optional Topic topic = 1;
+	optional WriteRevision group_revision = 2;
 	optional ReadRevision current_group_revision = 3;
 }
 
@@ -1520,13 +1481,13 @@ message WebPushNotificationEvent {
 
 // used in the /webchannel/events
 message StreamEventsRequest {
-	optional string sample_id = 1;
-	optional PingEvent ping_event = 2;
-	optional ClockSyncRequest clock_sync_request = 3;
 	optional Platform platform = 4;
 	optional ClientInfo client_info = 5;
 	optional int64 client_session_id = 6;
+	optional string sample_id = 1;
 	repeated string sample_ids = 7;
+	optional PingEvent ping_event = 2;
+	optional ClockSyncRequest clock_sync_request = 3;
 	optional GroupSubscriptionEvent group_subscription_event = 8;
 	optional int64 test_user_gaia_id = 100;
 }

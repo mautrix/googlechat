@@ -27,7 +27,7 @@ UPLOAD_URL = "https://chat.google.com/uploads"
 # API key for `key` parameter (from Hangouts web client)
 API_KEY = "AIzaSyD7InnYR3VKdb4j2rMUEbTCIr2VyEazl6k"
 # Base URL for API requests:
-GC_BASE_URL = "https://chat.google.com"
+GC_BASE_URL = "https://chat.google.com/u/0"
 BE_BASE_URL = "https://chat.google.com/u/0/_/DynamiteWebUi/data/batchexecute"
 
 
@@ -109,6 +109,11 @@ class Client:
         # ActiveClientState enum int value or None:
         self._active_client_state = None
 
+        # requests to /u/0/api have a query parameter named `c` that appears to
+        # be an incrementing counter. It seems to ignore duplicates, but we
+        # keep it around to not stand out.
+        self._api_reqid = 0
+
         # Use a 4 digit number as our reqid seed per
         # https://kovatch.medium.com/deciphering-google-batchexecute-74991e4e446c
         #
@@ -120,6 +125,7 @@ class Client:
         self.f_sid = None
         self.bl = None
         self.at = None
+        self.xsrf_token = None
 
     ##########################################################################
     # Public methods
@@ -502,6 +508,7 @@ class Client:
         self.bl = get_value(body, "cfb2h")
         self.f_sid = get_value(body, "FdrFJe")
         self.at = get_value(body, "SNlM0e")
+        self.xsrf_token = get_value(body, "SMqcke")
 
     ##########################################################################
     # Private methods
@@ -644,12 +651,19 @@ class Client:
         Raises:
             NetworkError: If the request fails.
         """
+
+        headers = {}
+        if self.xsrf_token is not None:
+            headers["x-framework-xsrf-token"] = self.xsrf_token
+
         logger.debug("Sending Protocol Buffer request %s:\n%s", endpoint, request_pb)
+        self._api_reqid += 1
         res = await self._base_request(
-            "{}/api/{}?rt=b".format(GC_BASE_URL, endpoint),
+            "{}/api/{}?c={}&rt=b".format(GC_BASE_URL, endpoint, self._api_reqid),
             "application/x-protobuf",  # Request body is Protocol Buffer.
             "proto",  # Response body is Protocol Buffer.
             request_pb.SerializeToString(),
+            headers=headers,
         )
         try:
             response_pb.ParseFromString(res.body)
@@ -739,7 +753,7 @@ class Client:
         """Return one or more members"""
 
         response = googlechat_pb2.GetMembersResponse()
-        await self._batchexecute_request("eCT9Zc", get_members_request, response)
+        await self._gc_request("get_members", get_members_request, response)
         return response
 
     async def proto_paginated_world(
@@ -752,19 +766,6 @@ class Client:
 
         return response
 
-    async def proto_get_self(
-        self, get_self_request: googlechat_pb2.GetSelfRequest
-    ) -> googlechat_pb2.GetSelfResponse:
-        """Return info about the current user.
-
-        Replace get_self_user_status_request.
-        """
-
-        response = googlechat_pb2.GetSelfResponse()
-        await self._batchexecute_request("WgHvHd", get_self_request, response)
-
-        return response
-
     async def proto_get_self_user_status(
         self, get_self_user_status_request: googlechat_pb2.GetSelfUserStatusRequest
     ) -> googlechat_pb2.GetSelfUserStatusResponse:
@@ -773,7 +774,7 @@ class Client:
         Replace get_self_info.
         """
         response = googlechat_pb2.GetSelfUserStatusResponse()
-        await self._batchexecute_request("UAfKqc", get_self_user_status_request, response)
+        await self._gc_request("get_self_user_status", get_self_user_status_request, response)
 
         return response
 
@@ -798,7 +799,7 @@ class Client:
     ) -> googlechat_pb2.CreateTopicResponse:
         """Creates a topic (sends a message)"""
         response = googlechat_pb2.CreateTopicResponse()
-        await self._batchexecute_request("RTBQkb", create_topic_request, response)
+        await self._gc_request("create_topic", create_topic_request, response)
         return response
 
     async def proto_create_message(

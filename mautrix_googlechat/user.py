@@ -261,7 +261,7 @@ class User(DBUser, BaseUser):
         if get_self or not self.gcid:
             self.log.debug("Fetching own user ID before connecting")
             try:
-                await self.client.proto_get_self(googlechat.GetSelfRequest())
+                await self._fetch_own_id()
             except Exception:
                 self.refresh_token = None
                 self.client = None
@@ -424,14 +424,29 @@ class User(DBUser, BaseUser):
             self._skip_on_connect = False
             await self.push_bridge_state(BridgeStateEvent.CONNECTED)
 
+    async def _fetch_own_id(self) -> None:
+        if self.gcid:
+            return
+        info = await self.client.proto_get_self_user_status(
+            googlechat.GetSelfUserStatusRequest(request_header=self.client.gc_request_header)
+        )
+        self.gcid = info.user_status.user_id.id
+        self.by_gcid[self.gcid] = self
+
     async def get_self(self) -> googlechat.User:
-        resp = await self.client.proto_get_self(googlechat.GetSelfRequest())
+        if not self.gcid:
+            await self._fetch_own_id()
 
-        user: googlechat.User = resp.user
-        self.users[user.id] = user
-        self.gcid = user.id
-        self.by_gcid[user.id] = self
-
+        resp = await self.client.proto_get_members(
+            googlechat.GetMembersRequest(
+                request_header=self.client.gc_request_header,
+                member_ids=[
+                    googlechat.MemberId(user_id=googlechat.UserId(id=self.gcid)),
+                ],
+            )
+        )
+        user: googlechat.User = resp.members[0].user
+        self.users[user.user_id.id] = user
         return user
 
     async def get_users(self, ids: Iterable[str]) -> list[googlechat.User]:
