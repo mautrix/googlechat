@@ -1,4 +1,4 @@
-# v0.5.0 (unreleased)
+# v0.5.0 (2023-06-16)
 
 * Switched to web app API to make authentication work again.
   **This will require all users to relogin.**
