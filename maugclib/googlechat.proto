@@ -761,7 +761,7 @@ message Message {
 	//repeated DYNProtoBotResponse bot_responses = 19;
 	optional string local_id = 14;
 	repeated Attachment attachments = 15;
-	//optional DYNProtoAppProfile app_profile = 16;
+	optional AppProfile app_profile = 16;
 	optional RetentionSettings retention_settings = 18;
 	repeated Reaction reactions = 21;
 	//repeated DYNProtoCommunalLabelTag communal_labels = 27;
@@ -786,6 +786,11 @@ message Message {
 	optional Membership creator_membership = 30;
 	//optional DYNProtoMessageAttributes attributes = 31;
 	//optional ?? tombstone_metadata = 32;
+}
+
+message AppProfile {
+	optional string displayname = 1;
+	optional string avatar_url = 2;
 }
 
 message DriveMetadata {

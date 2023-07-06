@@ -3052,6 +3052,7 @@ class Message(google.protobuf.message.Message):
     ANNOTATIONS_FIELD_NUMBER: builtins.int
     LOCAL_ID_FIELD_NUMBER: builtins.int
     ATTACHMENTS_FIELD_NUMBER: builtins.int
+    APP_PROFILE_FIELD_NUMBER: builtins.int
     RETENTION_SETTINGS_FIELD_NUMBER: builtins.int
     REACTIONS_FIELD_NUMBER: builtins.int
     LAST_REPLY_TIME_FIELD_NUMBER: builtins.int
@@ -3079,8 +3080,9 @@ class Message(google.protobuf.message.Message):
     @property
     def attachments(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Attachment]: ...
     @property
-    def retention_settings(self) -> global___RetentionSettings:
-        """optional DYNProtoAppProfile app_profile = 16;"""
+    def app_profile(self) -> global___AppProfile: ...
+    @property
+    def retention_settings(self) -> global___RetentionSettings: ...
     @property
     def reactions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Reaction]: ...
     last_reply_time: builtins.int
@@ -3117,6 +3119,7 @@ class Message(google.protobuf.message.Message):
         annotations: collections.abc.Iterable[global___Annotation] | None = ...,
         local_id: builtins.str | None = ...,
         attachments: collections.abc.Iterable[global___Attachment] | None = ...,
+        app_profile: global___AppProfile | None = ...,
         retention_settings: global___RetentionSettings | None = ...,
         reactions: collections.abc.Iterable[global___Reaction] | None = ...,
         last_reply_time: builtins.int | None = ...,
@@ -3128,10 +3131,29 @@ class Message(google.protobuf.message.Message):
         message_type: global___Message.MessageType.ValueType | None = ...,
         creator_membership: global___Membership | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["annotations", b"annotations", "attachments", b"attachments", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "reactions", b"reactions", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["app_profile", b"app_profile", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["annotations", b"annotations", "app_profile", b"app_profile", "attachments", b"attachments", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "reactions", b"reactions", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> None: ...
 
 global___Message = Message
+
+@typing_extensions.final
+class AppProfile(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DISPLAYNAME_FIELD_NUMBER: builtins.int
+    AVATAR_URL_FIELD_NUMBER: builtins.int
+    displayname: builtins.str
+    avatar_url: builtins.str
+    def __init__(
+        self,
+        *,
+        displayname: builtins.str | None = ...,
+        avatar_url: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["avatar_url", b"avatar_url", "displayname", b"displayname"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["avatar_url", b"avatar_url", "displayname", b"displayname"]) -> None: ...
+
+global___AppProfile = AppProfile
 
 @typing_extensions.final
 class DriveMetadata(google.protobuf.message.Message):
