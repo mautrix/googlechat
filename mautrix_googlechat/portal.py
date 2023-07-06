@@ -1031,7 +1031,12 @@ class Portal(DBPortal, BasePortal):
         self, sender: u.User, message: TextMessageEventContent, thread_id: str, local_id: str
     ) -> SendResponse:
         text, annotations = await fmt.matrix_to_googlechat(message)
-        await sender.client.mark_typing(self.gcid, typing=False)
+        try:
+            await sender.client.mark_typing(self.gcid, typing=False)
+        except Exception:
+            self.log.warning(
+                "Failed to mark user as not typing while bridging message", exc_info=True
+            )
         resp = await sender.client.send_message(
             self.gcid, text=text, annotations=annotations, thread_id=thread_id, local_id=local_id
         )
