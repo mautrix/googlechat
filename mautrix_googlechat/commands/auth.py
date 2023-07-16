@@ -76,9 +76,7 @@ async def set_notice_room(evt: CommandEvent) -> None:
     management_only=True,
     help_section=SECTION_AUTH,
     help_text=(
-        "Set the cookies required for auth. This should be JSON object with the "
-        "full cookie values from https://chat.google.com (path /) in the following format: "
-        '`{"compass": "", "ssid": "", "sid": "", "osid": "", "hsid": ""}`'
+        "Set the cookies required for auth. See https://docs.mau.fi/bridges/python/googlechat/authentication.html for instructions"
     ),
 )
 async def login_cookie(evt: CommandEvent) -> EventID:
