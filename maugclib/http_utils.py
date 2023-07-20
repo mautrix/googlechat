@@ -145,7 +145,10 @@ class Session:
                 ) as res:
                     async with async_timeout.timeout(REQUEST_TIMEOUT):
                         body = await res.read()
-                logger.debug("Received response %d %s:\n%r", res.status, res.reason, body)
+                log_body = body
+                if isinstance(url, str) and "/u/0/mole/world" in url:
+                    log_body = "<body omitted>"
+                logger.debug("Received response %d %s:\n%r", res.status, res.reason, log_body)
             except asyncio.TimeoutError:
                 error_msg = "Request timed out"
             except aiohttp.ServerDisconnectedError as err:
