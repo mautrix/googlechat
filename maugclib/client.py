@@ -140,6 +140,8 @@ class Client:
         Returns when an error has occurred, or :func:`disconnect` has been
         called.
         """
+        self._api_reqid = 0
+
         self._channel = channel.Channel(self._session, self._max_retries, self._retry_backoff_base)
 
         # Forward the Channel events to the Client events.
