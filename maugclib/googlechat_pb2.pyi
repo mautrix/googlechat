@@ -3063,6 +3063,7 @@ class Message(google.protobuf.message.Message):
     SORT_TIME_FIELD_NUMBER: builtins.int
     MESSAGE_TYPE_FIELD_NUMBER: builtins.int
     CREATOR_MEMBERSHIP_FIELD_NUMBER: builtins.int
+    REPLY_TO_FIELD_NUMBER: builtins.int
     @property
     def id(self) -> global___MessageId: ...
     message_state: global___Message.MessageState.ValueType
@@ -3101,8 +3102,10 @@ class Message(google.protobuf.message.Message):
     message_type: global___Message.MessageType.ValueType
     @property
     def creator_membership(self) -> global___Membership:
-        """optional DYNProtoAppId origin_app_id = 29;
-        optional DYNProtoMessageAttributes attributes = 31;
+        """optional DYNProtoAppId origin_app_id = 29;"""
+    @property
+    def reply_to(self) -> global___ReplyToMessage:
+        """optional DYNProtoMessageAttributes attributes = 31;
         optional ?? tombstone_metadata = 32;
         """
     def __init__(
@@ -3130,11 +3133,56 @@ class Message(google.protobuf.message.Message):
         sort_time: builtins.int | None = ...,
         message_type: global___Message.MessageType.ValueType | None = ...,
         creator_membership: global___Membership | None = ...,
+        reply_to: global___ReplyToMessage | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["app_profile", b"app_profile", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["annotations", b"annotations", "app_profile", b"app_profile", "attachments", b"attachments", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "reactions", b"reactions", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["app_profile", b"app_profile", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "reply_to", b"reply_to", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["annotations", b"annotations", "app_profile", b"app_profile", "attachments", b"attachments", "create_time", b"create_time", "creator", b"creator", "creator_membership", b"creator_membership", "delete_time", b"delete_time", "id", b"id", "last_edit_time", b"last_edit_time", "last_mention_time", b"last_mention_time", "last_reply", b"last_reply", "last_reply_time", b"last_reply_time", "last_update_time", b"last_update_time", "last_view_time", b"last_view_time", "local_id", b"local_id", "message_state", b"message_state", "message_type", b"message_type", "num_unread_replies", b"num_unread_replies", "reactions", b"reactions", "reply_to", b"reply_to", "retention_settings", b"retention_settings", "sort_time", b"sort_time", "text_body", b"text_body"]) -> None: ...
 
 global___Message = Message
+
+@typing_extensions.final
+class ReplyToMessage(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ID_FIELD_NUMBER: builtins.int
+    CREATE_TIME_FIELD_NUMBER: builtins.int
+    SENDER_ID_FIELD_NUMBER: builtins.int
+    SENDER_FIELD_NUMBER: builtins.int
+    TEXT_BODY_FIELD_NUMBER: builtins.int
+    UNKNOWN_INT_FIELD_NUMBER: builtins.int
+    SENDER_AGAIN_FIELD_NUMBER: builtins.int
+    LAST_EDIT_TIME_FIELD_NUMBER: builtins.int
+    CREATE_TIME_AGAIN_IF_EDITED_FIELD_NUMBER: builtins.int
+    @property
+    def id(self) -> global___MessageId: ...
+    create_time: builtins.int
+    @property
+    def sender_id(self) -> global___UserId: ...
+    @property
+    def sender(self) -> global___User: ...
+    text_body: builtins.str
+    unknown_int: builtins.int
+    @property
+    def sender_again(self) -> global___User: ...
+    last_edit_time: builtins.int
+    create_time_again_if_edited: builtins.int
+    def __init__(
+        self,
+        *,
+        id: global___MessageId | None = ...,
+        create_time: builtins.int | None = ...,
+        sender_id: global___UserId | None = ...,
+        sender: global___User | None = ...,
+        text_body: builtins.str | None = ...,
+        unknown_int: builtins.int | None = ...,
+        sender_again: global___User | None = ...,
+        last_edit_time: builtins.int | None = ...,
+        create_time_again_if_edited: builtins.int | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "create_time_again_if_edited", b"create_time_again_if_edited", "id", b"id", "last_edit_time", b"last_edit_time", "sender", b"sender", "sender_again", b"sender_again", "sender_id", b"sender_id", "text_body", b"text_body", "unknown_int", b"unknown_int"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "create_time_again_if_edited", b"create_time_again_if_edited", "id", b"id", "last_edit_time", b"last_edit_time", "sender", b"sender", "sender_again", b"sender_again", "sender_id", b"sender_id", "text_body", b"text_body", "unknown_int", b"unknown_int"]) -> None: ...
+
+global___ReplyToMessage = ReplyToMessage
 
 @typing_extensions.final
 class AppProfile(google.protobuf.message.Message):
@@ -4101,18 +4149,42 @@ class TopicReadState(google.protobuf.message.Message):
 global___TopicReadState = TopicReadState
 
 @typing_extensions.final
+class SendReplyTarget(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ID_FIELD_NUMBER: builtins.int
+    CREATE_TIME_FIELD_NUMBER: builtins.int
+    @property
+    def id(self) -> global___MessageId: ...
+    create_time: builtins.int
+    def __init__(
+        self,
+        *,
+        id: global___MessageId | None = ...,
+        create_time: builtins.int | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "id", b"id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["create_time", b"create_time", "id", b"id"]) -> None: ...
+
+global___SendReplyTarget = SendReplyTarget
+
+@typing_extensions.final
 class MessageInfo(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ACCEPT_FORMAT_ANNOTATIONS_FIELD_NUMBER: builtins.int
+    REPLY_TO_FIELD_NUMBER: builtins.int
     accept_format_annotations: builtins.bool
+    @property
+    def reply_to(self) -> global___SendReplyTarget: ...
     def __init__(
         self,
         *,
         accept_format_annotations: builtins.bool | None = ...,
+        reply_to: global___SendReplyTarget | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["accept_format_annotations", b"accept_format_annotations"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["accept_format_annotations", b"accept_format_annotations"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["accept_format_annotations", b"accept_format_annotations", "reply_to", b"reply_to"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["accept_format_annotations", b"accept_format_annotations", "reply_to", b"reply_to"]) -> None: ...
 
 global___MessageInfo = MessageInfo
 

@@ -777,7 +777,7 @@ class Portal(DBPortal, BasePortal):
             self._rec_dropped(sender, reaction_id, EventType.REACTION, reason="duplicate reaction")
             return
         # TODO real timestamp?
-        fake_ts = int(time.time() * 1000)
+        fake_ts = int(time.time() * 1_000_000)
         # TODO proper locks?
         await DBReaction(
             mxid=reaction_id,
@@ -882,12 +882,28 @@ class Portal(DBPortal, BasePortal):
         if message.get_edit():
             await self.handle_matrix_edit(sender, message, event_id)
             return
-        reply_to = await DBMessage.get_by_mxid(
-            message.get_thread_parent() or message.get_reply_to(), self.mxid
-        )
-        thread_id = (
-            (reply_to.gc_parent_id or reply_to.gcid) if reply_to and self.threads_enabled else None
-        )
+        thread_parent = await DBMessage.get_by_mxid(message.get_thread_parent(), self.mxid)
+        if not message.relates_to.is_falling_back:
+            reply_to = await DBMessage.get_by_mxid(message.get_reply_to(), self.mxid)
+        else:
+            reply_to = None
+        if self.threads_enabled:
+            if thread_parent:
+                # If using explicit Matrix threads, always use threads on Google Chat.
+                # If there's an additional non-fallback reply, it'll also be used.
+                thread_id = thread_parent.gc_parent_id or thread_parent.gcid
+            elif reply_to and reply_to.gc_parent_id and reply_to.gc_parent_id != reply_to.gcid:
+                # If it's not an explicit thread, but it's a reply to a message in a thread,
+                # send it to the thread and don't send as a reply.
+                thread_id = reply_to.gc_parent_id
+                reply_to = None
+            else:
+                # No replies or threads
+                thread_id = None
+        else:
+            # Chat doesn't support threads, reroute threads to replies
+            thread_id = None
+            reply_to = reply_to or thread_parent
         local_id = f"mautrix-googlechat%{random.randint(0, 0xffffffffffffffff)}"
         self._local_dedup.add(local_id)
 
@@ -896,9 +912,13 @@ class Portal(DBPortal, BasePortal):
         async with self.require_send_lock(sender.gcid):
             try:
                 if message.msgtype == MessageType.TEXT or message.msgtype == MessageType.NOTICE:
-                    resp = await self._handle_matrix_text(sender, message, thread_id, local_id)
+                    resp = await self._handle_matrix_text(
+                        sender, message, thread_id, local_id, reply_to
+                    )
                 elif message.msgtype.is_media:
-                    resp = await self._handle_matrix_media(sender, message, thread_id, local_id)
+                    resp = await self._handle_matrix_media(
+                        sender, message, thread_id, local_id, reply_to
+                    )
                 else:
                     raise NotImplementedError(f"Unsupported msgtype {message.msgtype}")
             except Exception as e:
@@ -916,7 +936,7 @@ class Portal(DBPortal, BasePortal):
                     gc_receiver=self.gc_receiver,
                     gc_parent_id=thread_id,
                     index=0,
-                    timestamp=resp.timestamp // 1000,
+                    timestamp=resp.timestamp,
                     msgtype=message.msgtype.value,
                     gc_sender=sender.gcid,
                 ).insert()
@@ -1028,7 +1048,12 @@ class Portal(DBPortal, BasePortal):
         return SendResponse(gcid=resp.message.id.message_id, timestamp=resp.message.create_time)
 
     async def _handle_matrix_text(
-        self, sender: u.User, message: TextMessageEventContent, thread_id: str, local_id: str
+        self,
+        sender: u.User,
+        message: TextMessageEventContent,
+        thread_id: str,
+        local_id: str,
+        reply_to: DBMessage,
     ) -> SendResponse:
         text, annotations = await fmt.matrix_to_googlechat(message)
         try:
@@ -1037,13 +1062,28 @@ class Portal(DBPortal, BasePortal):
             self.log.warning(
                 "Failed to mark user as not typing while bridging message", exc_info=True
             )
+        reply_to_id = reply_to_ts = None
+        if reply_to:
+            reply_to_id = reply_to.gcid
+            reply_to_ts = reply_to.timestamp
         resp = await sender.client.send_message(
-            self.gcid, text=text, annotations=annotations, thread_id=thread_id, local_id=local_id
+            self.gcid,
+            text=text,
+            annotations=annotations,
+            thread_id=thread_id,
+            local_id=local_id,
+            reply_to=reply_to_id,
+            reply_to_ts=reply_to_ts,
         )
         return self._get_send_response(resp)
 
     async def _handle_matrix_media(
-        self, sender: u.User, message: MediaMessageEventContent, thread_id: str, local_id: str
+        self,
+        sender: u.User,
+        message: MediaMessageEventContent,
+        thread_id: str,
+        local_id: str,
+        reply_to: DBMessage,
     ) -> SendResponse:
         if message.file and decrypt_attachment:
             data = await self.main_intent.download_media(message.file.url)
@@ -1065,8 +1105,17 @@ class Portal(DBPortal, BasePortal):
                 chip_render_type=googlechat.Annotation.RENDER,
             )
         ]
+        reply_to_id = reply_to_ts = None
+        if reply_to:
+            reply_to_id = reply_to.gcid
+            reply_to_ts = reply_to.timestamp
         resp = await sender.client.send_message(
-            self.gcid, annotations=annotations, thread_id=thread_id, local_id=local_id
+            self.gcid,
+            annotations=annotations,
+            thread_id=thread_id,
+            local_id=local_id,
+            reply_to=reply_to_id,
+            reply_to_ts=reply_to_ts,
         )
         return self._get_send_response(resp)
 
@@ -1130,10 +1179,9 @@ class Portal(DBPortal, BasePortal):
             if existing:
                 # Duplicate reaction
                 return
-            timestamp = evt.timestamp // 1000
             matrix_reaction = variation_selector.add(evt.emoji.unicode)
             event_id = await sender.intent_for(self).react(
-                target.mx_room, target.mxid, matrix_reaction, timestamp=timestamp
+                target.mx_room, target.mxid, matrix_reaction, timestamp=evt.timestamp // 1000
             )
             await DBReaction(
                 mxid=event_id,
@@ -1143,7 +1191,7 @@ class Portal(DBPortal, BasePortal):
                 gc_msgid=target.gcid,
                 gc_chat=target.gc_chat,
                 gc_receiver=target.gc_receiver,
-                timestamp=timestamp,
+                timestamp=evt.timestamp,
             ).insert()
         elif evt.type == googlechat.MessageReactionEvent.REMOVE:
             if not existing:
@@ -1308,14 +1356,14 @@ class Portal(DBPortal, BasePortal):
             return
 
         # Google Chat timestamps are in microseconds, Matrix wants milliseconds
-        timestamp = evt.create_time // 1000
+        matrix_ts = evt.create_time // 1000
 
         if evt.message_type == googlechat.Message.SYSTEM_MESSAGE and len(evt.annotations) == 1:
             self.log.debug("Handling Google Chat update message %s", msg_id)
             update_type = evt.annotations[0].type
             if update_type == googlechat.ROOM_UPDATED:
                 if await self.handle_googlechat_room_update(
-                    sender, update=evt.annotations[0].room_updated, timestamp=timestamp
+                    sender, update=evt.annotations[0].room_updated, timestamp=matrix_ts
                 ):
                     return
             elif update_type == googlechat.MEMBERSHIP_CHANGED:
@@ -1338,6 +1386,13 @@ class Portal(DBPortal, BasePortal):
                     "thread_parent": thread_parent_db.mxid,
                     "last_event_in_thread": last_in_thread_db.mxid if last_in_thread_db else None,
                 }
+        reply_to: EventID | None = None
+        if evt.reply_to:
+            reply_to_db = await DBMessage.get_by_gcid(
+                evt.reply_to.id.message_id, self.gcid, self.gc_receiver
+            )
+            if reply_to_db:
+                reply_to = reply_to_db.mxid
 
         # This also adds text to evt.text_body if necessary
         attachment_urls = self._preprocess_annotations(evt)
@@ -1356,13 +1411,20 @@ class Portal(DBPortal, BasePortal):
             content = await fmt.googlechat_to_matrix(source, evt, self)
             if thread_parent:
                 content.set_thread_parent(**thread_parent)
-            event_id = await self._send_message(intent, content, timestamp=timestamp)
+            if reply_to:
+                content.set_reply(reply_to)
+            event_id = await self._send_message(intent, content, timestamp=matrix_ts)
             _append_event_id(event_id, MessageType.TEXT)
 
         try:
             for att in attachment_urls:
                 resp = await self._process_googlechat_attachment(
-                    att, source=source, intent=intent, thread_parent=thread_parent, ts=timestamp
+                    att,
+                    source=source,
+                    intent=intent,
+                    thread_parent=thread_parent,
+                    reply_to=reply_to,
+                    ts=matrix_ts,
                 )
                 if resp:
                     _append_event_id(*resp)
@@ -1382,7 +1444,7 @@ class Portal(DBPortal, BasePortal):
                 gc_receiver=self.gc_receiver,
                 gc_parent_id=parent_id,
                 index=index,
-                timestamp=timestamp,
+                timestamp=evt.create_time,
                 msgtype=msgtype.value,
                 gc_sender=sender.gcid,
             ).insert()
@@ -1465,6 +1527,7 @@ class Portal(DBPortal, BasePortal):
         source: u.User,
         intent: IntentAPI,
         thread_parent: dict[str, EventID] | None,
+        reply_to: EventID | None,
         ts: int,
     ) -> tuple[EventID, MessageType] | None:
         max_size = self.matrix.media_config.upload_size
@@ -1515,6 +1578,8 @@ class Portal(DBPortal, BasePortal):
         content.msgtype = msgtype
         if thread_parent:
             content.set_thread_parent(**thread_parent)
+        if reply_to:
+            content.set_reply(reply_to)
         event_id = await self._send_message(intent, content, timestamp=ts)
         return event_id, content.msgtype
 
@@ -1526,7 +1591,7 @@ class Portal(DBPortal, BasePortal):
             await self.mark_read(rr.user.user_id.id, rr.read_time_micros)
 
     async def mark_read(self, user_id: str, ts: int) -> None:
-        message = await DBMessage.get_closest_before(self.gcid, self.gc_receiver, ts // 1000)
+        message = await DBMessage.get_closest_before(self.gcid, self.gc_receiver, ts)
         puppet = await p.Puppet.get_by_gcid(user_id)
         if puppet and message:
             await puppet.intent_for(self).mark_read(message.mx_room, message.mxid)

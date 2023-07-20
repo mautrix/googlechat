@@ -786,6 +786,19 @@ message Message {
 	optional Membership creator_membership = 30;
 	//optional DYNProtoMessageAttributes attributes = 31;
 	//optional ?? tombstone_metadata = 32;
+	optional ReplyToMessage reply_to = 37;
+}
+
+message ReplyToMessage {
+	optional MessageId id = 1;
+	optional int64 create_time = 2;
+	optional UserId sender_id = 4;
+	optional User sender = 5;
+	optional string text_body = 6;
+	optional int32 unknown_int = 10;
+	optional User sender_again = 12;
+	optional int64 last_edit_time = 13;
+	optional int64 create_time_again_if_edited = 14;
 }
 
 message AppProfile {
@@ -1114,8 +1127,14 @@ message TopicReadState {
 	optional int64 thread_created_usec = 2;
 }
 
+message SendReplyTarget {
+	optional MessageId id = 1;
+	optional int64 create_time = 2;
+}
+
 message MessageInfo {
 	optional bool accept_format_annotations = 1;
+	optional SendReplyTarget reply_to = 3;
 }
 
 message CreateTopicRequest {

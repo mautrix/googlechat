@@ -87,6 +87,8 @@ class Message:
 
     @classmethod
     async def get_by_mxid(cls, mxid: EventID, mx_room: RoomID) -> Message | None:
+        if not mxid:
+            return None
         q = f"SELECT {cls.columns} FROM message WHERE mxid=$1 AND mx_room=$2"
         row = await cls.db.fetchrow(q, mxid, mx_room)
         return cls._from_row(row)

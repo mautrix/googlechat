@@ -12,4 +12,5 @@ from . import (
     v07_puppet_contact_info_set,
     v08_web_app_auth,
     v09_web_app_ua,
+    v10_store_microsecond_timestamp,
 )

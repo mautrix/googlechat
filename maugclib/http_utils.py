@@ -164,7 +164,7 @@ class Session:
 
         if res.status != 200:
             logger.info(
-                "Request %s returned unexpected status: %d %s", url.path, res.status, res.reason
+                "Request to %s returned unexpected status: %d %s", url, res.status, res.reason
             )
             raise exceptions.NetworkError(
                 "Request return unexpected status: {}: {}".format(res.status, res.reason)

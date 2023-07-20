@@ -410,8 +410,26 @@ class Client:
         text: str = "",
         annotations: list[googlechat_pb2.Annotation] | None = None,
         thread_id: str | None = None,
+        reply_to: str | None = None,
+        reply_to_ts: int | None = None,
         local_id: str | None = None,
     ) -> googlechat_pb2.CreateTopicResponse | googlechat_pb2.CreateMessageResponse:
+        reply_to_wrapped = (
+            googlechat_pb2.SendReplyTarget(
+                id=googlechat_pb2.MessageId(
+                    parent_id=googlechat_pb2.MessageParentId(
+                        topic_id=googlechat_pb2.TopicId(
+                            group_id=parsers.group_id_from_id(conversation_id),
+                            topic_id=thread_id or reply_to,
+                        ),
+                    ),
+                    message_id=reply_to,
+                ),
+                create_time=reply_to_ts,
+            )
+            if reply_to
+            else None
+        )
         try:
             local_id = local_id or f"hangups%{random.randint(0, 0xffffffffffffffff)}"
             if thread_id:
@@ -428,6 +446,7 @@ class Client:
                     annotations=annotations,
                     message_info=googlechat_pb2.MessageInfo(
                         accept_format_annotations=True,
+                        reply_to=reply_to_wrapped,
                     ),
                 )
                 return await self.proto_create_message(request)
@@ -441,6 +460,7 @@ class Client:
                     annotations=annotations,
                     message_info=googlechat_pb2.MessageInfo(
                         accept_format_annotations=True,
+                        reply_to=reply_to_wrapped,
                     ),
                 )
                 return await self.proto_create_topic(request)

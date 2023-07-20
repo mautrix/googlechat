@@ -12,6 +12,7 @@
       * [ ] Locations
     * [x] Formatting
     * [x] Threads
+    * [x] Replies
   * [x] Message redactions
   * [x] Message reactions
   * [x] Message editing (text only)
@@ -35,6 +36,7 @@
       * [x] Google Drive file links
     * [x] Formatting
     * [x] Threads
+    * [x] Replies
   * [x] Message deletions
   * [x] Message reactions
   * [x] Message editing (text only)
