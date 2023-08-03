@@ -504,7 +504,7 @@ class Client:
             "wfi": "gtn-roster-iframe-id",
             # TODO: some of these values are passed in via redirect during
             # login and should probably be used instead of hard coding.
-            "hs": '["h_hs",null,null,[1,0],null,null,"gmail.pinto-server_20230515.06_p0",1,null,[36,35,26,18,24,11,15,14,6],null,null,"3Mu86PSulM4.en..es5",0,null,null,[2]]',
+            "hs": '["h_hs",null,null,[1,0],null,null,"gmail.pinto-server_20230730.06_p0",1,null,[15,38,36,35,26,30,41,18,24,11,21,14,6],null,null,"3Mu86PSulM4.en..es5",0,null,null,[0]]',
         }
         headers = {
             "authority": "chat.google.com",
