@@ -14,6 +14,7 @@ import logging
 import os
 import random
 import re
+import time
 
 from google.protobuf import message as proto
 from yarl import URL
@@ -52,6 +53,7 @@ class Client:
     _session: http_utils.Session | None
     _channel: channel.Channel | None
     _listen_future: asyncio.Future | None
+    _last_token_refresh: float
 
     def __init__(
         self,
@@ -62,6 +64,7 @@ class Client:
     ) -> None:
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
+        self._last_token_refresh = -86400
 
         self.on_connect = event.Event("Client.on_connect")
         """
@@ -141,6 +144,9 @@ class Client:
         called.
         """
         self._api_reqid = 0
+        if self._last_token_refresh + 86400 < time.monotonic():
+            logger.info("Refreshing xsrf token before connecting")
+            await self.refresh_tokens()
 
         self._channel = channel.Channel(self._session, self._max_retries, self._retry_backoff_base)
 
@@ -530,6 +536,7 @@ class Client:
         if wiz_data["qwAQke"] == "AccountsSignInUi":
             raise exceptions.NotLoggedInError("Provided tokens aren't valid")
         self.xsrf_token = wiz_data["SMqcke"]
+        self._last_token_refresh = time.monotonic()
 
     ##########################################################################
     # Private methods
