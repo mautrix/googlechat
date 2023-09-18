@@ -1,3 +1,10 @@
+# v0.5.1 (unreleased)
+
+* Added support for double puppeting with arbitrary `as_token`s.
+  See [docs](https://docs.mau.fi/bridges/general/double-puppeting.html#appservice-method-new) for more info.
+* Added support for replies.
+* Fixed bridge disconnecting for no reason after 14 days of uptime.
+
 # v0.5.0 (2023-06-16)
 
 * Switched to web app API to make authentication work again.
