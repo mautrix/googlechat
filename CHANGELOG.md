@@ -1,4 +1,4 @@
-# v0.5.1 (unreleased)
+# v0.5.1 (2023-10-03)
 
 * Added support for double puppeting with arbitrary `as_token`s.
   See [docs](https://docs.mau.fi/bridges/general/double-puppeting.html#appservice-method-new) for more info.
