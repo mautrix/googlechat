@@ -30,7 +30,7 @@ from maugclib import (
     googlechat_pb2 as googlechat,
 )
 from mautrix.bridge import BaseUser, async_getter_lock
-from mautrix.types import MessageType, RoomID, UserID
+from mautrix.types import EventType, MessageType, RoomID, UserID
 from mautrix.util import background_task
 from mautrix.util.bridge_state import BridgeState, BridgeStateEvent
 from mautrix.util.opt_prometheus import Gauge, Histogram, async_time
@@ -86,6 +86,7 @@ class User(DBUser, BaseUser):
         cookies: Cookies | None = None,
         user_agent: str | None = None,
         notice_room: RoomID | None = None,
+        space_mxid: RoomID | None = None,
     ) -> None:
         super().__init__(
             mxid=mxid,
@@ -94,6 +95,7 @@ class User(DBUser, BaseUser):
             user_agent=user_agent,
             revision=revision,
             notice_room=notice_room,
+            space_mxid=space_mxid,
         )
         BaseUser.__init__(self)
         self._notice_room_lock = asyncio.Lock()
@@ -277,6 +279,7 @@ class User(DBUser, BaseUser):
                 self.log.exception("Failed to get own info after login")
                 return False
         client_cookies = self.client.cookies
+        await self.create_or_update_space()
         if client_cookies != self.cookies:
             self.cookies = client_cookies
             await self.save()
@@ -428,6 +431,61 @@ class User(DBUser, BaseUser):
         if not self.name_future.done():
             self.name_future.set_exception(Exception("logged out"))
         self.name_future = self.loop.create_future()
+
+    # Spaces support
+    async def create_or_update_space(self):
+        if not self.config["bridge.space_support.enable"]:
+            return
+
+        avatar_state_event_content = {"url": self.config["appservice.bot_avatar"]}
+        name_state_event_content = {"name": self.config["bridge.space_support.name"]}
+
+        if self.space_mxid:
+            await self.az.intent.send_state_event(
+                self.space_mxid, EventType.ROOM_AVATAR, avatar_state_event_content
+            )
+            await self.az.intent.send_state_event(
+                self.space_mxid, EventType.ROOM_NAME, name_state_event_content
+            )
+        else:
+            self.log.debug(
+                f"Creating space for {self.gcid}, inviting {self.mxid}"
+            )
+            room = await self.az.intent.create_room(
+                is_direct=False,
+                invitees=[self.mxid],
+                creation_content={"type": "m.space"},
+                initial_state=[
+                    {
+                        "type": str(EventType.ROOM_NAME),
+                        "content": name_state_event_content,
+                    },
+                    {
+                        "type": str(EventType.ROOM_AVATAR),
+                        "content": avatar_state_event_content,
+                    },
+                ],
+            )
+            # Allow room creation in space
+            #await self.az.intent.send_state_event(
+            #    room, EventType.ROOM_POWER_LEVELS, {"users_default": 100, "events_default": 0}
+            #)
+
+            # Add space_mxid to self
+            self.space_mxid = room
+            await self.save()
+            self.log.debug(f"Created space {room}")
+            try:
+                await self.az.intent.ensure_joined(room)
+            except Exception:
+                self.log.warning(f"Failed to add bridge bot to new space {room}")
+                # Ensure that the user is invited and joined to the space.
+        try:
+            puppet = await pu.Puppet.get_by_custom_mxid(self.mxid)
+            if puppet and puppet.is_real_user:
+                await puppet.intent.ensure_joined(self.space_mxid)
+        except Exception:
+            self.log.warning(f"Failed to add user to the space {self.space_mxid}")
 
     async def on_connect(self) -> None:
         self.connected = True
