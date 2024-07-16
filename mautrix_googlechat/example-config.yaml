@@ -91,6 +91,13 @@ bridge:
     # Displayname template for Google Chat users.
     # {full_name}, {first_name}, {last_name} and {email} are replaced with names.
     displayname_template: "{full_name} (Google Chat)"
+    # Settings for creating a space for every user.
+    space_support:
+        # Whether or not to enable creating a space per user and inviting the
+        # user (as well as all of the puppets) to that space.
+        enable: false
+        # The name of the space
+        name: "Google Chat"
 
     # The prefix for commands. Only required in non-management rooms.
     command_prefix: "!gc"
@@ -172,7 +179,7 @@ bridge:
         #   verified - Require manual per-device verification
         #              (currently only possible by modifying the `trust` column in the `crypto_device` database table).
         verification_levels:
-            # Minimum level for which the bridge should send keys to when bridging messages from Telegram to Matrix.
+            # Minimum level for which the bridge should send keys to when bridging messages from Google Chat to Matrix.
             receive: unverified
             # Minimum level that the bridge should accept for incoming Matrix messages.
             send: unverified

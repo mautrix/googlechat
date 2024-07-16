@@ -571,6 +571,13 @@ class Portal(DBPortal, BasePortal):
             did_join = await puppet.intent.ensure_joined(self.mxid)
             if did_join and self.is_direct:
                 await source.update_direct_chats({self.main_intent.mxid: [self.mxid]})
+        if source.space_mxid and self.mxid:
+            await self.az.intent.send_state_event(
+                source.space_mxid,
+                EventType.SPACE_CHILD,
+                {"via": [self.config["homeserver.domain"]], "suggested": True},
+                state_key=str(self.mxid),
+            )
         await self.update_info(source, info)
 
     async def update_matrix_room(self, source: u.User, info: ChatInfo | None = None) -> None:
@@ -702,6 +709,18 @@ class Portal(DBPortal, BasePortal):
                     await self.az.intent.ensure_joined(self.mxid)
                 except Exception:
                     self.log.warning(f"Failed to add bridge bot to new private chat {self.mxid}")
+            if source.space_mxid:
+                self.log.debug(f"Adding chat {self.mxid} to user's space")
+                try:
+                    await self.az.intent.send_state_event(
+                        source.space_mxid,
+                        EventType.SPACE_CHILD,
+                        {"via": [self.config["homeserver.domain"]], "suggested": True},
+                        state_key=str(self.mxid),
+                    )
+                    self.log.debug(f"Added chat {self.mxid} to user's space")
+                except Exception:
+                    self.log.warning(f"Failed to add chat {self.mxid} to user's space")
             await self.save()
             self.log.debug(f"Matrix room created: {self.mxid}")
             self.by_mxid[self.mxid] = self
@@ -1126,6 +1145,14 @@ class Portal(DBPortal, BasePortal):
                 " cleaning up and deleting..."
             )
             await self.cleanup_and_delete()
+
+            if user.space_mxid:
+                await self.az.intent.send_state_event(
+                    user.space_mxid,
+                    EventType.SPACE_CHILD,
+                    {},
+                    state_key=str(self.mxid),
+                )
         else:
             self.log.debug(f"{user.mxid} left portal to {self.gcid}")
 

@@ -38,6 +38,7 @@ class User:
     user_agent: str | None
     notice_room: RoomID | None
     revision: int | None
+    space_mxid: RoomID | None
 
     @classmethod
     def _from_row(cls, row: Record | None) -> User | None:
@@ -51,7 +52,7 @@ class User:
     @classmethod
     async def all_logged_in(cls) -> list[User]:
         q = (
-            'SELECT mxid, gcid, cookies, user_agent, notice_room, revision FROM "user" '
+            'SELECT mxid, gcid, cookies, user_agent, notice_room, revision, space_mxid FROM "user" '
             "WHERE cookies IS NOT NULL"
         )
         rows = await cls.db.fetch(q)
@@ -60,7 +61,7 @@ class User:
     @classmethod
     async def get_by_gcid(cls, gcid: str) -> User | None:
         q = """
-        SELECT mxid, gcid, cookies, user_agent, notice_room, revision FROM "user" WHERE gcid=$1
+        SELECT mxid, gcid, cookies, user_agent, notice_room, revision, space_mxid FROM "user" WHERE gcid=$1
         """
         row = await cls.db.fetchrow(q, gcid)
         return cls._from_row(row)
@@ -68,7 +69,7 @@ class User:
     @classmethod
     async def get_by_mxid(cls, mxid: UserID) -> User | None:
         q = """
-        SELECT mxid, gcid, cookies, user_agent, notice_room, revision FROM "user" WHERE mxid=$1
+        SELECT mxid, gcid, cookies, user_agent, notice_room, revision, space_mxid FROM "user" WHERE mxid=$1
         """
         row = await cls.db.fetchrow(q, mxid)
         return cls._from_row(row)
@@ -82,12 +83,13 @@ class User:
             self.user_agent,
             self.notice_room,
             self.revision,
+            self.space_mxid,
         )
 
     async def insert(self) -> None:
         q = (
-            'INSERT INTO "user" (mxid, gcid, cookies, user_agent, notice_room, revision) '
-            "VALUES ($1, $2, $3, $4, $5, $6)"
+            'INSERT INTO "user" (mxid, gcid, cookies, user_agent, notice_room, revision, space_mxid) '
+            "VALUES ($1, $2, $3, $4, $5, $6, $7)"
         )
         await self.db.execute(q, *self._values)
 
@@ -96,7 +98,7 @@ class User:
 
     async def save(self) -> None:
         q = (
-            'UPDATE "user" SET gcid=$2, cookies=$3, user_agent=$4, notice_room=$5, revision=$6 '
+            'UPDATE "user" SET gcid=$2, cookies=$3, user_agent=$4, notice_room=$5, revision=$6, space_mxid=$7 '
             "WHERE mxid=$1"
         )
         await self.db.execute(q, *self._values)
