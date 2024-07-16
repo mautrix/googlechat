@@ -1,3 +1,7 @@
+# v0.5.2 (2024-07-16)
+
+* Added support for authenticated media downloads.
+
 # v0.5.1 (2023-10-03)
 
 * Added support for double puppeting with arbitrary `as_token`s.
