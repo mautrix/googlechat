@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/status"
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-googlechat/pkg/gchatmeow"
