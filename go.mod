@@ -2,7 +2,7 @@ module go.mau.fi/mautrix-googlechat
 
 go 1.23.0
 
-toolchain go1.23.3
+toolchain go1.24.2
 
 require (
 	github.com/rs/zerolog v1.33.0
