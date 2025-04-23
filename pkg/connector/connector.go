@@ -39,6 +39,10 @@ func (gc *GChatConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities
 	return &bridgev2.NetworkGeneralCapabilities{}
 }
 
+func (gc *GChatConnector) GetBridgeInfoVersion() (info, caps int) {
+	return 1, 1
+}
+
 func (gc *GChatConnector) GetConfig() (example string, data any, upgrader configupgrade.Upgrader) {
 	return "", nil, nil
 }
