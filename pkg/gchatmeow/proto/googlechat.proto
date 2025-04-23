@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package googlechat;
+
 option go_package = "../proto";
 
 // Hand-coded reverse-engineered protobuf, based on info extracted from Android and iOS Gmail and Google Talk apps
