@@ -11,6 +11,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 	"maunium.net/go/mautrix/bridgev2/status"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/util/ptr"
 
@@ -39,7 +40,7 @@ func NewClient(userLogin *bridgev2.UserLogin, client *gchatmeow.Client) *GChatCl
 	}
 }
 
-func (c *GChatClient) Connect(ctx context.Context) error {
+func (c *GChatClient) Connect(ctx context.Context) {
 	c.client.OnConnect.AddObserver(func(interface{}) { c.onConnect(ctx) })
 	c.client.OnStreamEvent.AddObserver(func(evt interface{}) { c.onStreamEvent(ctx, evt) })
 
@@ -51,25 +52,24 @@ func (c *GChatClient) Connect(ctx context.Context) error {
 			Message:    err.Error(),
 		})
 	}
-	return err
 }
 
 func (c *GChatClient) Disconnect() {
 }
 
-var dmCaps = &bridgev2.NetworkRoomCapabilities{
-	Edits:   true,
-	Replies: true,
+var dmCaps = &event.RoomFeatures{
+	Edit:  event.CapLevelFullySupported,
+	Reply: event.CapLevelFullySupported,
 }
 
-var spaceCaps *bridgev2.NetworkRoomCapabilities
+var spaceCaps *event.RoomFeatures
 
 func init() {
 	spaceCaps = ptr.Clone(dmCaps)
-	spaceCaps.Threads = true
+	spaceCaps.Thread = event.CapLevelFullySupported
 }
 
-func (c *GChatClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *bridgev2.NetworkRoomCapabilities {
+func (c *GChatClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	if strings.Contains(string(portal.ID), "space") {
 		return spaceCaps
 	}
