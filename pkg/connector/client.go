@@ -67,9 +67,81 @@ func (c *GChatClient) Connect(ctx context.Context) {
 func (c *GChatClient) Disconnect() {
 }
 
+// sourced from web client: "Please edit it down to 12000 characters or split over multiple messages."
+const maxTextLength = 12000
+
+// ditto
+const maxFileSize = 200 * 1024 * 1024
+const capId = "fi.mau.googlechat.capabilities.2025_04_29"
+
 var dmCaps = &event.RoomFeatures{
-	Edit:  event.CapLevelFullySupported,
-	Reply: event.CapLevelFullySupported,
+	ID: capId,
+
+	Formatting: map[event.FormattingFeature]event.CapabilitySupportLevel{
+		event.FmtBold:          event.CapLevelFullySupported,
+		event.FmtItalic:        event.CapLevelFullySupported,
+		event.FmtStrikethrough: event.CapLevelFullySupported,
+		event.FmtInlineCode:    event.CapLevelFullySupported,
+		event.FmtCodeBlock:     event.CapLevelUnsupported,
+		event.FmtUserLink:      event.CapLevelFullySupported,
+		event.FmtUnorderedList: event.CapLevelFullySupported,
+		event.FmtOrderedList:   event.CapLevelUnsupported,
+		event.FmtListStart:     event.CapLevelFullySupported,
+		event.FmtBlockquote:    event.CapLevelUnsupported,
+
+		// network has support for this, but currently unimplemented
+		event.FmtInlineLink: event.CapLevelUnsupported,
+		event.FmtHeaders:    event.CapLevelUnsupported,
+	},
+
+	File: event.FileFeatureMap{
+		event.MsgImage: {
+			MimeTypes: map[string]event.CapabilitySupportLevel{
+				"image/png":  event.CapLevelFullySupported,
+				"image/jpeg": event.CapLevelFullySupported,
+				"image/webp": event.CapLevelFullySupported,
+				"image/gif":  event.CapLevelFullySupported,
+			},
+			Caption:          event.CapLevelFullySupported,
+			MaxCaptionLength: maxTextLength,
+		},
+		// TODO: event.MsgAudio
+		// TODO: event.CapMsgVoice
+		event.CapMsgGIF: {
+			MimeTypes: map[string]event.CapabilitySupportLevel{
+				"image/gif": event.CapLevelFullySupported,
+				// video/mp4?
+			},
+			Caption:          event.CapLevelFullySupported,
+			MaxCaptionLength: maxTextLength,
+			MaxSize:          maxFileSize,
+		},
+		event.MsgVideo: {
+			MimeTypes: map[string]event.CapabilitySupportLevel{
+				"video/mp4": event.CapLevelFullySupported,
+			},
+			Caption:          event.CapLevelFullySupported,
+			MaxCaptionLength: maxTextLength,
+			MaxSize:          maxFileSize,
+		},
+		event.MsgFile: {
+			MimeTypes: map[string]event.CapabilitySupportLevel{
+				"*/*": event.CapLevelFullySupported,
+			},
+			Caption:          event.CapLevelFullySupported,
+			MaxCaptionLength: maxTextLength,
+			MaxSize:          maxFileSize,
+		},
+	},
+
+	MaxTextLength:       maxTextLength,
+	Reply:               event.CapLevelFullySupported,
+	Edit:                event.CapLevelFullySupported,
+	Delete:              event.CapLevelFullySupported,
+	Reaction:            event.CapLevelFullySupported,
+	ReactionCount:       1,
+	ReadReceipts:        true,
+	TypingNotifications: true,
 }
 
 var spaceCaps *event.RoomFeatures
