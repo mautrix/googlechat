@@ -26,6 +26,7 @@ func (c *GChatClient) makeEventMeta(evt *proto.Event, typ bridgev2.RemoteEventTy
 		},
 		CreatePortal: typ == bridgev2.RemoteEventMessage,
 		Timestamp:    time.UnixMicro(ts),
+		StreamOrder:  ts,
 	}
 }
 
