@@ -72,6 +72,12 @@ func (gl *GChatCookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, err
 				},
 			},
 		}
+
+		if key == "COMPASS" {
+			// Further hint to clients that we need the COMPASS cookie value
+			// containing "dynamite-ui=".
+			fields[i].Pattern = "dynamite-ui="
+		}
 	}
 	step := &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeCookies,
