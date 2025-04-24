@@ -53,11 +53,23 @@ var _ bridgev2.LoginProcessCookies = (*GChatCookieLogin)(nil)
 func (gl *GChatCookieLogin) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 	fields := make([]bridgev2.LoginCookieField, 5)
 	for i, key := range gchatmeow.CookieNames {
+		var cookieDomain string
+		if gchatmeow.CookieIsDomainSpecific(key) {
+			// When logging in, cookies with names identical to ones we need will also
+			// be set for different subdomains; hint to clients that we require the ones
+			// for chat.google.com specifically.
+			cookieDomain = "chat.google.com"
+		}
+
 		fields[i] = bridgev2.LoginCookieField{
 			ID:       key,
 			Required: true,
 			Sources: []bridgev2.LoginCookieFieldSource{
-				{Type: bridgev2.LoginCookieTypeCookie, Name: key},
+				{
+					Type:         bridgev2.LoginCookieTypeCookie,
+					Name:         key,
+					CookieDomain: cookieDomain,
+				},
 			},
 		}
 	}
