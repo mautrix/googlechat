@@ -165,12 +165,12 @@ func (c *Client) RefreshTokens(ctx context.Context) error {
 func (c *Client) onReceiveArray(arg interface{}) {
 	array, ok := arg.([]interface{})
 	if !ok {
-		fmt.Printf("expected arg to be []interface{}, got %T", array[0])
+		log.Printf("[gchatmeow:client] error: expected arg to be any, got %T: %#v", array[0], array[0])
 		return
 	}
 
 	if len(array) == 0 {
-		fmt.Printf("received empty array")
+		log.Printf("[gchatmeow:client] error: got empty array")
 		return
 	}
 
@@ -182,12 +182,12 @@ func (c *Client) onReceiveArray(arg interface{}) {
 	// Get the data from array
 	data, ok := array[0].([]interface{})
 	if !ok {
-		fmt.Printf("expected array[0] to be []interface{}, got %T", array[0])
+		log.Printf("[gchatmeow:client] error: expected array[0] to be any, got %T: %#v", array[0], array[0])
 	}
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("[gchatmeow:client] error: failed to marshal data to json: %#v", err)
 		return
 	}
 
@@ -198,11 +198,11 @@ func (c *Client) onReceiveArray(arg interface{}) {
 		return
 	}
 
-	fmt.Println(resp)
+	log.Printf("[gchatmeow:client] stream event response: %#v", resp)
 
 	// Process each event body
 	for _, evt := range c.SplitEventBodies(resp.GetEvent()) {
-		log.Printf("Dispatching stream event: %v", evt.String())
+		log.Printf("[gchatmeow:client] dispatching stream event: %#v", evt.String())
 		c.OnStreamEvent.Fire(evt)
 	}
 
@@ -244,6 +244,7 @@ func (c *Client) GetSelf(ctx context.Context) (*proto.User, error) {
 		return nil, err
 	}
 	gcid := status.UserStatus.UserId.Id
+	log.Printf("[gchatmeow:client] attempting to get self (gcid: %#v)", gcid)
 	members, err := c.GetMembers(ctx, []string{gcid})
 	if err != nil {
 		return nil, err

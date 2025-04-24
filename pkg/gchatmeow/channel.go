@@ -364,7 +364,7 @@ func (c *Channel) longPollRequest(ctx context.Context) error {
 
 func (c *Channel) onPushData(dataBytes []byte) error {
 	// Log received chunk
-	// log.Printf("Received chunk:\n%s", string(dataBytes))
+	log.Printf("[gchatmeow:channel] received chunk (%d): %s", len(dataBytes), string(dataBytes))
 
 	// Process chunks
 	chunks := c.chunkParser.GetChunks(dataBytes)
@@ -376,6 +376,7 @@ func (c *Channel) onPushData(dataBytes []byte) error {
 				c.isConnected = true
 				c.OnReconnect.Fire(nil)
 			} else {
+				log.Printf("[gchatmeow:channel] marking as connected")
 				c.onConnectCalled = true
 				c.isConnected = true
 				c.OnConnect.Fire(nil)
@@ -385,7 +386,7 @@ func (c *Channel) onPushData(dataBytes []byte) error {
 		// Parse the container array
 		var containerArray [][]interface{}
 		if err := json.Unmarshal([]byte(chunk), &containerArray); err != nil {
-			fmt.Println("failed chunk:", chunk)
+			log.Printf("[gchatmeow:channel] failed to unmarshal chunk: %#v", chunk)
 			return fmt.Errorf("failed to unmarshal chunk: %w", err)
 		}
 
@@ -404,7 +405,7 @@ func (c *Channel) onPushData(dataBytes []byte) error {
 
 			dataArray := innerArray[1]
 
-			log.Printf("Chunk contains data array with id %f:\n%v", arrayID, dataArray)
+			log.Printf("[gchatmeow:channel] inner data array with id %#v: %#v", arrayID, dataArray)
 
 			// Fire receive array event
 			c.OnReceiveArray.Fire(dataArray)

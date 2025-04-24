@@ -2,7 +2,7 @@ package connector
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -126,11 +126,14 @@ func (c *GChatClient) getUsers(ctx context.Context, userIds []string) error {
 }
 
 func (c *GChatClient) onConnect(ctx context.Context) {
+
+	log.Printf("[connector:client] entered onConnect...")
 	res, err := c.client.Sync(ctx)
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("[connector:client] failed to sync! ctx: %#v", ctx)
 		return
 	}
+	// NOTE(skip): this ends up being empty
 	userIdMap := make(map[string]struct{})
 	for _, item := range res.WorldItems {
 		if item.DmMembers != nil {
@@ -139,16 +142,20 @@ func (c *GChatClient) onConnect(ctx context.Context) {
 			}
 		}
 	}
+	log.Printf("[connector:client] created userIdMap: %#v", userIdMap)
 	userIds := make([]string, len(userIdMap))
 	i := 0
 	for userId := range userIdMap {
 		userIds[i] = userId
 		i++
 	}
+	// NOTE(skip): this ends up being empty
+	log.Printf("[connector:client] created userIDs: %#v", userIds)
+	log.Printf("[connector:client] now going to get users...")
 
 	err = c.getUsers(ctx, userIds)
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("[connector:client] failed to get users! err: %#v", err)
 		return
 	}
 
@@ -171,7 +178,7 @@ func (c *GChatClient) onConnect(ctx context.Context) {
 		} else {
 			chatInfo, err = c.groupToChatInfo(ctx, item.GroupId)
 			if err != nil {
-				fmt.Println(err)
+				log.Printf("[connector:client] failed to grab chat info: %#v", err)
 				continue
 			}
 		}

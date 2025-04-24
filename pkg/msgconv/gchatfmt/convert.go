@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"log"
 	"sort"
 	"strings"
 
@@ -31,7 +32,7 @@ func Parse(ctx context.Context, portal *bridgev2.Portal,
 		utf16Str := gchatmeow.NewUTF16String(msg.TextBody)
 		bodyHtml, err := annotationsToMatrix(ctx, portal, utf16Str, msg.Annotations, 0, 0)
 		if err != nil {
-			fmt.Println("Parse error", err)
+			log.Printf("[msgconv:gchatfmt] error: annotation conversion error: %#v", err)
 		}
 
 		if bodyHtml != "" {

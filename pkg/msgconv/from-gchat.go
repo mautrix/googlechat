@@ -2,8 +2,8 @@ package msgconv
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"log"
 	"mime"
 	"net/url"
 	"strings"
@@ -34,7 +34,7 @@ func (mc *MessageConverter) ToMatrix(ctx context.Context, portal *bridgev2.Porta
 	for _, annotation := range msg.Annotations {
 		attachmentPart, err := mc.gcAnnotationToMatrix(ctx, portal, intent, annotation)
 		if err != nil {
-			fmt.Println(err)
+			log.Printf("[msgconv:from-gchat]: failed to convert annotation to matrix: %#v", err)
 			continue
 		}
 		if attachmentPart != nil {

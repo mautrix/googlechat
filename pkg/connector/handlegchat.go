@@ -2,7 +2,7 @@ package connector
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -32,7 +32,7 @@ func (c *GChatClient) makeEventMeta(evt *proto.Event, typ bridgev2.RemoteEventTy
 func (c *GChatClient) onStreamEvent(ctx context.Context, raw any) {
 	evt, ok := raw.(*proto.Event)
 	if !ok {
-		fmt.Println("Invalid event", raw)
+		log.Printf("[connector:handlegchat] can't handle stream event that isn't an event: %#v", raw)
 		return
 	}
 

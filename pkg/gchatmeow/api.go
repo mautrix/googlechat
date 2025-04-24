@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -21,7 +22,7 @@ func (c *Client) gcRequest(ctx context.Context, endpoint string, requestPB proto
 		headers.Set("x-framework-xsrf-token", c.xsrfToken)
 	}
 
-	fmt.Printf("Sending Protocol Buffer request %s:\n%s\n", endpoint, requestPB)
+	log.Printf("[gchatmeow:api] proto request to %#v: %#v\n", endpoint, requestPB)
 	c.apiReqID++
 
 	requestData, err := pb.Marshal(requestPB)
@@ -50,7 +51,7 @@ func (c *Client) gcRequest(ctx context.Context, endpoint string, requestPB proto
 		return fmt.Errorf("failed to decode Protocol Buffer response: %v", err)
 	}
 
-	fmt.Printf("Received Protocol Buffer response:\n%s\n", responsePB)
+	log.Printf("[gchatmeow:api] response from %#v: %#v", endpoint, responsePB)
 	return nil
 }
 
@@ -115,6 +116,7 @@ func (c *Client) GetMembers(ctx context.Context, ids []string) (*proto.GetMember
 		MemberIds:     memberIds,
 	}
 	response := &proto.GetMembersResponse{}
+	log.Printf("[gchatmeow:api] GetMembers %#v", request)
 	err := c.gcRequest(ctx, "get_members", request, response)
 	return response, err
 }
