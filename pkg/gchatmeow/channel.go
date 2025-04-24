@@ -51,7 +51,9 @@ type Channel struct {
 	ofs              int
 	rid              int
 
-	OnConnect      *Event
+	// Fired when receiving data from the channel for the first time. This is only ever fired once.
+	OnConnect *Event
+	// Fired when a connection is re-established. This can be fired multiple times.
 	OnReconnect    *Event
 	OnDisconnect   *Event
 	OnReceiveArray *Event

@@ -41,8 +41,18 @@ func NewClient(userLogin *bridgev2.UserLogin, client *gchatmeow.Client) *GChatCl
 }
 
 func (c *GChatClient) Connect(ctx context.Context) {
-	c.client.OnConnect.AddObserver(func(interface{}) { c.onConnect(ctx) })
-	c.client.OnStreamEvent.AddObserver(func(evt interface{}) { c.onStreamEvent(ctx, evt) })
+	c.client.OnConnect.AddObserver(func(any) {
+		c.userLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateConnected,
+		})
+		c.onConnect(ctx)
+	})
+	c.client.OnDisconnect.AddObserver(func(any) {
+		c.userLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateTransientDisconnect,
+		})
+	})
+	c.client.OnStreamEvent.AddObserver(func(evt any) { c.onStreamEvent(ctx, evt) })
 
 	err := c.client.Connect(ctx, time.Duration(90)*time.Minute)
 	if err != nil {
