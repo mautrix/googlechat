@@ -63,6 +63,11 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
+    entry_points={
+        'console_scripts': [
+            'mautrix-googlechat=mautrix_googlechat.__main__:main',
+        ]
+    },
     package_data={"mautrix_googlechat": [
         "web/static/*.png", "web/static/*.css", "web/static/*.html", "web/static/*.js",
         "example-config.yaml"
