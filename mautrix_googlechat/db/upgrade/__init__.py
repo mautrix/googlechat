@@ -13,4 +13,5 @@ from . import (
     v08_web_app_auth,
     v09_web_app_ua,
     v10_store_microsecond_timestamp,
+    v11_add_space_mxid_to_user,
 )
