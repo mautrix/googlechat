@@ -699,6 +699,7 @@ class Portal(DBPortal, BasePortal):
                 initial_state=initial_state,
                 invitees=invites,
                 creation_content=creation_content,
+                room_version="11",
             )
             if not self.mxid:
                 raise Exception("Failed to create room: no mxid returned")
