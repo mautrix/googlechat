@@ -27,7 +27,6 @@ import re
 import time
 
 import aiohttp
-import async_timeout
 
 from mautrix.util.opt_prometheus import Counter
 
@@ -445,7 +444,7 @@ class Channel:
                         await self._send_initial_ping()
 
                 while True:
-                    async with async_timeout.timeout(PUSH_TIMEOUT):
+                    async with asyncio.timeout(PUSH_TIMEOUT):
                         chunk = await res.content.read(MAX_READ_BYTES)
                     if not chunk:
                         break

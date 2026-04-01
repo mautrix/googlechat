@@ -10,7 +10,6 @@ import re
 
 from yarl import URL
 import aiohttp
-import async_timeout
 
 from . import exceptions
 
@@ -143,7 +142,7 @@ class Session:
                     allow_redirects=allow_redirects,
                     data=data,
                 ) as res:
-                    async with async_timeout.timeout(REQUEST_TIMEOUT):
+                    async with asyncio.timeout(REQUEST_TIMEOUT):
                         body = await res.read()
                 log_body = body
                 if isinstance(url, str) and "/u/0/mole/world" in url:
