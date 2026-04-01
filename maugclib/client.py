@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Iterator
+from typing import Dict, Iterator
+from email.message import EmailMessage
 from urllib.parse import urlencode
 import asyncio
 import base64
 import binascii
-import cgi
 import datetime
 import json
 import logging
@@ -32,6 +32,13 @@ GC_BASE_URL = "https://chat.google.com/u/0"
 
 
 wiz_pattern = re.compile(r">window.WIZ_global_data = ({.+?});</script>")
+
+
+def parse_header(header: str) -> Dict[str, str]:
+    """Replacement for the old cgi.parse_header()"""
+    msg = EmailMessage()
+    msg["Content-Disposition"] = header
+    return msg["Content-Disposition"].params
 
 
 class Client:
@@ -224,7 +231,7 @@ class Client:
 
                     resp.raise_for_status()
                     try:
-                        _, params = cgi.parse_header(resp.headers["Content-Disposition"])
+                        params = parse_header(resp.headers["Content-Disposition"])
                         filename = params.get("filename") or url.path.split("/")[-1]
                     except KeyError:
                         filename = url.path.split("/")[-1]
