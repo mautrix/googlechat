@@ -46,22 +46,22 @@ class GCUserMentionType(Enum):
 class GCEntityType(Enum):
     """EntityType is a Matrix formatting entity type."""
 
-    BOLD = GCFormatType.BOLD
-    ITALIC = GCFormatType.ITALIC
-    STRIKETHROUGH = GCFormatType.STRIKE
-    UNDERLINE = GCFormatType.UNDERLINE
+    BOLD = (GCFormatType.BOLD).value
+    ITALIC = (GCFormatType.ITALIC).value
+    STRIKETHROUGH = (GCFormatType.STRIKE).value
+    UNDERLINE = (GCFormatType.UNDERLINE).value
     URL = auto()
     EMAIL = auto()
-    USER_MENTION = GCUserMentionType.MENTION
-    MENTION_ALL = GCUserMentionType.MENTION_ALL
-    PREFORMATTED = GCFormatType.MONOSPACE_BLOCK
-    INLINE_CODE = GCFormatType.MONOSPACE
-    COLOR = GCFormatType.FONT_COLOR
+    USER_MENTION = (GCUserMentionType.MENTION).value
+    MENTION_ALL = (GCUserMentionType.MENTION_ALL).value
+    PREFORMATTED = (GCFormatType.MONOSPACE_BLOCK).value
+    INLINE_CODE = (GCFormatType.MONOSPACE).value
+    COLOR = (GCFormatType.FONT_COLOR).value
 
     # Google Chat specific types, not present in mautrix-python's EntityType
-    LIST = GCFormatType.BULLETED_LIST
-    LIST_ITEM = GCFormatType.BULLETED_LIST_ITEM
-    HIDDEN = GCFormatType.HIDDEN
+    LIST = (GCFormatType.BULLETED_LIST).value
+    LIST_ITEM = (GCFormatType.BULLETED_LIST_ITEM).value
+    HIDDEN = (GCFormatType.HIDDEN).value
 
 
 class GCEntity(SemiAbstractEntity):
