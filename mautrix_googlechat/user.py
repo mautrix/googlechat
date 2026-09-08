@@ -617,8 +617,8 @@ class User(DBUser, BaseUser):
                 googlechat.PaginatedWorldRequest.EXCLUDE_GROUP_LITE,
             ],
         )
-        if limit:
-            req.world_section_requests.append(googlechat.WorldSectionRequest(page_size=limit))
+        page_size = limit or self.config["bridge.initial_chat_sync"] or 50
+        req.world_section_requests.append(googlechat.WorldSectionRequest(page_size=page_size))
         resp = await self.client.proto_paginated_world(req)
         items: list[googlechat.WorldItemLite] = list(resp.world_items)
         items.sort(key=lambda item: item.sort_timestamp, reverse=True)
